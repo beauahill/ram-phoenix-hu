@@ -1,0 +1,9 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+    <!-- Stylized phoenix flame, amber -->
+    <path android:fillColor="#F2A33C"
+        android:pathData="M54,24c6,10 14,14 14,26c0,4 -2,8 -5,11c2,-6 -1,-11 -5,-14c1,7 -3,12 -8,15c-7,-4 -11,-11 -11,-19c0,-9 6,-14 10,-22c1,8 5,10 6,16c3,-4 2,-9 -1,-14c2,-2 4,-4 5,-5z" />
+    <path android:fillColor="#FFD089"
+        android:pathData="M52,48c3,5 6,7 6,13c0,3 -2,6 -5,7c1,-4 -1,-7 -3,-9c-1,4 -2,7 -5,9c-3,-3 -4,-6 -4,-10c0,-5 4,-7 6,-11c1,4 3,5 4,8c1,-2 1,-4 0,-6z" />
+</vector>

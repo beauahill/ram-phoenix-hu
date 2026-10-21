@@ -129,3 +129,10 @@ Direct sysfs knobs, no IPC/root needed:
 ### Open question for the 360 rebuild
 
 Only two non-SYU custom apps exist: `com.fyt.screenbutton` (button/overlay) and `com.syu.fytgesture` (gesture). There is **no separate AVM/bird's-eye app** — the 360 render lives inside `com.syu.us` + `com.syu.doublecamera`. If we want our own 360 view we either (a) reuse their Camera2 device binding and the ISP-stitched output, or (b) go full-custom bird's-eye from the 4 raw inputs (later milestone, much bigger). Milestone 1 stays: clean single-cam reverse + manual-button view, instant, no restart loop.
+
+## Punch list (remaining / future)
+
+- [ ] **Front camera device ID** — tentatively Camera2 device `12`; confirm live by opening candidates on the unit (3 analog decoders on board). Rear = dev 14 (confirmed), 360 = dev 14 + dev 10 (confirmed).
+- [ ] **Parking-sensor data index** — strip is wired but reads a stub; real distances ride canbus IPC via `com.syu.us`. Capture the exact IPC slot live while approaching an object.
+- [ ] **Dynamic steering-reactive centerline** (Beau request 2026-10-20) — guidelines that bend as the wheel turns. Stock `back.Module` uses *static* geometry (wheelbase/track/cam-angle); need to (a) static-analyze the decompiled stock camera for whether it subscribes to a live steering-angle signal, and (b) find the steering-angle index on the canbus IPC. Then subscribe (same pipe as the reverse flag) and redraw the trajectory curve live. Almost certainly on the bus given the truck has 360.
+- [ ] **Live color/exposure tuning** — stock feed is washed out (interior reflection); tune via `/sys/lsecdcamctl/` signal knobs on the real cameras.

@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@color/transparent">
+
+    <!-- ===== Header: big clock + settings ===== -->
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingStart="32dp"
+        android:paddingEnd="32dp"
+        android:paddingTop="56dp"
+        android:paddingBottom="28dp">
+
+        <LinearLayout
+            android:id="@+id/clock_block"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentStart="true"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/clock_time"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="12:00 am"
+                android:textColor="@color/text_primary"
+                android:textSize="72sp"
+                android:fontFamily="sans-serif-thin"
+                android:letterSpacing="-0.02"
+                android:includeFontPadding="false" />
+
+            <TextView
+                android:id="@+id/clock_date"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="Day, Month 0"
+                android:textColor="@color/text_secondary"
+                android:textSize="20sp"
+                android:fontFamily="sans-serif-light" />
+        </LinearLayout>
+
+        <ImageView
+            android:id="@+id/btn_settings"
+            android:layout_width="56dp"
+            android:layout_height="56dp"
+            android:layout_alignParentEnd="true"
+            android:layout_centerVertical="true"
+            android:padding="12dp"
+            android:background="@drawable/item_ripple"
+            android:src="@drawable/ic_settings"
+            android:contentDescription="@string/settings"
+            android:scaleType="fitCenter" />
+    </RelativeLayout>
+
+    <!-- ===== Pinned quick-launch tiles ===== -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/pinned_row"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingStart="24dp"
+        android:paddingEnd="24dp"
+        android:paddingBottom="12dp"
+        android:clipToPadding="false"
+        android:scrollbars="none" />
+
+    <!-- ===== Apps header ===== -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="34dp"
+        android:layout_marginTop="12dp"
+        android:layout_marginBottom="6dp"
+        android:text="@string/apps_header"
+        android:textAllCaps="true"
+        android:textColor="@color/text_secondary"
+        android:textSize="13sp"
+        android:letterSpacing="0.14"
+        android:fontFamily="sans-serif-medium" />
+
+    <!-- ===== App drawer grid ===== -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/app_grid"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:paddingTop="4dp"
+        android:paddingBottom="40dp"
+        android:clipToPadding="false"
+        android:scrollbars="none" />
+
+</LinearLayout>
