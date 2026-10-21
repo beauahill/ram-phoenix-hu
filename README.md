@@ -47,3 +47,6 @@ We build everything above that:
   reverse trigger, button path, 360 system, sysfs control plane, punch list).
 - `docs/findings.md` — dated recon log.
 - `docs/REVIEW-2026-10-21.md` — desk review of the camera app + findings.
+
+## Wish list
+Unscheduled ideas live in `docs/WISHLIST.md` (first entry: a maintenance tracker app for oil / fuel-filter / tire service logs).
