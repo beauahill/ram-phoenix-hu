@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Live map card. The osmdroid MapView is added into map_container in code. -->
+<!-- Live map card. The Google MapView is added into map_container in code. -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/map_card"
     android:layout_width="match_parent"

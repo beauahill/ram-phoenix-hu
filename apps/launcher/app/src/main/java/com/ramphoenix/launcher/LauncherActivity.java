@@ -225,6 +225,12 @@ public class LauncherActivity extends Activity implements Pane.Host {
     }
 
     @Override
+    public void onLowMemory() {
+        super.onLowMemory();
+        map.onLowMemory();
+    }
+
+    @Override
     public void onBackPressed() {
         // A home screen swallows BACK.
     }

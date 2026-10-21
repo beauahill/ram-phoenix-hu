@@ -2,6 +2,17 @@ plugins {
     id 'com.android.application'
 }
 
+// Google Maps key: read from the repo-root local.properties (gitignored) or the
+// MAPS_API_KEY env var. Never commit it. Empty key = map renders a blank grid.
+def mapsKey = System.getenv('MAPS_API_KEY') ?: ''
+def lp = rootProject.file('../../local.properties')
+if (!mapsKey && lp.exists()) {
+    def p = new Properties()
+    lp.withInputStream { p.load(it) }
+    mapsKey = p.getProperty('MAPS_API_KEY', '')
+}
+if (!mapsKey) logger.warn('WARNING: MAPS_API_KEY not set; map card will be blank on device')
+
 android {
     namespace 'com.ramphoenix.launcher'
     compileSdk 34
@@ -10,8 +21,9 @@ android {
         applicationId 'com.ramphoenix.launcher'
         minSdk 31
         targetSdk 33
-        versionCode 2
-        versionName '0.2'
+        versionCode 3
+        versionName '0.3'
+        manifestPlaceholders = [MAPS_API_KEY: mapsKey]
     }
 
     buildTypes {
@@ -33,7 +45,7 @@ android {
 }
 
 dependencies {
-    // Deliberately no AndroidX: plain framework widgets keep the home screen's
-    // cold start small on the head unit. osmdroid = key-free OpenStreetMap tiles.
-    implementation 'org.osmdroid:osmdroid-android:6.1.18'
+    // Our own UI stays on plain framework widgets (small cold start). Play Services
+    // pulls androidx.fragment/core transitively; that's the price of the real Google map.
+    implementation 'com.google.android.gms:play-services-maps:18.2.0'
 }

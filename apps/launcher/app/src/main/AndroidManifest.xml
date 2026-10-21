@@ -4,14 +4,12 @@
 
     <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES"
         tools:ignore="QueryAllPackagesPermission" />
-    <!-- map tiles -->
+    <!-- Google Maps tiles -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <!-- GPS: map follow + speed widget (until canbus speed is pinned) -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
-    <!-- osmdroid's own manifest asks for this; we use the app cache dir instead -->
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" tools:node="remove" />
 
     <application
         android:allowBackup="false"
@@ -19,6 +17,12 @@
         android:label="@string/app_name"
         android:supportsRtl="false"
         android:theme="@style/Theme.RamLauncher">
+
+        <!-- Google Maps SDK key, injected from local.properties at build time (see app/build.gradle) -->
+        <meta-data
+            android:name="com.google.android.geo.API_KEY"
+            android:value="${MAPS_API_KEY}" />
+        <uses-library android:name="org.apache.http.legacy" android:required="false" />
 
         <!-- HOME: the dashboard -->
         <activity
