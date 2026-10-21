@@ -53,7 +53,7 @@ public class ReverseService extends Service {
         super.onCreate();
         startForeground(FG_ID, buildOngoing());
         logLaunchCapability();
-        monitor = new ReverseMonitor(engaged -> {
+        monitor = new ReverseMonitor(this, engaged -> {
             Log.i(TAG, "service reverse -> " + engaged);
             if (engaged) {
                 showCamera();

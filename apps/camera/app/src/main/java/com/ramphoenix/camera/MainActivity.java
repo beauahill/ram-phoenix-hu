@@ -104,7 +104,7 @@ public class MainActivity extends AppCompatActivity {
             @Override public void surfaceDestroyed(@NonNull SurfaceHolder h) { auxSurfaceReady = false; camAux.close(); }
         });
 
-        reverse = new ReverseMonitor(engaged -> {
+        reverse = new ReverseMonitor(this, engaged -> {
             if (engaged) { reverseInitiated = true; setMode(CameraMode.REAR); }
             else if (reverseInitiated) { reverseInitiated = false; moveTaskToBack(true); }
         });
