@@ -58,6 +58,7 @@ public class MapWidget {
         map.setMultiTouchControls(true);
         map.setTilesScaledToDpi(true);
         map.getZoomController().setVisibility(CustomZoomButtonsController.Visibility.NEVER);
+        map.setDestroyMode(false); // we re-parent the view between layouts; tear down only in onDestroy()
         map.getController().setZoom(IDLE_ZOOM);
         map.getController().setCenter(new GeoPoint(39.5, -98.35)); // until the first fix
         container.addView(map, ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);

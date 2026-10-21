@@ -1,7 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Phoenix dashboard — CarPlay-style home for the portrait 1080x1920 panel.
-     Upper half: live map + now-playing. Lower half: speed + vehicle sensors.
-     Bottom: dock. Heights are weights so the split survives any density. -->
+     Status row + dock on top. Below that, one of two layouts (toggle in the
+     status row, persisted):
+       FULL  — map, now-playing and drive gauges stacked, filling the screen.
+       SPLIT — two 50/50 landscape panes, each showing whichever widget (or app)
+               its own picker selects.
+     The widgets themselves (layout/widget_*.xml) are inflated once and moved
+     between the FULL slots and the panes. -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
@@ -67,6 +72,17 @@
                 android:textSize="15sp" />
 
             <ImageView
+                android:id="@+id/btn_layout"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:layout_marginEnd="10dp"
+                android:padding="7dp"
+                android:background="@drawable/glass_circle"
+                android:src="@drawable/ic_layout_split"
+                android:contentDescription="@string/layout_toggle"
+                android:scaleType="fitCenter" />
+
+            <ImageView
                 android:id="@+id/btn_settings"
                 android:layout_width="36dp"
                 android:layout_height="36dp"
@@ -77,309 +93,68 @@
                 android:scaleType="fitCenter" />
         </LinearLayout>
 
-        <!-- ===== map card ===== -->
-        <FrameLayout
-            android:id="@+id/map_card"
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="4"
-            android:layout_marginTop="12dp"
-            android:background="@drawable/glass_card"
-            android:clipToOutline="true">
-
-            <!-- osmdroid MapView is added here in code -->
-            <FrameLayout
-                android:id="@+id/map_container"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:background="@color/map_bg" />
-
-            <ImageView
-                android:id="@+id/btn_nav"
-                android:layout_width="42dp"
-                android:layout_height="42dp"
-                android:layout_gravity="top|start"
-                android:layout_margin="14dp"
-                android:padding="9dp"
-                android:background="@drawable/glass_circle"
-                android:src="@drawable/ic_nav"
-                android:contentDescription="@string/navigation" />
-
-            <LinearLayout
-                android:layout_width="42dp"
-                android:layout_height="wrap_content"
-                android:layout_gravity="top|end"
-                android:layout_margin="14dp"
-                android:orientation="vertical"
-                android:background="@drawable/glass_pill">
-                <TextView
-                    android:id="@+id/btn_zoom_in"
-                    android:layout_width="match_parent"
-                    android:layout_height="40dp"
-                    android:gravity="center"
-                    android:text="@string/zoom_in"
-                    android:textColor="@color/text_primary"
-                    android:textSize="22sp" />
-                <View
-                    android:layout_width="24dp"
-                    android:layout_height="1dp"
-                    android:layout_gravity="center_horizontal"
-                    android:background="@color/glass_stroke" />
-                <TextView
-                    android:id="@+id/btn_zoom_out"
-                    android:layout_width="match_parent"
-                    android:layout_height="40dp"
-                    android:gravity="center"
-                    android:text="@string/zoom_out"
-                    android:textColor="@color/text_primary"
-                    android:textSize="22sp" />
-            </LinearLayout>
-
-            <LinearLayout
-                android:id="@+id/search_bar"
-                android:layout_width="match_parent"
-                android:layout_height="48dp"
-                android:layout_gravity="bottom"
-                android:layout_margin="14dp"
-                android:orientation="horizontal"
-                android:gravity="center_vertical"
-                android:paddingStart="16dp"
-                android:paddingEnd="16dp"
-                android:background="@drawable/glass_pill">
-                <ImageView
-                    android:layout_width="22dp"
-                    android:layout_height="22dp"
-                    android:src="@drawable/ic_mic"
-                    android:contentDescription="@null" />
-                <ImageView
-                    android:layout_width="22dp"
-                    android:layout_height="22dp"
-                    android:layout_marginStart="14dp"
-                    android:src="@drawable/ic_search"
-                    android:contentDescription="@null" />
-                <TextView
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:layout_marginStart="16dp"
-                    android:text="@string/where_to"
-                    android:textColor="@color/text_secondary"
-                    android:textSize="16sp" />
-            </LinearLayout>
-        </FrameLayout>
-
-        <!-- ===== media card ===== -->
-        <LinearLayout
-            android:id="@+id/media_card"
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="2"
-            android:layout_marginTop="12dp"
-            android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:paddingStart="18dp"
-            android:paddingEnd="18dp"
-            android:background="@drawable/glass_card"
-            android:clipToOutline="true">
-
-            <ImageView
-                android:id="@+id/media_art"
-                android:layout_width="132dp"
-                android:layout_height="132dp"
-                android:scaleType="centerCrop"
-                android:src="@drawable/ic_media_fallback"
-                android:background="@drawable/glass_tile"
-                android:contentDescription="@null" />
-
-            <LinearLayout
-                android:layout_width="0dp"
-                android:layout_height="132dp"
-                android:layout_weight="1"
-                android:layout_marginStart="17dp"
-                android:orientation="vertical">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical">
-                    <ImageView
-                        android:id="@+id/media_src_icon"
-                        android:layout_width="20dp"
-                        android:layout_height="20dp"
-                        android:contentDescription="@null" />
-                    <TextView
-                        android:id="@+id/media_src_name"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginStart="7dp"
-                        android:textColor="@color/text_secondary"
-                        android:textSize="13sp" />
-                </LinearLayout>
-
-                <TextView
-                    android:id="@+id/media_title"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="6dp"
-                    android:text="@string/nothing_playing"
-                    android:textColor="@color/text_primary"
-                    android:textSize="22sp"
-                    android:fontFamily="sans-serif-medium"
-                    android:maxLines="1"
-                    android:ellipsize="end"
-                    android:includeFontPadding="false" />
-
-                <TextView
-                    android:id="@+id/media_artist"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="3dp"
-                    android:text="@string/open_media_hint"
-                    android:textColor="@color/text_secondary"
-                    android:textSize="14sp"
-                    android:maxLines="1"
-                    android:ellipsize="end" />
-
-                <ProgressBar
-                    android:id="@+id/media_progress"
-                    style="?android:attr/progressBarStyleHorizontal"
-                    android:layout_width="match_parent"
-                    android:layout_height="4dp"
-                    android:layout_marginTop="10dp"
-                    android:max="1000"
-                    android:progress="0"
-                    android:progressTint="@color/teal"
-                    android:progressBackgroundTint="@color/glass_stroke" />
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="0dp"
-                    android:layout_weight="1"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical">
-                    <ImageView
-                        android:id="@+id/media_prev"
-                        android:layout_width="0dp"
-                        android:layout_height="30dp"
-                        android:layout_weight="1"
-                        android:src="@drawable/ic_prev"
-                        android:background="@drawable/glass_circle"
-                        android:padding="2dp"
-                        android:contentDescription="@null" />
-                    <ImageView
-                        android:id="@+id/media_play"
-                        android:layout_width="46dp"
-                        android:layout_height="46dp"
-                        android:src="@drawable/ic_play"
-                        android:background="@drawable/glass_circle"
-                        android:padding="10dp"
-                        android:contentDescription="@null" />
-                    <ImageView
-                        android:id="@+id/media_next"
-                        android:layout_width="0dp"
-                        android:layout_height="30dp"
-                        android:layout_weight="1"
-                        android:src="@drawable/ic_next"
-                        android:background="@drawable/glass_circle"
-                        android:padding="2dp"
-                        android:contentDescription="@null" />
-                </LinearLayout>
-            </LinearLayout>
-        </LinearLayout>
-
-        <!-- ===== speed + vehicle row ===== -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="3.1"
-            android:layout_marginTop="12dp"
-            android:orientation="horizontal">
-
-            <LinearLayout
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_weight="0.41"
-                android:orientation="vertical"
-                android:gravity="center"
-                android:background="@drawable/glass_card">
-                <TextView
-                    android:id="@+id/speed_value"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="0"
-                    android:textColor="@color/text_primary"
-                    android:textSize="112sp"
-                    android:fontFamily="sans-serif-thin"
-                    android:letterSpacing="-0.04"
-                    android:includeFontPadding="false" />
-                <TextView
-                    android:id="@+id/speed_unit"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/mph"
-                    android:textColor="@color/text_secondary"
-                    android:textSize="17sp"
-                    android:letterSpacing="0.14" />
-                <TextView
-                    android:id="@+id/speed_source"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="18dp"
-                    android:text="@string/gps_searching"
-                    android:textColor="@color/text_tertiary"
-                    android:textSize="11sp"
-                    android:letterSpacing="0.12" />
-            </LinearLayout>
-
-            <LinearLayout
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_weight="0.59"
-                android:layout_marginStart="12dp"
-                android:orientation="vertical"
-                android:padding="16dp"
-                android:background="@drawable/glass_card">
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/vehicle"
-                    android:textColor="@color/text_secondary"
-                    android:textSize="11sp"
-                    android:letterSpacing="0.16"
-                    android:fontFamily="sans-serif-medium" />
-
-                <com.ramphoenix.launcher.TruckSensorView
-                    android:id="@+id/truck"
-                    android:layout_width="match_parent"
-                    android:layout_height="0dp"
-                    android:layout_weight="1"
-                    android:layout_marginTop="4dp" />
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:layout_marginTop="4dp">
-                    <include layout="@layout/stat_cell" android:id="@+id/stat_fuel" />
-                    <include layout="@layout/stat_cell" android:id="@+id/stat_coolant" />
-                    <include layout="@layout/stat_cell" android:id="@+id/stat_battery" />
-                    <include layout="@layout/stat_cell" android:id="@+id/stat_outside" />
-                </LinearLayout>
-            </LinearLayout>
-        </LinearLayout>
-
         <!-- ===== dock (buttons built in code) ===== -->
         <LinearLayout
             android:id="@+id/dock"
             android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1"
+            android:layout_height="76dp"
             android:layout_marginTop="12dp"
             android:orientation="horizontal"
             android:gravity="center"
             android:paddingStart="8dp"
             android:paddingEnd="8dp"
             android:background="@drawable/glass_card" />
+
+        <!-- ===== content: FULL or SPLIT ===== -->
+        <FrameLayout
+            android:id="@+id/content"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:layout_marginTop="12dp">
+
+            <LinearLayout
+                android:id="@+id/full_container"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:orientation="vertical">
+                <FrameLayout
+                    android:id="@+id/slot_full_map"
+                    android:layout_width="match_parent"
+                    android:layout_height="0dp"
+                    android:layout_weight="3.6" />
+                <FrameLayout
+                    android:id="@+id/slot_full_media"
+                    android:layout_width="match_parent"
+                    android:layout_height="0dp"
+                    android:layout_weight="2"
+                    android:layout_marginTop="12dp" />
+                <FrameLayout
+                    android:id="@+id/slot_full_drive"
+                    android:layout_width="match_parent"
+                    android:layout_height="0dp"
+                    android:layout_weight="2.9"
+                    android:layout_marginTop="12dp" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/split_container"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:orientation="vertical"
+                android:visibility="gone">
+                <FrameLayout
+                    android:id="@+id/pane_a"
+                    android:layout_width="match_parent"
+                    android:layout_height="0dp"
+                    android:layout_weight="1" />
+                <FrameLayout
+                    android:id="@+id/pane_b"
+                    android:layout_width="match_parent"
+                    android:layout_height="0dp"
+                    android:layout_weight="1"
+                    android:layout_marginTop="12dp" />
+            </LinearLayout>
+        </FrameLayout>
     </LinearLayout>
 </FrameLayout>

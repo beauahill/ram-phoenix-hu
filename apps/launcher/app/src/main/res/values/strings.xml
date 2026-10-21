@@ -28,4 +28,12 @@
     <string name="radio">Radio</string>
     <string name="zoom_in">+</string>
     <string name="zoom_out">−</string>
+    <string name="layout_toggle">Switch layout</string>
+    <string name="pane_map">Map</string>
+    <string name="pane_media">Media</string>
+    <string name="pane_drive">Drive</string>
+    <string name="pane_app">App</string>
+    <string name="pick_app_hint">Pick an app for this half</string>
+    <string name="open">Open</string>
+    <string name="freeform_hint">App opened full-screen: enable freeform windows for half-screen apps (see docs)</string>
 </resources>

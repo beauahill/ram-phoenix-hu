@@ -16,6 +16,8 @@ import android.os.Handler;
 import android.os.Looper;
 import android.os.SystemClock;
 import android.provider.Settings;
+import android.util.TypedValue;
+import android.view.ViewGroup;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
@@ -164,6 +166,34 @@ public class MediaWidget {
         Intent music = Dock.musicIntent(act);
         if (music != null) { music.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK); act.startActivity(music); }
     }
+
+    /** SPLIT pane (large) vs FULL-mode card (small): scale the text and controls. */
+    public void setLarge(boolean large) {
+        title.setTextSize(TypedValue.COMPLEX_UNIT_SP, large ? 34 : 22);
+        artist.setTextSize(TypedValue.COMPLEX_UNIT_SP, large ? 20 : 14);
+        srcName.setTextSize(TypedValue.COMPLEX_UNIT_SP, large ? 16 : 13);
+        int play = dp(large ? 72 : 46), side = dp(large ? 44 : 30);
+        ViewGroup.LayoutParams lp = btnPlay.getLayoutParams();
+        lp.width = play; lp.height = play; btnPlay.setLayoutParams(lp);
+        int pad = dp(large ? 16 : 10);
+        btnPlay.setPadding(pad, pad, pad, pad);
+        for (ImageView b : new ImageView[]{btnPrev, btnNext}) {
+            ViewGroup.LayoutParams p = b.getLayoutParams();
+            p.height = side; b.setLayoutParams(p);
+        }
+        ViewGroup.MarginLayoutParams pp = (ViewGroup.MarginLayoutParams) progress.getLayoutParams();
+        pp.topMargin = dp(large ? 22 : 10); pp.height = dp(large ? 6 : 4); progress.setLayoutParams(pp);
+        View controls = card.findViewById(R.id.media_controls);
+        ViewGroup.MarginLayoutParams cp = (ViewGroup.MarginLayoutParams) controls.getLayoutParams();
+        cp.topMargin = dp(large ? 22 : 10); controls.setLayoutParams(cp);
+        ViewGroup.MarginLayoutParams ip = (ViewGroup.MarginLayoutParams) card.findViewById(R.id.media_info).getLayoutParams();
+        ip.leftMargin = dp(large ? 28 : 17); ip.rightMargin = dp(large ? 56 : 6);
+        card.findViewById(R.id.media_info).setLayoutParams(ip);
+        int cpad = dp(large ? 24 : 14);
+        card.setPadding(cpad, cpad, cpad, cpad);
+    }
+
+    private int dp(int v) { return Math.round(v * density); }
 
     // ---- rendering ----
 

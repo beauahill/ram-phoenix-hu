@@ -3,14 +3,19 @@ package com.ramphoenix.launcher;
 import android.Manifest;
 import android.app.Activity;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.provider.Settings;
+import android.view.LayoutInflater;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.WindowInsets;
 import android.view.WindowInsetsController;
+import android.widget.FrameLayout;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -20,26 +25,42 @@ import java.util.Date;
 import java.util.Locale;
 
 /**
- * Phoenix dashboard — the HOME screen. CarPlay-style large widgets for the
- * portrait panel: live map + now-playing on the upper half, speed + vehicle
- * sensors below, a dock at the bottom. Plain framework widgets, no AndroidX.
+ * Phoenix dashboard — the HOME screen. Status row and dock on top, then one of
+ * two layouts (toggle in the status row, persisted):
  *
- * Data sources today:
- *   map / speed  -> GPS (LocationManager + osmdroid)
- *   media        -> MediaSessionManager (needs notification-listener access)
- *   vehicle      -> {@link VehicleData#STUB} until the canbus LSEC IPC indexes
- *                   for tire pressure / fuel / temps are pinned (see docs).
+ *   FULL  — live map, now-playing and drive gauges stacked to fill the screen.
+ *   SPLIT — two 50/50 landscape panes; each shows the widget (or app) its own
+ *           picker selects, so each half behaves like its own screen.
+ *
+ * The three widgets are inflated once and re-parented between the FULL slots
+ * and the panes. Data sources: map/speed = GPS; media = MediaSessionManager;
+ * vehicle = {@link VehicleData#STUB} until the canbus indexes are pinned.
  */
-public class LauncherActivity extends Activity {
+public class LauncherActivity extends Activity implements Pane.Host {
 
     private static final int REQ_LOC = 1;
+    private static final String PREFS = "phoenix";
+    private static final String PREF_MODE = "mode";
+    private static final String MODE_FULL = "full", MODE_SPLIT = "split";
+
+    private SharedPreferences prefs;
+    private String mode = MODE_FULL;
 
     private TextView tvTime, tvDate, tvOutside;
+    private ImageView btnLayout;
+
+    // shared widgets (inflated once, moved between containers)
+    private View mapCard, mediaCard, driveRow;
     private MapWidget map;
     private MediaWidget media;
     private SpeedWidget speed;
     private TruckSensorView truck;
     private StatCell fuel, coolant, battery, outside;
+
+    // containers
+    private View fullContainer, splitContainer;
+    private FrameLayout slotFullMap, slotFullMedia, slotFullDrive;
+    private Pane paneA, paneB;
 
     private VehicleData vehicle = VehicleData.STUB;
 
@@ -66,36 +87,121 @@ public class LauncherActivity extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_launcher);
         goImmersive();
+        prefs = getSharedPreferences(PREFS, MODE_PRIVATE);
+        mode = prefs.getString(PREF_MODE, MODE_FULL);
 
         tvTime = findViewById(R.id.clock_time);
         tvDate = findViewById(R.id.clock_date);
         tvOutside = findViewById(R.id.status_outside);
+        btnLayout = findViewById(R.id.btn_layout);
+        btnLayout.setOnClickListener(v -> toggleMode());
         findViewById(R.id.btn_settings).setOnClickListener(v -> openSettings());
-
-        map = new MapWidget(this, findViewById(R.id.map_container));
-        findViewById(R.id.btn_nav).setOnClickListener(v -> launchOrToast(Dock.navIntent(this)));
-        findViewById(R.id.search_bar).setOnClickListener(v -> launchOrToast(Dock.navIntent(this)));
-        findViewById(R.id.btn_zoom_in).setOnClickListener(v -> map.zoomIn());
-        findViewById(R.id.btn_zoom_out).setOnClickListener(v -> map.zoomOut());
-
-        media = new MediaWidget(this, findViewById(R.id.media_card));
-        speed = new SpeedWidget(this,
-                findViewById(R.id.speed_value),
-                findViewById(R.id.speed_unit),
-                findViewById(R.id.speed_source));
-
-        truck = findViewById(R.id.truck);
-        fuel    = new StatCell(findViewById(R.id.stat_fuel),    getString(R.string.fuel));
-        coolant = new StatCell(findViewById(R.id.stat_coolant), getString(R.string.coolant));
-        battery = new StatCell(findViewById(R.id.stat_battery), getString(R.string.battery));
-        outside = new StatCell(findViewById(R.id.stat_outside), getString(R.string.outside));
 
         Dock.build(this, (LinearLayout) findViewById(R.id.dock));
 
+        // --- widgets ---
+        ViewGroup content = findViewById(R.id.content);
+        LayoutInflater li = LayoutInflater.from(this);
+        mapCard = li.inflate(R.layout.widget_map, content, false);
+        mediaCard = li.inflate(R.layout.widget_media, content, false);
+        driveRow = li.inflate(R.layout.widget_drive, content, false);
+
+        map = new MapWidget(this, mapCard.findViewById(R.id.map_container));
+        mapCard.findViewById(R.id.btn_nav).setOnClickListener(v -> launchOrToast(Dock.navIntent(this)));
+        mapCard.findViewById(R.id.search_bar).setOnClickListener(v -> launchOrToast(Dock.navIntent(this)));
+        mapCard.findViewById(R.id.btn_zoom_in).setOnClickListener(v -> map.zoomIn());
+        mapCard.findViewById(R.id.btn_zoom_out).setOnClickListener(v -> map.zoomOut());
+
+        media = new MediaWidget(this, mediaCard);
+
+        speed = new SpeedWidget(this,
+                driveRow.findViewById(R.id.speed_value),
+                driveRow.findViewById(R.id.speed_unit),
+                driveRow.findViewById(R.id.speed_source));
+        truck = driveRow.findViewById(R.id.truck);
+        fuel    = new StatCell(driveRow.findViewById(R.id.stat_fuel),    getString(R.string.fuel));
+        coolant = new StatCell(driveRow.findViewById(R.id.stat_coolant), getString(R.string.coolant));
+        battery = new StatCell(driveRow.findViewById(R.id.stat_battery), getString(R.string.battery));
+        outside = new StatCell(driveRow.findViewById(R.id.stat_outside), getString(R.string.outside));
+
+        // --- containers ---
+        fullContainer = findViewById(R.id.full_container);
+        splitContainer = findViewById(R.id.split_container);
+        slotFullMap = findViewById(R.id.slot_full_map);
+        slotFullMedia = findViewById(R.id.slot_full_media);
+        slotFullDrive = findViewById(R.id.slot_full_drive);
+        paneA = new Pane(this, findViewById(R.id.pane_a), "pane_a", prefs, Pane.Content.MAP);
+        paneB = new Pane(this, findViewById(R.id.pane_b), "pane_b", prefs, Pane.Content.MEDIA);
+
+        applyMode();
         ensureLocationPermission();
         updateClock();
         updateVehicle();
     }
+
+    // ---- layout modes ----
+
+    private void toggleMode() {
+        mode = MODE_FULL.equals(mode) ? MODE_SPLIT : MODE_FULL;
+        prefs.edit().putString(PREF_MODE, mode).apply();
+        applyMode();
+    }
+
+    private void applyMode() {
+        boolean split = MODE_SPLIT.equals(mode);
+        btnLayout.setImageResource(split ? R.drawable.ic_layout_full : R.drawable.ic_layout_split);
+        if (split) {
+            slotFullMap.removeAllViews();
+            slotFullMedia.removeAllViews();
+            slotFullDrive.removeAllViews();
+            fullContainer.setVisibility(View.GONE);
+            splitContainer.setVisibility(View.VISIBLE);
+            Pane.Content a = paneA.content(), b = paneB.content();
+            if (a == b && a != Pane.Content.APP) b = (a == Pane.Content.MAP) ? Pane.Content.MEDIA : Pane.Content.MAP;
+            paneA.show(a);
+            paneB.show(b);
+            media.setLarge(true);
+        } else {
+            paneA.clear();
+            paneB.clear();
+            splitContainer.setVisibility(View.GONE);
+            fullContainer.setVisibility(View.VISIBLE);
+            place(mapCard, slotFullMap);
+            place(mediaCard, slotFullMedia);
+            place(driveRow, slotFullDrive);
+            media.setLarge(false);
+        }
+    }
+
+    private static void place(View v, FrameLayout slot) {
+        Pane.detach(v);
+        slot.removeAllViews();
+        slot.addView(v, ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
+    }
+
+    // Pane.Host
+    @Override public View widgetFor(Pane.Content c) {
+        switch (c) {
+            case MAP: return mapCard;
+            case MEDIA: return mediaCard;
+            case DRIVE: return driveRow;
+            default: throw new IllegalArgumentException("no shared widget for " + c);
+        }
+    }
+
+    @Override public void onSelect(Pane pane, Pane.Content c) {
+        Pane other = (pane == paneA) ? paneB : paneA;
+        if (c != Pane.Content.APP && other.content() == c) {
+            // the shared widget can only live in one pane: swap
+            other.show(pane.content());
+        }
+        pane.show(c);
+        media.setLarge(true);
+    }
+
+    @Override public Activity activity() { return this; }
+
+    // ---- lifecycle ----
 
     @Override
     protected void onResume() {
