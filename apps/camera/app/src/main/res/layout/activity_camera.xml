@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#000000">
+
+    <!-- Primary camera feed (rear/front) -->
+    <SurfaceView
+        android:id="@+id/surface_main"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
+    <!-- Overhead / aux panel, top portion, visible only in 360 mode -->
+    <SurfaceView
+        android:id="@+id/surface_aux"
+        android:layout_width="match_parent"
+        android:layout_height="720dp"
+        android:layout_gravity="top"
+        android:visibility="gone" />
+
+    <!-- Parking guideline overlay (rear mode) -->
+    <com.ramphoenix.camera.GuidelineOverlay
+        android:id="@+id/guidelines"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
+    <!-- View selector buttons, top-right -->
+    <LinearLayout
+        android:id="@+id/selector"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top|end"
+        android:orientation="vertical"
+        android:padding="20dp" />
+
+    <!-- Parking-sensor proximity strip, bottom -->
+    <com.ramphoenix.camera.ParkingSensorView
+        android:id="@+id/sensors"
+        android:layout_width="match_parent"
+        android:layout_height="260dp"
+        android:layout_gravity="bottom"
+        android:background="#66000000" />
+
+</FrameLayout>

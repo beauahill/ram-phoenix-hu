@@ -1,0 +1,38 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'com.ramphoenix.camera'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId 'com.ramphoenix.camera'
+        minSdk 31          // Android 12; unit runs 13
+        targetSdk 33       // Android 13 (the head unit's OS)
+        versionCode 1
+        versionName '0.1'
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+        }
+    }
+
+    lint {
+        // Sideloaded over ADB onto a fixed head unit, never published to Play.
+        disable 'ExpiredTargetSdkVersion'
+        checkReleaseBuilds false
+        abortOnError false
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+dependencies {
+    implementation 'androidx.appcompat:appcompat:1.6.1'
+}
