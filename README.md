@@ -51,3 +51,6 @@ We build everything above that:
 - `docs/REVIEW-2026-10-21.md` — desk review of the camera app + findings.
 - `docs/LAUNCHER.md` — dashboard launcher: widgets, data sources, install steps.
 - `docs/REVIEW-2026-10-21b-camera-launcher.md` — review of the camera fixes + dashboard launcher branch (built both apps; findings C1–C5, L1–L8).
+
+## Wish list
+Unscheduled ideas live in `docs/WISHLIST.md` (first entry: a maintenance tracker app for oil / fuel-filter / tire service logs).
