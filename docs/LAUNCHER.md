@@ -63,6 +63,12 @@ for key-free OpenStreetMap tiles (CARTO dark basemap).
 | RPM dial, dual gauges (fuel/temp, batt/outside), tire psi | `VehicleData.STUB` → needles at rest, dashes | `CanbusVehicleData` once LSEC IPC `Main.DATA[]` indexes for rpm / tire psi / fuel / coolant / battery / outside temp are captured |
 | Dock | intent categories (`CATEGORY_APP_MAPS`, `CATEGORY_APP_MUSIC`, `ACTION_DIAL`), then package fallbacks, then label match ("radio") | pin the real SYU radio/music/phone package names |
 
+The truck in the card is traced from the RAM 3500 crew-cab dually blueprint in
+`docs/assets/ram-3500-blueprint.jpg` (top view, 6941 x 2009 mm) by
+`tools/gen_truck.py`, which writes `TruckOutline.java` (outer silhouette from
+the drawing's pixels, inner features from measured coordinates). Re-run it to
+re-trace; never hand-edit the generated file.
+
 `VehicleData` is the single seam for the canbus work: implement it, hand it to
 `LauncherActivity`, and the whole cluster (both dials, the four dual-gauge
 needles, tire colours, status temp) lights up. Scales: speed 0–120 mph, rpm

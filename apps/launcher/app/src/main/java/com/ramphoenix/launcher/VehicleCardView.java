@@ -59,14 +59,17 @@ public class VehicleCardView extends View {
     private final RectF rect = new RectF();
     private final Matrix truckMatrix = new Matrix();
 
-    // truck geometry in a 100 x 220 unit box, nose up
-    private final Path body = new Path(), hoodCrease = new Path(), windshield = new Path(),
-            roof = new Path(), rearWindow = new Path(), bed = new Path(), bedFloor = new Path(),
-            tailgate = new Path(), mirrors = new Path(), headlights = new Path(), taillights = new Path();
+    // truck geometry from TruckOutline (traced blueprint), unit box WIDTH x LENGTH, nose up
+    private final Path body = new Path(), hoodBulge = new Path(), windshield = new Path(),
+            roof = new Path(), rearWindow = new Path(), cabBack = new Path(), bed = new Path(),
+            bedFloor = new Path(), tailgate = new Path(), mirrors = new Path(), boards = new Path(),
+            lamps = new Path(), headlights = new Path(), taillights = new Path(), seams = new Path(),
+            wheelsInner = new Path();
     private final Path scratch = new Path();
-    private final RectF[] wheels = {   // FL, FR, RL, RR in unit coords
-            new RectF(-1, 38, 11, 68), new RectF(89, 38, 101, 68),
-            new RectF(-1, 166, 11, 196), new RectF(89, 166, 101, 196)};
+    private final Paint bulgeFill = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint boardFill = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint lampOrange = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint wheelInner = new Paint(Paint.ANTI_ALIAS_FLAG);
 
     private final int colorTeal, colorAmber, colorGreen, colorRed, colorPrimary, colorSecondary, colorTertiary, colorStroke;
 
@@ -107,6 +110,10 @@ public class VehicleCardView extends View {
         wheelFill.setColor(Color.rgb(0x2a, 0x2f, 0x3a));
         wheelStroke.setStyle(Paint.Style.STROKE);
         lamp.setColor(Color.argb(200, 255, 236, 180));
+        bulgeFill.setColor(Color.argb(16, 255, 255, 255));
+        boardFill.setColor(Color.argb(46, 255, 255, 255));
+        lampOrange.setColor(Color.argb(215, 255, 190, 80));
+        wheelInner.setColor(Color.rgb(0x23, 0x27, 0x30));
         buildTruck();
     }
 
@@ -140,8 +147,8 @@ public class VehicleCardView extends View {
                 rpm == null ? Fmt.NONE : String.format(Locale.US, "%.1f", rpm), "x1000", "RPM", 1f);
 
         // truck + tire pressure
-        final float truckH = H * 0.74f, truckW = truckH * (100f / 220f);
-        final float tx = W / 2f - truckW / 2f, ty = H * 0.04f;
+        final float truckH = H * 0.76f, truckW = truckH * (TruckOutline.WIDTH / TruckOutline.LENGTH);
+        final float tx = W / 2f - truckW / 2f, ty = H * 0.03f;
         drawTruck(c, tx, ty, truckW, truckH);
 
         // dual gauges
@@ -278,68 +285,89 @@ public class VehicleCardView extends View {
         c.drawLine(cx, cy, cx + cos * len, cy + sin * len, needle);
     }
 
-    // ---- truck ----
+    // ---- truck (TruckOutline = traced RAM 3500 blueprint) ----
+
+    private static void polygon(Path p, float[] xy, boolean close) {
+        p.moveTo(xy[0], xy[1]);
+        for (int i = 2; i < xy.length; i += 2) p.lineTo(xy[i], xy[i + 1]);
+        if (close) p.close();
+    }
+
+    private static void rect(Path p, float[] r, float radius) {
+        p.addRoundRect(r[0], r[1], r[2], r[3], radius, radius, Path.Direction.CW);
+    }
 
     private void buildTruck() {
-        // body: rounded nose, slight flare at the front fenders, straight sides, rounded tail
-        body.moveTo(22, 6); body.lineTo(78, 6); body.quadTo(90, 6, 91, 16);
-        body.lineTo(92, 60); body.lineTo(92, 206); body.quadTo(92, 214, 84, 214);
-        body.lineTo(16, 214); body.quadTo(8, 214, 8, 206);
-        body.lineTo(8, 60); body.lineTo(9, 16); body.quadTo(10, 6, 22, 6); body.close();
-        hoodCrease.moveTo(50, 12); hoodCrease.lineTo(50, 54);
-        hoodCrease.moveTo(12, 56); hoodCrease.lineTo(88, 56);
-        windshield.moveTo(14, 58); windshield.lineTo(86, 58); windshield.lineTo(80, 78); windshield.lineTo(20, 78); windshield.close();
-        roof.addRoundRect(20, 80, 80, 118, 6, 6, Path.Direction.CW);
-        rearWindow.moveTo(22, 120); rearWindow.lineTo(78, 120); rearWindow.lineTo(76, 130); rearWindow.lineTo(24, 130); rearWindow.close();
-        bed.addRoundRect(14, 136, 86, 206, 4, 4, Path.Direction.CW);
-        bedFloor.addRoundRect(18, 140, 82, 198, 3, 3, Path.Direction.CW);
-        tailgate.moveTo(14, 200); tailgate.lineTo(86, 200);
-        mirrors.addRoundRect(1, 62, 10, 72, 2, 2, Path.Direction.CW);
-        mirrors.addRoundRect(90, 62, 99, 72, 2, 2, Path.Direction.CW);
-        headlights.addRoundRect(14, 10, 30, 15, 2, 2, Path.Direction.CW);
-        headlights.addRoundRect(70, 10, 86, 15, 2, 2, Path.Direction.CW);
-        taillights.addRoundRect(10, 207, 24, 212, 2, 2, Path.Direction.CW);
-        taillights.addRoundRect(76, 207, 90, 212, 2, 2, Path.Direction.CW);
+        polygon(body, TruckOutline.BODY, true);
+        rect(hoodBulge, TruckOutline.HOOD_BULGE, 8f);
+        float[] w = TruckOutline.WINDSHIELD, bow = TruckOutline.COWL_BOW;
+        windshield.moveTo(w[0], w[1]); windshield.lineTo(w[2], w[3]); windshield.lineTo(w[4], w[5]);
+        windshield.lineTo(w[6], w[7]); windshield.quadTo(bow[0], bow[1], w[0], w[1]); windshield.close();
+        rect(roof, TruckOutline.ROOF, 14f);
+        polygon(rearWindow, TruckOutline.REAR_WINDOW, true);
+        polygon(cabBack, TruckOutline.CAB_BACK, false);
+        rect(bed, TruckOutline.BED, 4f);
+        rect(bedFloor, TruckOutline.BED_FLOOR, 3f);
+        rect(tailgate, TruckOutline.TAILGATE, 3f);
+        for (float[] r : TruckOutline.LAMPS) rect(lamps, r, 1.5f);
+        for (float[] r : TruckOutline.TAILLIGHTS) rect(taillights, r, 2f);
+        for (float[] r : TruckOutline.BOARDS) rect(boards, r, 2f);
+        for (float[] r : TruckOutline.WHEELS_INNER) rect(wheelsInner, r, 4f);
+        for (float[] q : TruckOutline.HEADLIGHTS) polygon(headlights, q, true);
+        for (float[] q : TruckOutline.MIRRORS) polygon(mirrors, q, true);
+        for (float[] q : TruckOutline.DOOR_SEAMS) polygon(seams, q, false);
     }
 
     private void drawTruck(Canvas c, float x, float y, float w, float h) {
-        final float s = h / 220f;
+        final float s = h / TruckOutline.LENGTH;
         truckMatrix.reset();
         truckMatrix.setScale(s, s);
         truckMatrix.postTranslate(x, y);
-        bodyStroke.setStrokeWidth(Math.max(1.5f, s * 1.6f));
-        detail.setStrokeWidth(Math.max(1f, s * 1.0f));
-        wheelStroke.setStrokeWidth(Math.max(1.5f, s * 1.8f));
+        bodyStroke.setStrokeWidth(Math.max(1.5f, s * 1.8f));
+        detail.setStrokeWidth(Math.max(1f, s * 1.2f));
+        wheelStroke.setStrokeWidth(Math.max(1.5f, s * 2.2f));
+
+        // wheels first: they sit under the fenders and show through the translucent body
+        for (int i = 0; i < 4; i++) {
+            Float psi = data.tirePsi(i);
+            float[] u = TruckOutline.WHEELS[i];
+            rect.set(x + u[0] * s, y + u[1] * s, x + u[2] * s, y + u[3] * s);
+            c.drawRoundRect(rect, s * 4f, s * 4f, wheelFill);
+            wheelStroke.setColor(psi == null ? Color.argb(120, 255, 255, 255)
+                    : (psi < PSI_LOW || psi > PSI_HIGH) ? colorAmber : colorGreen);
+            c.drawRoundRect(rect, s * 4f, s * 4f, wheelStroke);
+        }
+        drawPath(c, wheelsInner, wheelInner);
 
         drawPath(c, body, bodyFill); drawPath(c, body, bodyStroke);
-        drawPath(c, hoodCrease, detail);
+        drawPath(c, hoodBulge, bulgeFill); drawPath(c, hoodBulge, detail);
         drawPath(c, windshield, glass);
         drawPath(c, roof, bodyFill); drawPath(c, roof, detail);
         drawPath(c, rearWindow, glass);
-        drawPath(c, bed, detail);
-        drawPath(c, bedFloor, bedFill);
-        drawPath(c, tailgate, detail);
-        drawPath(c, mirrors, bodyFill); drawPath(c, mirrors, detail);
+        drawPath(c, lamps, lampOrange);
         drawPath(c, headlights, lamp);
         lamp.setColor(Color.argb(220, 229, 62, 62)); drawPath(c, taillights, lamp);
         lamp.setColor(Color.argb(200, 255, 236, 180));
+        drawPath(c, seams, detail);
+        drawPath(c, cabBack, detail);
+        drawPath(c, boards, boardFill);
+        drawPath(c, mirrors, boardFill); drawPath(c, mirrors, bodyStroke);
+        drawPath(c, bed, detail);
+        drawPath(c, bedFloor, bedFill);
+        drawPath(c, tailgate, bulgeFill); drawPath(c, tailgate, detail);
 
-        // wheels, stroked in the tire-pressure state colour, with psi beside them
-        textBig.setTextSize(h * 0.075f);
-        textLabel.setTextSize(h * 0.040f);
+        // tire pressure beside each wheel
+        textBig.setTextSize(h * 0.055f);
+        textLabel.setTextSize(h * 0.030f);
         for (int i = 0; i < 4; i++) {
             Float psi = data.tirePsi(i);
-            RectF u = wheels[i];
-            rect.set(x + u.left * s, y + u.top * s, x + u.right * s, y + u.bottom * s);
-            c.drawRoundRect(rect, s * 3f, s * 3f, wheelFill);
-            wheelStroke.setColor(psi == null ? Color.argb(120, 255, 255, 255) : (psi < PSI_LOW || psi > PSI_HIGH) ? colorAmber : colorGreen);
-            c.drawRoundRect(rect, s * 3f, s * 3f, wheelStroke);
-
+            float[] u = TruckOutline.WHEELS[i];
             boolean left = (i % 2 == 0);
-            float tx = left ? rect.left - h * 0.05f : rect.right + h * 0.05f;
+            float wx = left ? x + u[0] * s : x + u[2] * s;
+            float tx = left ? wx - h * 0.035f : wx + h * 0.035f;
+            float midY = y + (u[1] + u[3]) / 2f * s;
             textBig.setTextAlign(left ? Paint.Align.RIGHT : Paint.Align.LEFT);
             textLabel.setTextAlign(left ? Paint.Align.RIGHT : Paint.Align.LEFT);
-            float midY = rect.centerY();
             c.drawText(Fmt.psi(psi), tx, midY + textBig.getTextSize() * 0.1f, textBig);
             c.drawText("PSI", tx, midY + textBig.getTextSize() * 0.1f + textLabel.getTextSize() * 1.3f, textLabel);
         }
