@@ -1,0 +1,156 @@
+<!doctype html><html><head><meta charset="utf-8"><style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{width:1080px;height:1920px;overflow:hidden;font-family:"Inter","Roboto","Helvetica Neue",Arial,sans-serif;color:#f2f2f2;
+ background:radial-gradient(900px 600px at 20% -10%,#3a2410 0%,transparent 60%),radial-gradient(700px 500px at 110% 90%,#0e2a2e 0%,transparent 60%),#0b0c0f}
+.glass{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:28px;backdrop-filter:blur(20px);
+ box-shadow:0 10px 40px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.08)}
+/* status */
+.status{position:absolute;top:0;left:0;right:0;height:64px;padding:0 40px;display:flex;align-items:center;justify-content:space-between;font-size:26px;color:#cfd3d8}
+.status .l,.status .r{display:flex;gap:26px;align-items:center}
+/* dock */
+.dock{position:absolute;top:80px;left:30px;right:30px;height:200px;display:flex;align-items:center;justify-content:space-around;padding:0 10px}
+.app{display:flex;flex-direction:column;align-items:center;gap:12px;font-size:24px;color:#dfe3e8}
+.ic{width:120px;height:120px;border-radius:30px;display:flex;align-items:center;justify-content:center;font-size:54px;font-weight:700;
+ border:1px solid rgba(255,255,255,.14);box-shadow:0 8px 24px rgba(0,0,0,.5)}
+/* map */
+.map{position:absolute;top:304px;left:30px;right:30px;height:640px;overflow:hidden;background:#15181d}
+.map svg{position:absolute;inset:0}
+.map .pill{position:absolute;left:28px;top:26px;padding:14px 26px;font-size:28px;background:rgba(10,12,16,.75);border-radius:40px;border:1px solid rgba(255,255,255,.14)}
+.map .eta{position:absolute;right:28px;bottom:26px;padding:18px 30px;font-size:30px;background:rgba(10,12,16,.8);border-radius:24px;border:1px solid rgba(255,255,255,.14);text-align:right}
+.map .eta b{font-size:40px;color:#ffb347}
+/* now playing */
+.np{position:absolute;top:964px;left:30px;right:30px;height:200px;display:flex;align-items:center;padding:0 34px;gap:34px}
+.art{width:140px;height:140px;border-radius:24px;background:linear-gradient(135deg,#8a3b1a,#2c1a3d);box-shadow:0 8px 30px rgba(0,0,0,.6);flex:none}
+.np .meta{flex:1;min-width:0}
+.np .src{font-size:22px;color:#ffb347;letter-spacing:2px;text-transform:uppercase}
+.np .t{font-size:40px;font-weight:600;margin-top:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.np .a{font-size:28px;color:#aeb4bc;margin-top:6px}
+.np .bar{height:6px;background:rgba(255,255,255,.12);border-radius:3px;margin-top:22px;overflow:hidden}
+.np .bar i{display:block;height:100%;width:38%;background:#ffb347}
+.ctl{display:flex;gap:30px;align-items:center}
+.ctl span{width:84px;height:84px;border-radius:50%;background:rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;font-size:36px}
+.ctl span.p{width:104px;height:104px;background:#ffb347;color:#1a1208;font-size:44px}
+/* truck */
+.truck{position:absolute;top:1188px;left:30px;right:30px;height:330px;padding:24px 34px;display:flex;gap:30px}
+.truck .left{width:380px;position:relative}
+.truck .left svg{width:100%;height:100%}
+.tp{position:absolute;font-size:26px;font-weight:600;background:rgba(0,0,0,.55);padding:6px 12px;border-radius:12px;border:1px solid rgba(255,255,255,.12)}
+.truck .right{flex:1;display:grid;grid-template-columns:1fr 1fr;gap:18px 20px;align-content:center}
+.kv{display:flex;flex-direction:column;gap:4px}
+.kv .k{font-size:22px;color:#8f969f;letter-spacing:1px;text-transform:uppercase}
+.kv .v{font-size:32px;font-weight:600;white-space:nowrap}
+.kv .v.warn{color:#ffb347}
+.kv .v.dim{color:#5c636b;font-weight:400}
+/* climate */
+.clim{position:absolute;top:1542px;left:30px;right:30px;height:348px;padding:18px 26px;display:flex;flex-direction:column;justify-content:space-between}
+.row{display:flex;align-items:center;justify-content:space-between}
+.chip{height:78px;padding:0 18px;white-space:nowrap;border-radius:39px;display:flex;align-items:center;justify-content:center;gap:10px;font-size:23px;letter-spacing:.5px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.06);color:#dfe3e8}
+.chip.on{background:rgba(255,179,71,.2);border-color:#ffb347;color:#ffb347}
+.chip.sq{width:78px;padding:0;font-size:34px}
+.grp{display:flex;gap:12px;align-items:center}
+.temp{display:flex;align-items:center;gap:14px}
+.temp .d{font-size:60px;font-weight:300;min-width:118px;text-align:center;display:flex;flex-direction:column;align-items:center;line-height:1}.temp .d small{font-size:28px;color:#9aa1a9}
+.temp .pm{width:78px;height:78px;border-radius:50%;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);display:flex;align-items:center;justify-content:center;font-size:44px;font-weight:300}
+.seat{display:flex;flex-direction:column;align-items:center;gap:7px}
+.seat .s{width:78px;height:78px;border-radius:22px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;font-size:36px;color:#dfe3e8}
+.seat .s.on{background:rgba(255,120,60,.22);border-color:#ff8a4c;color:#ff8a4c}
+.seat .s.cool{background:rgba(80,200,255,.18);border-color:#5ec8ff;color:#5ec8ff}
+.seat .dots{display:flex;gap:6px}.seat .dots i{width:16px;height:6px;border-radius:3px;background:rgba(255,255,255,.18)}
+.seat .dots i.on{background:#ff8a4c}.seat .dots i.cool{background:#5ec8ff}
+.lbl{font-size:20px;color:#8f969f;letter-spacing:1px;text-transform:uppercase}
+.fan{display:flex;align-items:center;gap:14px}
+.fan .bars{display:flex;gap:7px;align-items:flex-end;height:52px}.fan .bars i{width:16px;background:rgba(255,255,255,.18);border-radius:3px}
+.fan .bars i.on{background:#ffb347}
+.seg{display:flex;border:1px solid rgba(255,255,255,.14);border-radius:39px;overflow:hidden;background:rgba(255,255,255,.05)}
+.seg div{width:92px;height:78px;display:flex;align-items:center;justify-content:center;font-size:32px;color:#aeb4bc}
+.seg div.on{background:rgba(255,179,71,.22);color:#ffb347}
+</style></head><body>
+<div class="status"><div class="l"><span>5:04</span><span>Wed Oct 21</span></div><div class="r"><span>📶</span><span>🔵 Beau's iPhone</span><span>🔊 14</span></div></div>
+
+<div class="dock glass">
+ <div class="app"><div class="ic" style="background:#2d2f36;border-color:#ffb347;box-shadow:0 0 30px rgba(255,179,71,.35)">📷</div>360 Cam</div>
+ <div class="app"><div class="ic" style="background:#1f6f4a">📞</div>Phone</div>
+ <div class="app"><div class="ic" style="background:#1a73e8">🧭</div>Maps</div>
+ <div class="app"><div class="ic" style="background:#8a1c1c">📻</div>Radio</div>
+ <div class="app"><div class="ic" style="background:#1db954">♫</div>Music</div>
+ <div class="app"><div class="ic" style="background:#3b4a5a">🛠</div>Maint.</div>
+ <div class="app"><div class="ic" style="background:#2a2d33">⋯</div>Apps</div>
+</div>
+
+<div class="map glass">
+ <svg viewBox="0 0 1020 640" preserveAspectRatio="none">
+  <defs><pattern id="g" width="60" height="60" patternUnits="userSpaceOnUse"><path d="M60 0H0V60" fill="none" stroke="#1d2128" stroke-width="1"/></pattern></defs>
+  <rect width="1020" height="720" fill="url(#g)"/>
+  <path d="M-20 420 Q300 380 520 400 T1040 300" stroke="#2c323b" stroke-width="42" fill="none" stroke-linecap="round"/>
+  <path d="M-20 420 Q300 380 520 400 T1040 300" stroke="#3a414c" stroke-width="30" fill="none" stroke-linecap="round"/>
+  <path d="M380 740 L420 420 L470 60" stroke="#2c323b" stroke-width="28" fill="none"/>
+  <path d="M380 740 L420 420 L470 60" stroke="#363d48" stroke-width="18" fill="none"/>
+  <path d="M-20 160 L1040 120" stroke="#262b33" stroke-width="14" fill="none"/>
+  <path d="M700 740 L740 -20" stroke="#262b33" stroke-width="14" fill="none"/>
+  <path d="M-20 600 L1040 560" stroke="#262b33" stroke-width="14" fill="none"/>
+  <path d="M420 420 L470 60 L740 40" stroke="#4a8cff" stroke-width="12" fill="none" stroke-linecap="round" stroke-linejoin="round" opacity=".9"/>
+  <text x="200" y="395" fill="#79818c" font-size="22" transform="rotate(-6 200 395)">Hwy 59</text>
+  <text x="440" y="250" fill="#79818c" font-size="22" transform="rotate(-82 440 250)">S Douglas Hwy</text>
+  <circle cx="420" cy="420" r="34" fill="#4a8cff" opacity=".25"/>
+  <circle cx="420" cy="420" r="16" fill="#4a8cff" stroke="#fff" stroke-width="4"/>
+  <polygon points="420,372 406,398 434,398" fill="#fff"/>
+ </svg>
+ <div class="pill">⬆ In 0.8 mi, turn right onto S Douglas Hwy</div>
+ <div class="eta"><b>7:12</b> &nbsp;ETA<br><span style="font-size:24px;color:#aeb4bc">12 min · 9.4 mi · Home</span></div>
+</div>
+
+<div class="np glass">
+ <div class="art"></div>
+ <div class="meta"><div class="src">Bluetooth · Beau's iPhone</div><div class="t">Simple Man</div><div class="a">Lynyrd Skynyrd · Pronounced</div><div class="bar"><i></i></div></div>
+ <div class="ctl"><span>⏮</span><span class="p">⏸</span><span>⏭</span></div>
+</div>
+
+<div class="truck glass">
+ <div class="left">
+  <svg viewBox="0 0 380 300">
+   <rect x="110" y="30" width="160" height="240" rx="26" fill="none" stroke="#9aa1a9" stroke-width="3"/>
+   <rect x="128" y="48" width="124" height="70" rx="14" fill="none" stroke="#6b737c" stroke-width="2"/>
+   <rect x="120" y="150" width="140" height="108" rx="8" fill="none" stroke="#6b737c" stroke-width="2"/>
+   <rect x="96" y="60" width="18" height="48" rx="6" fill="#ffb347"/><rect x="266" y="60" width="18" height="48" rx="6" fill="#aeb4bc"/>
+   <rect x="96" y="196" width="18" height="48" rx="6" fill="#aeb4bc"/><rect x="266" y="196" width="18" height="48" rx="6" fill="#aeb4bc"/>
+  </svg>
+  <div class="tp" style="left:4px;top:34px;color:#ffb347">58</div><div class="tp" style="right:4px;top:34px">66</div>
+  <div class="tp" style="left:4px;bottom:34px">70</div><div class="tp" style="right:4px;bottom:34px">70</div>
+ </div>
+ <div class="right">
+  <div class="kv"><div class="k">Outside</div><div class="v">34°F</div></div>
+  <div class="kv"><div class="k">Odometer</div><div class="v">48,212 mi</div></div>
+  <div class="kv"><div class="k">Oil change</div><div class="v warn">due in 1,200 mi</div></div>
+  <div class="kv"><div class="k">Fuel filter</div><div class="v">due in 4,800 mi</div></div>
+  <div class="kv"><div class="k">Doors</div><div class="v">All closed</div></div>
+  <div class="kv"><div class="k">Tire rotation</div><div class="v dim">due in 2,300 mi</div></div>
+ </div>
+</div>
+
+<div class="clim glass">
+ <div class="row">
+  <div class="grp"><div class="chip sq on">⏻</div><div class="chip on">AUTO</div><div class="chip">DUAL</div><div class="chip on">A/C</div></div>
+  <div class="grp"><div class="chip">⌒ FRONT</div><div class="chip">⊟ REAR</div><div class="chip">↻ RECIRC</div></div>
+ </div>
+ <div class="row">
+  <div class="grp">
+   <div class="seat"><div class="s on">♨</div><div class="dots"><i class="on"></i><i class="on"></i><i></i></div></div>
+   <div class="seat"><div class="s">❄</div><div class="dots"><i></i><i></i><i></i></div></div>
+   <div class="temp"><div class="pm">−</div><div class="d"><span>72<small>°</small></span><span class="lbl">Driver</span></div><div class="pm">+</div></div>
+  </div>
+  <div class="grp">
+   <div class="temp"><div class="pm">−</div><div class="d"><span>70<small>°</small></span><span class="lbl">Passenger</span></div><div class="pm">+</div></div>
+   <div class="seat"><div class="s cool">❄</div><div class="dots"><i class="cool"></i><i></i><i></i></div></div>
+   <div class="seat"><div class="s">♨</div><div class="dots"><i></i><i></i><i></i></div></div>
+  </div>
+ </div>
+ <div class="row">
+  <div class="grp"><div class="lbl">Fan</div></div>
+  <div class="fan"><div class="pm" style="width:78px;height:78px;border-radius:50%;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);display:flex;align-items:center;justify-content:center;font-size:44px">−</div>
+   <div class="bars"><i class="on" style="height:16px"></i><i class="on" style="height:24px"></i><i class="on" style="height:32px"></i><i style="height:40px"></i><i style="height:48px"></i><i style="height:52px"></i></div>
+   <div class="pm" style="width:78px;height:78px;border-radius:50%;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);display:flex;align-items:center;justify-content:center;font-size:44px">+</div></div>
+  <div class="seg"><div class="on">☺</div><div>☺⌄</div><div>⌄</div><div>⌄⌒</div></div>
+  <div class="grp"><div class="lbl">Vents</div></div>
+ </div>
+</div>
+</body></html>
