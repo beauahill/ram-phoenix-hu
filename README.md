@@ -50,3 +50,5 @@ We build everything above that:
 
 ## Wish list
 Unscheduled ideas live in `docs/WISHLIST.md` (first entry: a maintenance tracker app for oil / fuel-filter / tire service logs).
+
+- [Dashboard launcher design spec](docs/DASHBOARD-DESIGN.md) — agreed layout + climate cluster (2026-10-21)
