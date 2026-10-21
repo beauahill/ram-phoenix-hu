@@ -4,6 +4,8 @@
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-feature android:name="android.hardware.camera.any" android:required="false" />
 
     <application
@@ -18,23 +20,29 @@
             android:launchMode="singleInstance"
             android:screenOrientation="portrait"
             android:excludeFromRecents="true"
-            android:showOnLockScreen="true"
+            android:showWhenLocked="true"
             android:turnScreenOn="true"
             android:configChanges="orientation|screenSize|keyboardHidden|uiMode">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-            <!-- Manual-trigger hooks: the stock stack broadcasts these; we also accept
-                 an explicit launch so a tile/button can bring us up. -->
+            <!-- Manual/explicit launch so a tile/button or the reverse service can
+                 bring us up. -->
             <intent-filter>
                 <action android:name="com.ramphoenix.camera.SHOW" />
+                <action android:name="com.ramphoenix.camera.HIDE" />
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
 
-        <!-- Fires our activity when reverse engages at boot / on gear-R, independent of
-             whatever is foreground. Enabled once wired; harmless otherwise. -->
+        <!-- Foreground service: the real reverse-from-anywhere trigger. Polls the
+             reverse flag independent of what's on screen and brings the camera up. -->
+        <service
+            android:name=".ReverseService"
+            android:exported="false" />
+
+        <!-- Starts the service at boot so reverse works before the app is opened. -->
         <receiver
             android:name=".ReverseReceiver"
             android:exported="true">

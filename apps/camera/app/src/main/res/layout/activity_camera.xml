@@ -4,25 +4,34 @@
     android:layout_height="match_parent"
     android:background="#000000">
 
-    <!-- Primary camera feed (rear/front) -->
-    <SurfaceView
-        android:id="@+id/surface_main"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent" />
-
-    <!-- Overhead / aux panel, top portion, visible only in 360 mode -->
+    <!-- Overhead / aux panel (360 mode only): top 16:9 box, height set at runtime -->
     <SurfaceView
         android:id="@+id/surface_aux"
         android:layout_width="match_parent"
-        android:layout_height="720dp"
+        android:layout_height="0dp"
         android:layout_gravity="top"
         android:visibility="gone" />
 
-    <!-- Parking guideline overlay (rear mode) -->
-    <com.ramphoenix.camera.GuidelineOverlay
-        android:id="@+id/guidelines"
+    <!-- 16:9 letterbox box for the primary feed + guideline overlay.
+         Height is computed at runtime (width * 9/16) and gravity is set per
+         mode (centered for rear/front, bottom for 360). Prevents the 16:9
+         analog feed being stretched to 9:16 on the portrait panel. -->
+    <FrameLayout
+        android:id="@+id/feed_box"
         android:layout_width="match_parent"
-        android:layout_height="match_parent" />
+        android:layout_height="0dp"
+        android:layout_gravity="center">
+
+        <SurfaceView
+            android:id="@+id/surface_main"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+
+        <com.ramphoenix.camera.GuidelineOverlay
+            android:id="@+id/guidelines"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+    </FrameLayout>
 
     <!-- View selector buttons, top-right -->
     <LinearLayout

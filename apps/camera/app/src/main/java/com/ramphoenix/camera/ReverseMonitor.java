@@ -11,6 +11,11 @@ import android.os.Looper;
  * Polling a world-readable sysfs int at ~80ms is cheap and far more reliable
  * than binding into the SYU canbus IPC, and it survives SYU service restarts.
  * (The canbus IPC U_BACKCAR path remains available as a future secondary trigger.)
+ *
+ * NOTE (review 1A, live-truck gate): this assumes fyt_car_reverse is driven by
+ * the kernel/MCU and keeps flipping with the stock camera apps disabled. If it
+ * turns out the stock app WRITES it, the trigger must move to the LSEC IPC
+ * U_BACKCAR index. Confirmed on-truck before this is trusted.
  */
 public class ReverseMonitor {
 
@@ -23,7 +28,7 @@ public class ReverseMonitor {
     private HandlerThread thread;
     private Handler bg;
     private volatile boolean running;
-    private boolean lastState;
+    private volatile boolean lastState;
 
     public ReverseMonitor(Listener listener) {
         this.listener = listener;

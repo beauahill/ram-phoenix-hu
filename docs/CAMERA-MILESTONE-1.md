@@ -136,3 +136,42 @@ Only two non-SYU custom apps exist: `com.fyt.screenbutton` (button/overlay) and 
 - [ ] **Parking-sensor data index** — strip is wired but reads a stub; real distances ride canbus IPC via `com.syu.us`. Capture the exact IPC slot live while approaching an object.
 - [ ] **Dynamic steering-reactive centerline** (Beau request 2026-10-20) — guidelines that bend as the wheel turns. Stock `back.Module` uses *static* geometry (wheelbase/track/cam-angle); need to (a) static-analyze the decompiled stock camera for whether it subscribes to a live steering-angle signal, and (b) find the steering-angle index on the canbus IPC. Then subscribe (same pipe as the reverse flag) and redraw the trajectory curve live. Almost certainly on the bus given the truck has 360.
 - [ ] **Live color/exposure tuning** — stock feed is washed out (interior reflection); tune via `/sys/lsecdcamctl/` signal knobs on the real cameras.
+
+---
+
+## Review fixes applied — 2026-10-21 (code-only, no truck)
+
+Addressed the no-truck items from `docs/REVIEW-2026-10-21.md`. Verified: builds
+clean, new symbols present in the APK dex.
+
+Done:
+- **Stream size (#1):** `CameraController.applyFixedSize()` queries
+  `StreamConfigurationMap` and calls `holder.setFixedSize()` before opening, so
+  the session no longer asks the analog HAL for a 1080x1920 portrait buffer.
+- **Aspect ratio (#2):** rear/front feed + guideline overlay now live in a
+  runtime-sized 16:9 `feed_box` (width*9/16), not a stretched portrait surface.
+  Aux (360) surface sized the same way at runtime (fixes the dp/density issue #5).
+- **Stale-open guard (#3):** per-open generation token; late callbacks from a
+  superseded open close their device and bow out.
+- **Sensor ticker leak (#4):** ticker is a held Runnable, cancelled in
+  onPause/onDestroy.
+- **Reverse-from-anywhere (2A):** new `ReverseService` foreground service polls
+  the reverse flag independent of what is on screen and brings up the camera via
+  full-screen-intent (sanctioned background-launch) + direct start. Started at
+  boot by `ReverseReceiver`.
+- **Return on disengage (2B):** reverse-initiated launches `moveTaskToBack()` on
+  1→0; manual opens stay.
+- **Manifest (#6):** `showWhenLocked` replaces deprecated `showOnLockScreen`;
+  service + FOREGROUND_SERVICE/POST_NOTIFICATIONS declared.
+- **volatile (#9):** `ReverseMonitor.lastState` is volatile.
+- **Docs:** README + findings.md corrected (Camera2 + sysfs + LSEC IPC, not
+  "proprietary MCU path / broadcasts"); `com.syu.us` added; TP2850 fact recorded.
+
+Still TRUCK-GATED (must confirm on the unit before trusting — unchanged):
+1. Does `fyt_car_reverse` still flip with stock camera apps disabled? (1A)
+2. Are Camera2 ids 14/10 visible to a non-platform app? `dumpsys media.camera`. (1B)
+3. What does device 10 show? (1C)
+4. `getenforce`, `wm density`, `wm size`; real advertised stream sizes.
+5. First on-screen frame; then pre-grant CAMERA, disable `com.syu.doublecamera`.
+6. Front cam id (tentative 12); parking-sensor LSEC index; steering-angle index
+   for wheel-reactive guidelines (punch-list item).
