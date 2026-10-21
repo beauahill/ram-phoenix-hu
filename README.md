@@ -50,3 +50,4 @@ We build everything above that:
 - `docs/findings.md` — dated recon log.
 - `docs/REVIEW-2026-10-21.md` — desk review of the camera app + findings.
 - `docs/LAUNCHER.md` — dashboard launcher: widgets, data sources, install steps.
+- `docs/REVIEW-2026-10-21b-camera-launcher.md` — review of the camera fixes + dashboard launcher branch (built both apps; findings C1–C5, L1–L8).
