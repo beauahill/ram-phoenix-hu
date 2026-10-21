@@ -29,7 +29,9 @@ We build everything above that:
 
 - `apps/camera`  — **Milestone 1.** Replace the stock camera (worst part of the
   stock platform). Mechanism is mapped; see `docs/CAMERA-MILESTONE-1.md`.
-- `apps/launcher` — replacement home launcher (replaces `com.android.launcher6`).
+- `apps/launcher` — **dashboard home** (replaces `com.android.launcher6`): CarPlay-style
+  widgets — live map + now-playing on top, speed + vehicle sensors below, dock.
+  See `docs/LAUNCHER.md`.
 - new car-UI layer on top of the SYU HAL.
 
 ## Stock SYU stack (reference)
@@ -47,3 +49,4 @@ We build everything above that:
   reverse trigger, button path, 360 system, sysfs control plane, punch list).
 - `docs/findings.md` — dated recon log.
 - `docs/REVIEW-2026-10-21.md` — desk review of the camera app + findings.
+- `docs/LAUNCHER.md` — dashboard launcher: widgets, data sources, install steps.

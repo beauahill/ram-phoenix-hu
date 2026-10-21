@@ -2,6 +2,7 @@ package com.ramphoenix.camera;
 
 import android.content.Context;
 import android.graphics.ImageFormat;
+import android.graphics.Rect;
 import android.hardware.camera2.CameraAccessException;
 import android.hardware.camera2.CameraCaptureSession;
 import android.hardware.camera2.CameraCharacteristics;
@@ -11,10 +12,13 @@ import android.hardware.camera2.CaptureRequest;
 import android.hardware.camera2.params.StreamConfigurationMap;
 import android.os.Handler;
 import android.os.HandlerThread;
+import android.os.Looper;
 import android.util.Log;
 import android.util.Size;
-import android.view.SurfaceHolder;
 import android.view.Surface;
+import android.view.SurfaceHolder;
+
+import androidx.annotation.NonNull;
 
 import java.util.Collections;
 
@@ -27,12 +31,16 @@ import java.util.Collections;
  *
  * One instance drives one camera. For 360 we run two instances (dev 14 + dev 10).
  *
- * Review fixes (2026-10-21):
- *  - #1 stream size: before opening we read the HAL's advertised output sizes and
- *    call holder.setFixedSize(w,h) with a real 16:9 size, so the surface no longer
- *    asks the analog HAL for the raw 1080x1920 portrait buffer (onConfigureFailed).
- *  - #3 stale-open guard: every open() bumps a generation token; late callbacks
- *    from a superseded open are closed and ignored so two devices can't both win.
+ * Surface sizing (review fix #1, corrected 2026-10-21):
+ *   The surface must be pinned to a size the HAL actually advertises, or the
+ *   session asks the analog HAL for a 1080x1920 portrait buffer and fails.
+ *   {@code SurfaceHolder.setFixedSize()} triggers a relayout, which Android only
+ *   allows from the UI thread, so the whole negotiation runs on the main thread:
+ *   {@link #open} picks the size, requests it, and the device is opened only
+ *   after {@code surfaceChanged} confirms the surface now has that size.
+ *
+ * Stale-open guard (review fix #3): every open()/close() bumps a generation
+ * token; callbacks from a superseded open close their device and bow out.
  */
 public class CameraController {
 
@@ -40,35 +48,65 @@ public class CameraController {
 
     private final Context ctx;
     private final CameraManager manager;
+    private final Handler main = new Handler(Looper.getMainLooper());
     private HandlerThread thread;
     private Handler bg;
 
     private String cameraId;
-    private SurfaceHolder holder;
     private Surface outputSurface;
     private CameraDevice device;
     private CameraCaptureSession session;
     private volatile boolean wantOpen;
     private int reopenDelayMs = 250;
-    /** Bumped on every open()/switch; callbacks older than this are stale. */
+    /** Bumped on every open()/close(); callbacks older than this are stale. */
     private volatile int generation = 0;
+
+    // --- main-thread-only size negotiation state ---
+    private SurfaceHolder attachedHolder;
+    private Size pendingSize;
+    private int pendingGen;
 
     public CameraController(Context ctx) {
         this.ctx = ctx.getApplicationContext();
         this.manager = (CameraManager) this.ctx.getSystemService(Context.CAMERA_SERVICE);
     }
 
-    /** Begin (or switch to) showing {@code id} on {@code holder}. Safe to call repeatedly. */
-    public synchronized void open(String id, SurfaceHolder holder) {
-        this.cameraId = id;
-        this.holder = holder;
-        this.outputSurface = holder.getSurface();
-        this.wantOpen = true;
-        this.reopenDelayMs = 250;
-        this.generation++;
-        ensureThread();
-        final int gen = generation;
-        bg.post(() -> doOpen(gen));
+    /**
+     * Begin (or switch to) showing {@code id} on {@code holder}. Safe to call
+     * repeatedly. Runs on the main thread (re-posts itself if called elsewhere)
+     * because it may resize the SurfaceView.
+     */
+    public void open(final String id, final SurfaceHolder holder) {
+        if (Looper.myLooper() != Looper.getMainLooper()) {
+            main.post(() -> open(id, holder));
+            return;
+        }
+        final int gen;
+        synchronized (this) {
+            cameraId = id;
+            outputSurface = holder.getSurface();
+            wantOpen = true;
+            reopenDelayMs = 250;
+            generation++;
+            gen = generation;
+            ensureThread();
+        }
+        attachHolder(holder);
+
+        final Size want = pickSize(id);
+        final Rect frame = holder.getSurfaceFrame();
+        if (frame.width() == want.getWidth() && frame.height() == want.getHeight()) {
+            pendingSize = null;
+            bg.post(() -> doOpen(gen));
+        } else {
+            // Ask for the size; surfaceChanged() below completes the open once
+            // the surface really is that size. UI thread only.
+            pendingSize = want;
+            pendingGen = gen;
+            Log.i(TAG, "cam " + id + ": surface " + frame.width() + "x" + frame.height()
+                    + " -> requesting fixed size " + want);
+            holder.setFixedSize(want.getWidth(), want.getHeight());
+        }
     }
 
     public synchronized void close() {
@@ -77,12 +115,20 @@ public class CameraController {
         if (bg != null) bg.post(this::doClose);
     }
 
-    public synchronized void shutdown() {
+    /** Main thread. */
+    public void shutdown() {
         close();
-        if (thread != null) {
-            thread.quitSafely();
-            thread = null;
-            bg = null;
+        if (attachedHolder != null) {
+            attachedHolder.removeCallback(holderCb);
+            attachedHolder = null;
+        }
+        pendingSize = null;
+        synchronized (this) {
+            if (thread != null) {
+                thread.quitSafely();
+                thread = null;
+                bg = null;
+            }
         }
     }
 
@@ -94,25 +140,39 @@ public class CameraController {
         }
     }
 
-    private void doClose() {
-        try {
-            if (session != null) { session.close(); session = null; }
-            if (device != null) { device.close(); device = null; }
-        } catch (Exception e) {
-            Log.w(TAG, "close err: " + e.getMessage());
-        }
+    private void attachHolder(SurfaceHolder h) {
+        if (attachedHolder == h) return;
+        if (attachedHolder != null) attachedHolder.removeCallback(holderCb);
+        attachedHolder = h;
+        h.addCallback(holderCb);
     }
 
+    /** Completes a pending open once the surface has taken the requested size. */
+    private final SurfaceHolder.Callback holderCb = new SurfaceHolder.Callback() {
+        @Override public void surfaceCreated(@NonNull SurfaceHolder h) {}
+        @Override public void surfaceChanged(@NonNull SurfaceHolder h, int fmt, int w, int ht) {
+            if (pendingSize == null) return;
+            if (w != pendingSize.getWidth() || ht != pendingSize.getHeight()) return;
+            final int gen = pendingGen;
+            pendingSize = null;
+            if (!wantOpen || gen != generation) return; // superseded meanwhile
+            synchronized (CameraController.this) { outputSurface = h.getSurface(); }
+            Log.i(TAG, "cam " + cameraId + ": surface now " + w + "x" + ht + ", opening");
+            if (bg != null) bg.post(() -> doOpen(gen));
+        }
+        @Override public void surfaceDestroyed(@NonNull SurfaceHolder h) { pendingSize = null; }
+    };
+
     /**
-     * Pick a sane 16:9 output size the HAL actually advertises and pin the
-     * surface to it. Analog decoders typically expose 1280x720 / 1920x1080;
-     * we prefer 1280x720 (lower latency, plenty for a reverse cam) and fall
-     * back to the largest advertised size, then to HwConfig defaults.
+     * Pick a sane 16:9 output size the HAL actually advertises. Analog decoders
+     * typically expose 1280x720 / 1920x1080; prefer 1280x720 (lower latency,
+     * plenty for a reverse cam), then the largest advertised, then HwConfig
+     * defaults. Characteristics lookup is a quick binder call; fine on main.
      */
-    private void applyFixedSize() {
+    private Size pickSize(String id) {
         int w = HwConfig.CAP_WIDTH, h = HwConfig.CAP_HEIGHT;
         try {
-            CameraCharacteristics cc = manager.getCameraCharacteristics(cameraId);
+            CameraCharacteristics cc = manager.getCameraCharacteristics(id);
             StreamConfigurationMap map = cc.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);
             if (map != null) {
                 Size[] sizes = map.getOutputSizes(SurfaceHolder.class);
@@ -127,7 +187,6 @@ public class CameraController {
                         }
                     }
                     if (pick == null) {
-                        // largest advertised
                         for (Size s : sizes) {
                             if (pick == null || (long) s.getWidth() * s.getHeight()
                                     > (long) pick.getWidth() * pick.getHeight()) pick = s;
@@ -137,10 +196,19 @@ public class CameraController {
                 }
             }
         } catch (Throwable t) {
-            Log.w(TAG, "size query failed for " + cameraId + ", using defaults: " + t.getMessage());
+            Log.w(TAG, "size query failed for " + id + ", using defaults: " + t.getMessage());
         }
-        Log.i(TAG, "cam " + cameraId + " fixed size " + w + "x" + h);
-        if (holder != null) holder.setFixedSize(w, h);
+        Log.i(TAG, "cam " + id + " stream size " + w + "x" + h);
+        return new Size(w, h);
+    }
+
+    private void doClose() {
+        try {
+            if (session != null) { session.close(); session = null; }
+            if (device != null) { device.close(); device = null; }
+        } catch (Exception e) {
+            Log.w(TAG, "close err: " + e.getMessage());
+        }
     }
 
     @SuppressWarnings("MissingPermission")
@@ -148,9 +216,8 @@ public class CameraController {
         if (gen != generation || !wantOpen || outputSurface == null || cameraId == null) return;
         doClose();
         try {
-            applyFixedSize();
             manager.openCamera(cameraId, newStateCb(gen), bg);
-        } catch (CameraAccessException | IllegalArgumentException e) {
+        } catch (CameraAccessException | IllegalArgumentException | SecurityException e) {
             Log.e(TAG, "openCamera(" + cameraId + ") failed: " + e.getMessage());
             scheduleReopen(gen);
         }
@@ -167,19 +234,19 @@ public class CameraController {
      *  callback from a superseded open closes its device and bows out. */
     private CameraDevice.StateCallback newStateCb(final int gen) {
         return new CameraDevice.StateCallback() {
-            @Override public void onOpened(CameraDevice cam) {
+            @Override public void onOpened(@NonNull CameraDevice cam) {
                 if (gen != generation || !wantOpen) { cam.close(); return; } // stale open loses
                 device = cam;
                 reopenDelayMs = 250; // healthy open resets backoff
                 startSession(gen);
             }
-            @Override public void onDisconnected(CameraDevice cam) {
-                Log.w(TAG, "cam " + cameraId + " disconnected");
+            @Override public void onDisconnected(@NonNull CameraDevice cam) {
+                Log.w(TAG, "cam " + cameraId + " disconnected (another client took it?)");
                 cam.close();
                 if (device == cam) device = null;
                 scheduleReopen(gen);
             }
-            @Override public void onError(CameraDevice cam, int error) {
+            @Override public void onError(@NonNull CameraDevice cam, int error) {
                 Log.w(TAG, "cam " + cameraId + " error " + error + " -> reopen (no app restart)");
                 cam.close();
                 if (device == cam) device = null;
@@ -191,11 +258,12 @@ public class CameraController {
     @SuppressWarnings("deprecation")
     private void startSession(final int gen) {
         try {
+            final Surface target = outputSurface;
             final CaptureRequest.Builder req = device.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW);
-            req.addTarget(outputSurface);
-            device.createCaptureSession(Collections.singletonList(outputSurface),
+            req.addTarget(target);
+            device.createCaptureSession(Collections.singletonList(target),
                 new CameraCaptureSession.StateCallback() {
-                    @Override public void onConfigured(CameraCaptureSession s) {
+                    @Override public void onConfigured(@NonNull CameraCaptureSession s) {
                         if (gen != generation || !wantOpen) { s.close(); return; }
                         session = s;
                         try {
@@ -205,7 +273,7 @@ public class CameraController {
                             scheduleReopen(gen);
                         }
                     }
-                    @Override public void onConfigureFailed(CameraCaptureSession s) {
+                    @Override public void onConfigureFailed(@NonNull CameraCaptureSession s) {
                         Log.e(TAG, "session config failed for cam " + cameraId);
                         scheduleReopen(gen);
                     }

@@ -6,3 +6,5 @@
 /pulled/
 build/
 .gradle/
+apps/launcher/build.log
+*.log

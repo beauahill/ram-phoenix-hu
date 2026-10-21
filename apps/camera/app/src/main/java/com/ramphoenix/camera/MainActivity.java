@@ -48,6 +48,11 @@ public class MainActivity extends AppCompatActivity {
     public static final String ACTION_HIDE   = "com.ramphoenix.camera.HIDE";
     public static final String EXTRA_REVERSE = "reverse";
 
+    /** Set while this activity is resumed; ReverseService uses it to verify a
+     *  background launch actually reached the screen (blocked starts don't throw). */
+    private static volatile boolean sVisible;
+    public static boolean isVisible() { return sVisible; }
+
     private FrameLayout feedBox;
     private SurfaceView surfaceMain, surfaceAux;
     private GuidelineOverlay guidelines;
@@ -247,6 +252,7 @@ public class MainActivity extends AppCompatActivity {
 
     @Override protected void onResume() {
         super.onResume();
+        sVisible = true;
         hideSystemBars();
         if (reverse != null) reverse.start();
         startSensorTicker();
@@ -255,6 +261,7 @@ public class MainActivity extends AppCompatActivity {
 
     @Override protected void onPause() {
         super.onPause();
+        sVisible = false;
         if (reverse != null) reverse.stop();
         stopSensorTicker();
         camMain.close();

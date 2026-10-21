@@ -8,15 +8,11 @@ import android.content.pm.ResolveInfo;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
-/**
- * Queries the system for every launchable app and builds the sorted drawer list,
- * plus resolves the curated "pinned" quick-launch row.
- */
+/** Queries the system for every launchable app and builds the sorted drawer list. */
 public class AppRepository {
 
     /** Our own package + the stock launcher we are replacing — hidden from the drawer. */
@@ -25,19 +21,6 @@ public class AppRepository {
         HIDE.add("com.ramphoenix.launcher");
         HIDE.add("com.android.launcher6");
     }
-
-    /**
-     * Curated quick-launch tiles, in display order. Camera first (our own app).
-     * Only the ones actually installed get shown, so this list can be aspirational.
-     */
-    public static final String[][] PINNED = {
-            {"Camera",   "com.ramphoenix.camera"},
-            {"Radio",    "com.syu.radio"},
-            {"Media",    "com.syu.music"},
-            {"CarPlay",  "com.syu.carlink"},
-            {"Phone",    "com.syu.bt"},
-            {"Settings", "com.android.settings"},
-    };
 
     public static List<AppInfo> loadLaunchable(Context ctx) {
         PackageManager pm = ctx.getPackageManager();
@@ -60,27 +43,7 @@ public class AppRepository {
             }
         }
 
-        Collections.sort(out, new Comparator<AppInfo>() {
-            @Override public int compare(AppInfo a, AppInfo b) {
-                return a.label.compareToIgnoreCase(b.label);
-            }
-        });
-        return out;
-    }
-
-    /** Resolve the pinned list to the subset that is actually installed and launchable. */
-    public static List<AppInfo> resolvePinned(Context ctx) {
-        PackageManager pm = ctx.getPackageManager();
-        List<AppInfo> out = new ArrayList<>();
-        for (String[] entry : PINNED) {
-            String label = entry[0];
-            String pkg = entry[1];
-            Intent launch = pm.getLaunchIntentForPackage(pkg);
-            if (launch == null) continue;
-            ComponentName cn = launch.getComponent();
-            if (cn == null) continue;
-            out.add(new AppInfo(label, cn));
-        }
+        Collections.sort(out, (a, b) -> a.label.compareToIgnoreCase(b.label));
         return out;
     }
 }

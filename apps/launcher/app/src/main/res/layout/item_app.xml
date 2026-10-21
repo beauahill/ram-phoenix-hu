@@ -1,20 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- App drawer cell: a frosted glass chip holding the app's real icon, label beneath. -->
+<!-- App drawer cell: frosted glass chip with the app's real icon, label beneath. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
     android:gravity="center_horizontal"
     android:paddingTop="10dp"
-    android:paddingBottom="14dp"
-    android:focusable="true"
-    android:clickable="true">
+    android:paddingBottom="14dp">
 
     <FrameLayout
         android:layout_width="94dp"
         android:layout_height="94dp"
         android:background="@drawable/glass_tile_selector">
-
         <ImageView
             android:id="@+id/app_icon"
             android:layout_width="52dp"
@@ -34,9 +31,6 @@
         android:ellipsize="end"
         android:paddingStart="4dp"
         android:paddingEnd="4dp"
-        android:text="App"
         android:textColor="@color/text_primary"
-        android:textSize="13sp"
-        android:fontFamily="sans-serif" />
-
+        android:textSize="13sp" />
 </LinearLayout>

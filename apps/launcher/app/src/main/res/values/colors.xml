@@ -3,6 +3,7 @@
     <!-- Base -->
     <color name="transparent">#00000000</color>
     <color name="bg_base">#FF06070B</color>
+    <color name="map_bg">#FF121620</color>
 
     <!-- Text -->
     <color name="text_primary">#FFF3F5FA</color>
@@ -12,15 +13,32 @@
     <!-- Accent (Phoenix amber) + cool secondary glow -->
     <color name="accent">#FFF2A94B</color>
     <color name="accent_soft">#59F2A94B</color>
+    <color name="teal">#FF40E6CC</color>
+    <color name="ok_green">#FF3DD67A</color>
+    <color name="warn_amber">#FFF2C43D</color>
+    <color name="bad_red">#FFE53E3E</color>
     <color name="glow_teal">#3340E6CC</color>
     <color name="glow_amber">#38F2A94B</color>
 
     <!-- Glass -->
-    <color name="glass_fill">#1FFFFFFF</color>
-    <color name="glass_fill_dim">#14FFFFFF</color>
+    <color name="glass_fill">#14FFFFFF</color>
     <color name="glass_fill_bright">#40FFFFFF</color>
-    <color name="glass_stroke">#33FFFFFF</color>
+    <color name="glass_stroke">#2EFFFFFF</color>
     <color name="glass_stroke_bright">#80F2A94B</color>
-    <color name="glass_highlight">#2EFFFFFF</color>
+    <color name="glass_highlight">#24FFFFFF</color>
+    <color name="pill_fill">#B80A0C12</color>
     <color name="scrim">#33000000</color>
+
+    <!-- Dock icon tiles -->
+    <color name="dock_apps">#24FFFFFF</color>
+    <color name="dock_camera">#FF2E6BE5</color>
+    <color name="dock_nav">#FF3DD67A</color>
+    <color name="dock_phone">#FF34C759</color>
+    <color name="dock_music">#FFF2A94B</color>
+    <color name="dock_radio">#FFD9534F</color>
+    <color name="dock_settings">#FF6E6E73</color>
+
+    <!-- Media card default gradient (before album art tints it) -->
+    <color name="media_grad_start">#8C783CB4</color>
+    <color name="media_grad_end">#73247896</color>
 </resources>

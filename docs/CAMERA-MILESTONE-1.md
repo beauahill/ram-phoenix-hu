@@ -175,3 +175,36 @@ Still TRUCK-GATED (must confirm on the unit before trusting — unchanged):
 5. First on-screen frame; then pre-grant CAMERA, disable `com.syu.doublecamera`.
 6. Front cam id (tentative 12); parking-sensor LSEC index; steering-angle index
    for wheel-reactive guidelines (punch-list item).
+
+---
+
+## Review follow-up — 2026-10-21 (b): two corrections to the fixes above
+
+1. **`setFixedSize()` off the UI thread crashed on first open.** The size
+   negotiation now runs entirely on the main thread: `CameraController.open()`
+   picks the size, calls `holder.setFixedSize()`, and the device is opened only
+   after `surfaceChanged` confirms the surface has that size. No camera work on
+   the UI thread beyond a characteristics lookup.
+2. **Reverse-from-anywhere launch path.** A blocked background start does not
+   throw; Android drops it silently. `ReverseService` now verifies that
+   `MainActivity` actually resumed within 700 ms, logs the exact missing grant if
+   not, and only then posts the full-screen-intent fallback (now with
+   `USE_FULL_SCREEN_INTENT` declared; note it only launches while the screen is
+   off or the keyguard is up). The route that works on an always-on head unit is
+   the appops grant below.
+
+## Install on the unit (sideload, no root needed)
+
+```
+adb install -r apps/camera/app/build/outputs/apk/debug/app-debug.apk
+adb shell pm grant com.ramphoenix.camera android.permission.CAMERA
+adb shell pm grant com.ramphoenix.camera android.permission.POST_NOTIFICATIONS
+adb shell appops set com.ramphoenix.camera SYSTEM_ALERT_WINDOW allow   # lets the service launch from background
+adb shell am start -n com.ramphoenix.camera/.MainActivity               # first launch: starts ReverseService, arms BOOT_COMPLETED
+adb shell pm disable-user --user 0 com.syu.doublecamera                 # stop the stock app fighting for camera 14
+```
+
+Watch it work: `adb logcat -s PhoenixCam ActivityTaskManager:W` while shifting
+into R. A line containing "Background activity start" means the appops grant is
+missing. Leave `com.syu.us` enabled for now; it owns the physical button and the
+radar UI.

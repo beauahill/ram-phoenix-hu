@@ -1,7 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Ripple over the glass chip; swaps to the pressed/focused glass on selection. -->
-<ripple xmlns:android="http://schemas.android.com/apk/res/android"
-    android:color="@color/accent_soft">
+<ripple xmlns:android="http://schemas.android.com/apk/res/android" android:color="@color/accent_soft">
     <item android:id="@android:id/mask">
         <shape android:shape="rectangle">
             <corners android:radius="30dp" />

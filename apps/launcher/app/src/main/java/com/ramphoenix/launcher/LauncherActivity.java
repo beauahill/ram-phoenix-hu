@@ -1,60 +1,63 @@
 package com.ramphoenix.launcher;
 
-import android.content.ActivityNotFoundException;
-import android.content.ComponentName;
+import android.Manifest;
+import android.app.Activity;
 import android.content.Intent;
-import android.net.Uri;
+import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.provider.Settings;
 import android.view.View;
+import android.view.WindowInsets;
+import android.view.WindowInsetsController;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.recyclerview.widget.GridLayoutManager;
-import androidx.recyclerview.widget.LinearLayoutManager;
-import androidx.recyclerview.widget.RecyclerView;
-
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Date;
-import java.util.List;
 import java.util.Locale;
 
 /**
- * Phoenix Launcher — clean, modern, portrait home screen that replaces the stock
- * com.android.launcher6. Big glanceable clock, a curated quick-launch tile row
- * (Camera first), and the full app drawer in a 4-column grid.
+ * Phoenix dashboard — the HOME screen. CarPlay-style large widgets for the
+ * portrait panel: live map + now-playing on the upper half, speed + vehicle
+ * sensors below, a dock at the bottom. Plain framework widgets, no AndroidX.
  *
- * It is a HOME app: pressing the stock HOME key lands here. It never reimplements
- * anything in the SYU HAL — it just launches apps.
+ * Data sources today:
+ *   map / speed  -> GPS (LocationManager + osmdroid)
+ *   media        -> MediaSessionManager (needs notification-listener access)
+ *   vehicle      -> {@link VehicleData#STUB} until the canbus LSEC IPC indexes
+ *                   for tire pressure / fuel / temps are pinned (see docs).
  */
-public class LauncherActivity extends AppCompatActivity {
+public class LauncherActivity extends Activity {
 
-    private static final int GRID_COLUMNS = 4;
+    private static final int REQ_LOC = 1;
 
-    private TextView tvTime;
-    private TextView tvDate;
-    private RecyclerView rvPinned;
-    private RecyclerView rvApps;
+    private TextView tvTime, tvDate, tvOutside;
+    private MapWidget map;
+    private MediaWidget media;
+    private SpeedWidget speed;
+    private TruckSensorView truck;
+    private StatCell fuel, coolant, battery, outside;
 
-    private final List<AppInfo> apps = new ArrayList<>();
-    private AppAdapter appAdapter;
-
-    private final SimpleDateFormat timeFmt = new SimpleDateFormat("h:mm", Locale.US);
-    private final SimpleDateFormat ampmFmt = new SimpleDateFormat("a", Locale.US);
-    private final SimpleDateFormat dateFmt = new SimpleDateFormat("EEEE, MMMM d", Locale.US);
+    private VehicleData vehicle = VehicleData.STUB;
 
     private final Handler ui = new Handler(Looper.getMainLooper());
+    private final SimpleDateFormat timeFmt = new SimpleDateFormat("h:mm a", Locale.US);
+    private final SimpleDateFormat dateFmt = new SimpleDateFormat("EEE, MMM d", Locale.US);
+
     private final Runnable clockTick = new Runnable() {
         @Override public void run() {
             updateClock();
-            // Align the next tick to the top of the next minute for efficiency.
             long now = System.currentTimeMillis();
-            long delay = 60000 - (now % 60000);
-            ui.postDelayed(this, delay);
+            ui.postDelayed(this, 60000 - (now % 60000));
+        }
+    };
+    private final Runnable vehicleTick = new Runnable() {
+        @Override public void run() {
+            updateVehicle();
+            ui.postDelayed(this, 1000);
         }
     };
 
@@ -63,29 +66,35 @@ public class LauncherActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_launcher);
         goImmersive();
-        applyWallpaperBlur();
 
         tvTime = findViewById(R.id.clock_time);
         tvDate = findViewById(R.id.clock_date);
-        rvPinned = findViewById(R.id.pinned_row);
-        rvApps = findViewById(R.id.app_grid);
+        tvOutside = findViewById(R.id.status_outside);
+        findViewById(R.id.btn_settings).setOnClickListener(v -> openSettings());
 
-        View gear = findViewById(R.id.btn_settings);
-        gear.setOnClickListener(v -> openSettings());
+        map = new MapWidget(this, findViewById(R.id.map_container));
+        findViewById(R.id.btn_nav).setOnClickListener(v -> launchOrToast(Dock.navIntent(this)));
+        findViewById(R.id.search_bar).setOnClickListener(v -> launchOrToast(Dock.navIntent(this)));
+        findViewById(R.id.btn_zoom_in).setOnClickListener(v -> map.zoomIn());
+        findViewById(R.id.btn_zoom_out).setOnClickListener(v -> map.zoomOut());
 
-        rvPinned.setLayoutManager(
-                new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false));
-        rvApps.setLayoutManager(new GridLayoutManager(this, GRID_COLUMNS));
-        rvApps.setHasFixedSize(true);
+        media = new MediaWidget(this, findViewById(R.id.media_card));
+        speed = new SpeedWidget(this,
+                findViewById(R.id.speed_value),
+                findViewById(R.id.speed_unit),
+                findViewById(R.id.speed_source));
 
-        appAdapter = new AppAdapter(this, apps, new AppAdapter.Listener() {
-            @Override public void onLaunch(AppInfo app) { launch(app); }
-            @Override public void onDetails(AppInfo app) { openAppDetails(app); }
-        });
-        rvApps.setAdapter(appAdapter);
+        truck = findViewById(R.id.truck);
+        fuel    = new StatCell(findViewById(R.id.stat_fuel),    getString(R.string.fuel));
+        coolant = new StatCell(findViewById(R.id.stat_coolant), getString(R.string.coolant));
+        battery = new StatCell(findViewById(R.id.stat_battery), getString(R.string.battery));
+        outside = new StatCell(findViewById(R.id.stat_outside), getString(R.string.outside));
 
-        reloadApps();
+        Dock.build(this, (LinearLayout) findViewById(R.id.dock));
+
+        ensureLocationPermission();
         updateClock();
+        updateVehicle();
     }
 
     @Override
@@ -94,109 +103,114 @@ public class LauncherActivity extends AppCompatActivity {
         goImmersive();
         ui.removeCallbacks(clockTick);
         ui.post(clockTick);
-        // Refresh in case apps were installed/removed while we were away.
-        reloadApps();
+        ui.removeCallbacks(vehicleTick);
+        ui.post(vehicleTick);
+        map.onResume();
+        media.onResume();
+        speed.start();
     }
 
     @Override
     protected void onPause() {
         super.onPause();
         ui.removeCallbacks(clockTick);
+        ui.removeCallbacks(vehicleTick);
+        speed.stop();
+        media.onPause();
+        map.onPause();
     }
 
     @Override
-    protected void onNewIntent(Intent intent) {
-        super.onNewIntent(intent);
-        // HOME pressed while we are already foreground: scroll back to top.
-        if (rvApps != null) rvApps.scrollToPosition(0);
+    protected void onDestroy() {
+        super.onDestroy();
+        map.onDestroy();
     }
 
     @Override
     public void onBackPressed() {
-        // A launcher should swallow BACK (never exit to a blank screen).
-        if (rvApps != null) rvApps.scrollToPosition(0);
+        // A home screen swallows BACK.
     }
+
+    // ---- data refresh ----
 
     private void updateClock() {
         Date now = new Date();
-        tvTime.setText(timeFmt.format(now) + " " + ampmFmt.format(now).toLowerCase(Locale.US));
+        tvTime.setText(timeFmt.format(now).toLowerCase(Locale.US));
         tvDate.setText(dateFmt.format(now));
     }
 
-    private void reloadApps() {
-        new Thread(() -> {
-            final List<AppInfo> loaded = AppRepository.loadLaunchable(this);
-            final List<AppInfo> pinned = AppRepository.resolvePinned(this);
-            ui.post(() -> {
-                apps.clear();
-                apps.addAll(loaded);
-                appAdapter.notifyDataSetChanged();
-
-                TileAdapter tileAdapter = new TileAdapter(this, pinned, this::launch);
-                rvPinned.setAdapter(tileAdapter);
-                rvPinned.setVisibility(pinned.isEmpty() ? View.GONE : View.VISIBLE);
-            });
-        }).start();
+    private void updateVehicle() {
+        truck.setData(vehicle);
+        fuel.set(Fmt.percent(vehicle.fuelPercent()));
+        coolant.set(Fmt.tempF(vehicle.coolantC()));
+        battery.set(Fmt.volts(vehicle.batteryVolts()));
+        String out = Fmt.tempF(vehicle.outsideC());
+        outside.set(out);
+        tvOutside.setText(out);
+        speed.setVehicle(vehicle);
     }
 
-    private void launch(AppInfo app) {
-        try {
-            Intent i = new Intent(Intent.ACTION_MAIN);
-            i.addCategory(Intent.CATEGORY_LAUNCHER);
-            i.setComponent(app.component);
-            i.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK
-                    | Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED);
-            startActivity(i);
-        } catch (ActivityNotFoundException e) {
-            // Fall back to the package's default launch intent.
-            Intent fb = getPackageManager().getLaunchIntentForPackage(app.packageName);
-            if (fb != null) {
-                fb.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                startActivity(fb);
-            } else {
-                Toast.makeText(this, "Can't open " + app.label, Toast.LENGTH_SHORT).show();
-            }
+    // ---- permissions ----
+
+    private boolean hasLocation() {
+        return checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION)
+                == PackageManager.PERMISSION_GRANTED;
+    }
+
+    private void ensureLocationPermission() {
+        if (hasLocation()) {
+            map.enableLocation();
+        } else {
+            requestPermissions(new String[]{
+                    Manifest.permission.ACCESS_FINE_LOCATION,
+                    Manifest.permission.ACCESS_COARSE_LOCATION}, REQ_LOC);
         }
     }
 
-    private void openAppDetails(AppInfo app) {
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] results) {
+        super.onRequestPermissionsResult(requestCode, permissions, results);
+        if (requestCode == REQ_LOC && hasLocation()) {
+            map.enableLocation();
+            speed.start();
+        }
+    }
+
+    // ---- launching ----
+
+    private void launchOrToast(Intent i) {
+        if (i == null) {
+            Toast.makeText(this, R.string.not_installed, Toast.LENGTH_SHORT).show();
+            return;
+        }
         try {
-            Intent i = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
-            i.setData(Uri.parse("package:" + app.packageName));
             i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             startActivity(i);
         } catch (Exception e) {
-            Toast.makeText(this, app.label, Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, R.string.not_installed, Toast.LENGTH_SHORT).show();
         }
     }
 
     private void openSettings() {
-        try {
-            Intent i = new Intent(Settings.ACTION_SETTINGS);
-            i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            startActivity(i);
-        } catch (Exception e) {
-            Toast.makeText(this, "Settings unavailable", Toast.LENGTH_SHORT).show();
-        }
-    }
-
-    /** Real frosted-glass depth: blur the wallpaper layer (API 31+ / this unit is API 33). */
-    private void applyWallpaperBlur() {
-        View wall = findViewById(R.id.wallpaper);
-        if (wall == null) return;
-        if (android.os.Build.VERSION.SDK_INT >= 31) {
-            wall.setRenderEffect(android.graphics.RenderEffect.createBlurEffect(
-                    55f, 55f, android.graphics.Shader.TileMode.CLAMP));
-        }
+        launchOrToast(new Intent(Settings.ACTION_SETTINGS));
     }
 
     private void goImmersive() {
-        View decor = getWindow().getDecorView();
-        decor.setSystemUiVisibility(
-                View.SYSTEM_UI_FLAG_LAYOUT_STABLE
-                        | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
-                        | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
-                        | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
-                        | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY);
+        getWindow().setDecorFitsSystemWindows(false);
+        WindowInsetsController c = getWindow().getInsetsController();
+        if (c != null) {
+            c.hide(WindowInsets.Type.systemBars());
+            c.setSystemBarsBehavior(WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
+        }
+    }
+
+    /** One value-over-label cell in the vehicle card (layout/stat_cell.xml). */
+    static final class StatCell {
+        private final TextView value;
+        StatCell(View root, String label) {
+            value = root.findViewById(R.id.stat_value);
+            ((TextView) root.findViewById(R.id.stat_label)).setText(label);
+        }
+        void set(String v) { value.setText(v); }
     }
 }

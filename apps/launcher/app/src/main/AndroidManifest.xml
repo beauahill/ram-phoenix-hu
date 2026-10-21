@@ -1,9 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES"
-        tools:ignore="QueryAllPackagesPermission"
-        xmlns:tools="http://schemas.android.com/tools" />
+        tools:ignore="QueryAllPackagesPermission" />
+    <!-- map tiles -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <!-- GPS: map follow + speed widget (until canbus speed is pinned) -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <!-- osmdroid's own manifest asks for this; we use the app cache dir instead -->
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" tools:node="remove" />
 
     <application
         android:allowBackup="false"
@@ -12,6 +20,7 @@
         android:supportsRtl="false"
         android:theme="@style/Theme.RamLauncher">
 
+        <!-- HOME: the dashboard -->
         <activity
             android:name=".LauncherActivity"
             android:exported="true"
@@ -20,8 +29,7 @@
             android:clearTaskOnLaunch="true"
             android:screenOrientation="portrait"
             android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenSize|smallestScreenSize|screenLayout|uiMode"
-            android:windowSoftInputMode="adjustNothing"
-            android:theme="@style/Theme.RamLauncher">
+            android:windowSoftInputMode="adjustNothing">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.HOME" />
@@ -30,6 +38,24 @@
             </intent-filter>
         </activity>
 
-    </application>
+        <!-- All-apps grid, opened from the dock -->
+        <activity
+            android:name=".AppDrawerActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:excludeFromRecents="true" />
 
+        <!-- Needed so MediaSessionManager will hand us the active media sessions
+             (Spotify, radio, music). Enable with:
+             adb shell cmd notification allow_listener com.ramphoenix.launcher/.MediaListenerService -->
+        <service
+            android:name=".MediaListenerService"
+            android:exported="true"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
+            <intent-filter>
+                <action android:name="android.service.notification.NotificationListenerService" />
+            </intent-filter>
+        </service>
+
+    </application>
 </manifest>
