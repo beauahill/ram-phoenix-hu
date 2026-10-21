@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Phoenix Launcher</string>
-    <string name="apps_header">Apps</string>
+    <string name="apps_header">All Apps</string>
+    <string name="favorites_header">Favorites</string>
     <string name="settings">Settings</string>
 </resources>

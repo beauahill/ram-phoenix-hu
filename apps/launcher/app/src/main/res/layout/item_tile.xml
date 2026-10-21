@@ -1,12 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Favorites shelf widget: wider frosted glass card, icon + label side-stacked. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="150dp"
-    android:layout_height="120dp"
+    android:layout_width="156dp"
+    android:layout_height="112dp"
     android:layout_marginStart="8dp"
     android:layout_marginEnd="8dp"
-    android:orientation="vertical"
-    android:gravity="center"
-    android:background="@drawable/tile_bg"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:paddingStart="20dp"
+    android:paddingEnd="16dp"
+    android:background="@drawable/glass_tile_selector"
     android:focusable="true"
     android:clickable="true">
 
@@ -19,10 +22,11 @@
 
     <TextView
         android:id="@+id/tile_label"
-        android:layout_width="wrap_content"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginTop="12dp"
-        android:maxLines="1"
+        android:layout_weight="1"
+        android:layout_marginStart="14dp"
+        android:maxLines="2"
         android:ellipsize="end"
         android:text="Tile"
         android:textColor="@color/text_primary"

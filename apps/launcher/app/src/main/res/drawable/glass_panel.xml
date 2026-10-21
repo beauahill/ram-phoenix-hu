@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Wide frosted panel for the top status bar / shelves. -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <shape android:shape="rectangle">
+            <corners android:radius="34dp" />
+            <solid android:color="@color/glass_fill_dim" />
+            <stroke android:width="1dp" android:color="@color/glass_stroke" />
+        </shape>
+    </item>
+    <item>
+        <shape android:shape="rectangle">
+            <corners android:radius="34dp" />
+            <gradient
+                android:type="linear"
+                android:angle="270"
+                android:startColor="@color/glass_highlight"
+                android:centerColor="#00FFFFFF"
+                android:endColor="#00FFFFFF" />
+        </shape>
+    </item>
+</layer-list>

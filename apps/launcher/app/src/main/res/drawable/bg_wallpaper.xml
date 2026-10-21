@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Deep, soft wallpaper: near-black base with two colored glow blobs for depth.
+     Rendered behind the glass panels (and blurred at runtime on API 31+) so the
+     frosted tiles read as real glass. -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Base vertical gradient -->
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:type="linear"
+                android:angle="270"
+                android:startColor="#FF0A0C12"
+                android:centerColor="#FF070810"
+                android:endColor="#FF04050A" />
+        </shape>
+    </item>
+
+    <!-- Amber glow, top-left -->
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:type="radial"
+                android:gradientRadius="620"
+                android:centerX="0.18"
+                android:centerY="0.14"
+                android:startColor="@color/glow_amber"
+                android:endColor="#00000000" />
+        </shape>
+    </item>
+
+    <!-- Teal glow, bottom-right -->
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:type="radial"
+                android:gradientRadius="720"
+                android:centerX="0.86"
+                android:centerY="0.9"
+                android:startColor="@color/glow_teal"
+                android:endColor="#00000000" />
+        </shape>
+    </item>
+</layer-list>

@@ -1,97 +1,137 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<!-- Phoenix Launcher — CarPlay-style glass home, portrait 1080x1920.
+     Soft wallpaper (blurred at runtime) behind a floating glass status bar,
+     a favorites shelf, and a grid of frosted glass app tiles. -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:background="@color/transparent">
+    android:background="@color/bg_base">
 
-    <!-- ===== Header: big clock + settings ===== -->
-    <RelativeLayout
+    <!-- Wallpaper layer (blurred in code on API 31+) -->
+    <ImageView
+        android:id="@+id/wallpaper"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:paddingStart="32dp"
-        android:paddingEnd="32dp"
-        android:paddingTop="56dp"
-        android:paddingBottom="28dp">
+        android:layout_height="match_parent"
+        android:scaleType="centerCrop"
+        android:src="@drawable/bg_wallpaper"
+        android:importantForAccessibility="no"
+        android:contentDescription="@null" />
 
-        <LinearLayout
-            android:id="@+id/clock_block"
+    <!-- Readability scrim -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@color/scrim" />
+
+    <!-- Foreground content -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:paddingStart="22dp"
+        android:paddingEnd="22dp">
+
+        <!-- ===== Floating glass status bar: clock + settings ===== -->
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="44dp"
+            android:background="@drawable/glass_panel"
+            android:paddingStart="30dp"
+            android:paddingEnd="20dp"
+            android:paddingTop="22dp"
+            android:paddingBottom="22dp">
+
+            <LinearLayout
+                android:id="@+id/clock_block"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentStart="true"
+                android:layout_centerVertical="true"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/clock_time"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="12:00 am"
+                    android:textColor="@color/text_primary"
+                    android:textSize="60sp"
+                    android:fontFamily="sans-serif-thin"
+                    android:letterSpacing="-0.02"
+                    android:includeFontPadding="false" />
+
+                <TextView
+                    android:id="@+id/clock_date"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:text="Day, Month 0"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="18sp"
+                    android:fontFamily="sans-serif-light" />
+            </LinearLayout>
+
+            <ImageView
+                android:id="@+id/btn_settings"
+                android:layout_width="58dp"
+                android:layout_height="58dp"
+                android:layout_alignParentEnd="true"
+                android:layout_centerVertical="true"
+                android:padding="14dp"
+                android:background="@drawable/glass_circle"
+                android:src="@drawable/ic_settings"
+                android:contentDescription="@string/settings"
+                android:scaleType="fitCenter" />
+        </RelativeLayout>
+
+        <!-- ===== Favorites shelf (glass widgets) ===== -->
+        <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_alignParentStart="true"
-            android:orientation="vertical">
+            android:layout_marginStart="12dp"
+            android:layout_marginTop="26dp"
+            android:layout_marginBottom="10dp"
+            android:text="@string/favorites_header"
+            android:textAllCaps="true"
+            android:textColor="@color/text_secondary"
+            android:textSize="12sp"
+            android:letterSpacing="0.16"
+            android:fontFamily="sans-serif-medium" />
 
-            <TextView
-                android:id="@+id/clock_time"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="12:00 am"
-                android:textColor="@color/text_primary"
-                android:textSize="72sp"
-                android:fontFamily="sans-serif-thin"
-                android:letterSpacing="-0.02"
-                android:includeFontPadding="false" />
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/pinned_row"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingStart="4dp"
+            android:paddingEnd="4dp"
+            android:paddingBottom="6dp"
+            android:clipToPadding="false"
+            android:scrollbars="none" />
 
-            <TextView
-                android:id="@+id/clock_date"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
-                android:text="Day, Month 0"
-                android:textColor="@color/text_secondary"
-                android:textSize="20sp"
-                android:fontFamily="sans-serif-light" />
-        </LinearLayout>
+        <!-- ===== All apps ===== -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="12dp"
+            android:layout_marginTop="22dp"
+            android:layout_marginBottom="10dp"
+            android:text="@string/apps_header"
+            android:textAllCaps="true"
+            android:textColor="@color/text_secondary"
+            android:textSize="12sp"
+            android:letterSpacing="0.16"
+            android:fontFamily="sans-serif-medium" />
 
-        <ImageView
-            android:id="@+id/btn_settings"
-            android:layout_width="56dp"
-            android:layout_height="56dp"
-            android:layout_alignParentEnd="true"
-            android:layout_centerVertical="true"
-            android:padding="12dp"
-            android:background="@drawable/item_ripple"
-            android:src="@drawable/ic_settings"
-            android:contentDescription="@string/settings"
-            android:scaleType="fitCenter" />
-    </RelativeLayout>
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/app_grid"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:paddingTop="2dp"
+            android:paddingBottom="40dp"
+            android:clipToPadding="false"
+            android:scrollbars="none" />
 
-    <!-- ===== Pinned quick-launch tiles ===== -->
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/pinned_row"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:paddingStart="24dp"
-        android:paddingEnd="24dp"
-        android:paddingBottom="12dp"
-        android:clipToPadding="false"
-        android:scrollbars="none" />
-
-    <!-- ===== Apps header ===== -->
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="34dp"
-        android:layout_marginTop="12dp"
-        android:layout_marginBottom="6dp"
-        android:text="@string/apps_header"
-        android:textAllCaps="true"
-        android:textColor="@color/text_secondary"
-        android:textSize="13sp"
-        android:letterSpacing="0.14"
-        android:fontFamily="sans-serif-medium" />
-
-    <!-- ===== App drawer grid ===== -->
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/app_grid"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:paddingStart="16dp"
-        android:paddingEnd="16dp"
-        android:paddingTop="4dp"
-        android:paddingBottom="40dp"
-        android:clipToPadding="false"
-        android:scrollbars="none" />
-
-</LinearLayout>
+    </LinearLayout>
+</FrameLayout>

@@ -63,6 +63,7 @@ public class LauncherActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_launcher);
         goImmersive();
+        applyWallpaperBlur();
 
         tvTime = findViewById(R.id.clock_time);
         tvDate = findViewById(R.id.clock_date);
@@ -176,6 +177,16 @@ public class LauncherActivity extends AppCompatActivity {
             startActivity(i);
         } catch (Exception e) {
             Toast.makeText(this, "Settings unavailable", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    /** Real frosted-glass depth: blur the wallpaper layer (API 31+ / this unit is API 33). */
+    private void applyWallpaperBlur() {
+        View wall = findViewById(R.id.wallpaper);
+        if (wall == null) return;
+        if (android.os.Build.VERSION.SDK_INT >= 31) {
+            wall.setRenderEffect(android.graphics.RenderEffect.createBlurEffect(
+                    55f, 55f, android.graphics.Shader.TileMode.CLAMP));
         }
     }
 
