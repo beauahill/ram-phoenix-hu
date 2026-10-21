@@ -26,6 +26,8 @@ public interface VehicleData {
     Float outsideC();
     /** Vehicle speed from the bus in km/h, or null (dashboard falls back to GPS). */
     Float speedKph();
+    /** Engine speed in thousands of rpm (e.g. 2.1), or null. */
+    Float rpm();
     /** True when the source is live at all. */
     boolean available();
 
@@ -36,6 +38,7 @@ public interface VehicleData {
         @Override public Float batteryVolts() { return null; }
         @Override public Float outsideC() { return null; }
         @Override public Float speedKph() { return null; }
+        @Override public Float rpm() { return null; }
         @Override public boolean available() { return false; }
     };
 }

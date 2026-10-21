@@ -1,80 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Drive gauges: big speed readout + vehicle sensor card, side by side. -->
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<!-- Vehicle info card: speed + rpm dials, truck top view with tire pressures,
+     dual gauges (fuel|temp, batt|outside). All drawn by VehicleCardView. -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/drive_row"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="horizontal">
+    android:background="@drawable/glass_card"
+    android:clipToOutline="true">
 
-    <LinearLayout
-        android:layout_width="0dp"
+    <com.ramphoenix.launcher.VehicleCardView
+        android:id="@+id/vehicle_card"
+        android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_weight="0.41"
-        android:orientation="vertical"
-        android:gravity="center"
-        android:background="@drawable/glass_card">
-        <TextView
-            android:id="@+id/speed_value"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="0"
-            android:textColor="@color/text_primary"
-            android:textSize="112sp"
-            android:fontFamily="sans-serif-thin"
-            android:letterSpacing="-0.04"
-            android:includeFontPadding="false" />
-        <TextView
-            android:id="@+id/speed_unit"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/mph"
-            android:textColor="@color/text_secondary"
-            android:textSize="17sp"
-            android:letterSpacing="0.14" />
-        <TextView
-            android:id="@+id/speed_source"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="18dp"
-            android:text="@string/gps_searching"
-            android:textColor="@color/text_tertiary"
-            android:textSize="11sp"
-            android:letterSpacing="0.12" />
-    </LinearLayout>
-
-    <LinearLayout
-        android:layout_width="0dp"
-        android:layout_height="match_parent"
-        android:layout_weight="0.59"
-        android:layout_marginStart="12dp"
-        android:orientation="vertical"
-        android:padding="16dp"
-        android:background="@drawable/glass_card">
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/vehicle"
-            android:textColor="@color/text_secondary"
-            android:textSize="11sp"
-            android:letterSpacing="0.16"
-            android:fontFamily="sans-serif-medium" />
-
-        <com.ramphoenix.launcher.TruckSensorView
-            android:id="@+id/truck"
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1"
-            android:layout_marginTop="4dp" />
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:layout_marginTop="4dp">
-            <include layout="@layout/stat_cell" android:id="@+id/stat_fuel" />
-            <include layout="@layout/stat_cell" android:id="@+id/stat_coolant" />
-            <include layout="@layout/stat_cell" android:id="@+id/stat_battery" />
-            <include layout="@layout/stat_cell" android:id="@+id/stat_outside" />
-        </LinearLayout>
-    </LinearLayout>
-</LinearLayout>
+        android:layout_margin="10dp" />
+</FrameLayout>

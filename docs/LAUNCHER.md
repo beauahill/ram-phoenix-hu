@@ -16,10 +16,11 @@ layouts (the layout icon in the status row toggles; the choice is remembered):
 ├──────────────────────────────┤
 │ [art]  Spotify · Falling     │  now playing
 │        Madeaux   ◀ ▶ ▶▶      │
-├────────────┬─────────────────┤
-│   0 MPH    │ VEHICLE  psi x4 │  drive gauges
-│   • GPS    │ fuel cool bat °F│
-└────────────┴─────────────────┘
+├──────────────────────────────┤
+│ (SPEED)   [truck]    (RPM)   │  vehicle info card: dials, truck top view
+│  psi                   psi   │  with tire psi, dual gauges fuel|temp and
+│ (fuel|temp)      (batt|out°) │  batt|outside (VehicleCardView)
+└──────────────────────────────┘
 ```
 
 **SPLIT** — two 50/50 landscape panes (each 1080x~800 px), each one its own
@@ -58,13 +59,15 @@ for key-free OpenStreetMap tiles (CARTO dark basemap).
 |---|---|---|
 | Map | osmdroid + GPS follow (`MapWidget`) | nav app hand-off already wired (tap nav / search) |
 | Now playing | `MediaSessionManager` (`MediaWidget`), any app with a MediaSession: Spotify, SYU radio/music if they publish one | — |
-| Speed | GPS ground speed (`SpeedWidget`) | canbus speed via `VehicleData.speedKph()` |
-| Vehicle | `VehicleData.STUB` → dashes | `CanbusVehicleData` once LSEC IPC `Main.DATA[]` indexes for tire psi / fuel / coolant / battery / outside temp are captured |
+| Speed dial | GPS ground speed (`SpeedWidget`) | canbus speed via `VehicleData.speedKph()` |
+| RPM dial, dual gauges (fuel/temp, batt/outside), tire psi | `VehicleData.STUB` → needles at rest, dashes | `CanbusVehicleData` once LSEC IPC `Main.DATA[]` indexes for rpm / tire psi / fuel / coolant / battery / outside temp are captured |
 | Dock | intent categories (`CATEGORY_APP_MAPS`, `CATEGORY_APP_MUSIC`, `ACTION_DIAL`), then package fallbacks, then label match ("radio") | pin the real SYU radio/music/phone package names |
 
 `VehicleData` is the single seam for the canbus work: implement it, hand it to
-`LauncherActivity`, and the truck view, stat row, status temp and speed all
-light up.
+`LauncherActivity`, and the whole cluster (both dials, the four dual-gauge
+needles, tire colours, status temp) lights up. Scales: speed 0–120 mph, rpm
+0–7 x1000 with redline from 5.5, fuel 0–100 %, coolant 100–260 °F, battery
+10–16 V, outside −20–120 °F, tire psi green 30–85 else amber.
 
 ## Install on the unit
 

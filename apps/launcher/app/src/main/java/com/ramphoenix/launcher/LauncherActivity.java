@@ -54,8 +54,7 @@ public class LauncherActivity extends Activity implements Pane.Host {
     private MapWidget map;
     private MediaWidget media;
     private SpeedWidget speed;
-    private TruckSensorView truck;
-    private StatCell fuel, coolant, battery, outside;
+    private VehicleCardView vehicleCard;
 
     // containers
     private View fullContainer, splitContainer;
@@ -114,15 +113,8 @@ public class LauncherActivity extends Activity implements Pane.Host {
 
         media = new MediaWidget(this, mediaCard);
 
-        speed = new SpeedWidget(this,
-                driveRow.findViewById(R.id.speed_value),
-                driveRow.findViewById(R.id.speed_unit),
-                driveRow.findViewById(R.id.speed_source));
-        truck = driveRow.findViewById(R.id.truck);
-        fuel    = new StatCell(driveRow.findViewById(R.id.stat_fuel),    getString(R.string.fuel));
-        coolant = new StatCell(driveRow.findViewById(R.id.stat_coolant), getString(R.string.coolant));
-        battery = new StatCell(driveRow.findViewById(R.id.stat_battery), getString(R.string.battery));
-        outside = new StatCell(driveRow.findViewById(R.id.stat_outside), getString(R.string.outside));
+        vehicleCard = driveRow.findViewById(R.id.vehicle_card);
+        speed = new SpeedWidget(this, vehicleCard);
 
         // --- containers ---
         fullContainer = findViewById(R.id.full_container);
@@ -246,13 +238,8 @@ public class LauncherActivity extends Activity implements Pane.Host {
     }
 
     private void updateVehicle() {
-        truck.setData(vehicle);
-        fuel.set(Fmt.percent(vehicle.fuelPercent()));
-        coolant.set(Fmt.tempF(vehicle.coolantC()));
-        battery.set(Fmt.volts(vehicle.batteryVolts()));
-        String out = Fmt.tempF(vehicle.outsideC());
-        outside.set(out);
-        tvOutside.setText(out);
+        vehicleCard.setData(vehicle);
+        tvOutside.setText(Fmt.tempF(vehicle.outsideC()));
         speed.setVehicle(vehicle);
     }
 
@@ -308,15 +295,5 @@ public class LauncherActivity extends Activity implements Pane.Host {
             c.hide(WindowInsets.Type.systemBars());
             c.setSystemBarsBehavior(WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
         }
-    }
-
-    /** One value-over-label cell in the vehicle card (layout/stat_cell.xml). */
-    static final class StatCell {
-        private final TextView value;
-        StatCell(View root, String label) {
-            value = root.findViewById(R.id.stat_value);
-            ((TextView) root.findViewById(R.id.stat_label)).setText(label);
-        }
-        void set(String v) { value.setText(v); }
     }
 }
