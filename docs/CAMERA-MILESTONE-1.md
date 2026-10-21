@@ -87,3 +87,45 @@ nav app can pull AR frames — not relevant to us, but confirms it's a normal Ca
 Pulled + integrity-checked APKs (on Crimson box `~/ram-phoenix-hu/apks/`):
 doublecamera 33.6MB · fourcamera2 6.1MB · rightcamera 2.8MB · video 2.7MB · canbus 104.7MB.
 Decompiled source (gateway host): `~/.openclaw/workspace/ram-phoenix/out/doublecamera/`.
+
+---
+
+## Physical Camera Button + 360 System (captured live 2026-10-20)
+
+Beau's truck has the **factory 360° surround-view system** and a **physical camera button**. Captured the full chain cold via logcat while he pressed the button.
+
+### What the physical button fires
+
+1. **Button press → `com.fyt.screenbutton`** draws an overlay window (it's the button/floating-UI app).
+2. **`com.syu.us`** (pid 2565, the surround/ultrasonic app) handles the logic:
+   - `refreshFloatCameraBtn` / `isExistPanorama_Float=false`
+   - sets `U_CAMERA_MODE=true` on the radar view (`setVisibility_CarRadar`)
+3. **TWO camera apps open simultaneously** (this is the 360 pipeline):
+   - `com.syu.doublecamera` (pid 17359, tag `HJT`, `MyCamera3`) opens **Camera2 device 14** → HAL `camId=2`, `mMultiCameraMode`, `sprd_3dcalibration_cap_size w=720 h=504` (the ISP 3D-calibration / stitch path)
+   - `com.syu.us` (pid 2565, tag `lseccamm`, `MyCamera2`) opens **Camera2 device 10**
+   - Launch time ~360ms (`receivePreviewFrame ... Launch Camera Time:360(ms)`)
+
+### Key architecture insight on the 360
+
+The surround stitching happens **below the app layer**, in the Unisoc/Spreadtrum ISP (`Cam3OEMIf`, `sprd_3dcalibration`, `mMultiCameraMode`). The apps bind standard Camera2 surfaces (devices 14 + 10); the composited/calibrated frame comes out of the HAL. So for our own 360 UI we bind the same Camera2 devices — we do **not** have to stitch raw fisheye in-app (unless we want a fully custom bird's-eye, which is a later milestone).
+
+### The control plane — `/sys/lsecdcamctl/` (all world-writable 0666)
+
+Direct sysfs knobs, no IPC/root needed:
+- **`fyt_car_reverse`** — reverse flag, `0`→`1` on gear-R (reads 0 at rest) ✅ our reverse trigger
+- `backcar_mirror` — mirror the backup image
+- `video_rotation`, `video_position`, `video_vertical`, `video_control_position` — feed geometry (the knobs to re-aim for a lifted truck / portrait panel)
+- `video_signal`, `video_err`, `video_ntsc_pal` — signal/format state
+- `main_video_ic`, `main2_video_ic`, `sub_video_ic` — the video decoder ICs (multi-cam inputs)
+- `ori_display_resolution`
+
+### Trigger map for our app (both paths)
+
+| Trigger | Signal to subscribe | Cameras |
+|---|---|---|
+| Reverse gear | `/sys/lsecdcamctl/fyt_car_reverse` 0→1 (+ `U_BACKCAR` IPC) | dev 14 (back) |
+| Physical button / 360 | `U_CAMERA_MODE` IPC via `com.syu.us`; button owned by `com.fyt.screenbutton` | dev 14 + dev 10 |
+
+### Open question for the 360 rebuild
+
+Only two non-SYU custom apps exist: `com.fyt.screenbutton` (button/overlay) and `com.syu.fytgesture` (gesture). There is **no separate AVM/bird's-eye app** — the 360 render lives inside `com.syu.us` + `com.syu.doublecamera`. If we want our own 360 view we either (a) reuse their Camera2 device binding and the ISP-stitched output, or (b) go full-custom bird's-eye from the 4 raw inputs (later milestone, much bigger). Milestone 1 stays: clean single-cam reverse + manual-button view, instant, no restart loop.
