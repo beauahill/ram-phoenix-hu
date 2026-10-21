@@ -10,7 +10,7 @@ layouts (the layout icon in the status row toggles; the choice is remembered):
 │ 4:20 pm  Tue, Oct 21  52° ▤ ⚙│  status row (▤ = layout toggle)
 │ [apps][cam][nav][☎][♪][📻][⚙]│  dock
 ├──────────────────────────────┤
-│   live map (osmdroid, dark)  │
+│   live map (Google, night)   │
 │   [nav]            [+/-]     │
 │   [🎤 🔍 Where to?        ]  │
 ├──────────────────────────────┤
@@ -50,14 +50,15 @@ screen. A picker pill on each pane's right edge chooses what it shows:
   an Open button brings it back.
 
 Plain framework widgets, **no AndroidX** (small, fast cold start, and it
-compiles without Google's Maven). One dependency: `org.osmdroid:osmdroid-android`
-for key-free OpenStreetMap tiles (CARTO dark basemap).
+compiles against Google's Maven). One dependency: `com.google.android.gms:play-services-maps`
+(Play Services is on the unit). The Maps key is read at build time from the repo-root `local.properties`
+or the `MAPS_API_KEY` env var; an empty key still builds, the map card just renders blank.
 
 ## Widgets and where their data comes from
 
 | Widget | Source today | Later |
 |---|---|---|
-| Map | osmdroid + GPS follow (`MapWidget`) | nav app hand-off already wired (tap nav / search) |
+| Map | Google Maps SDK, night style, heading-up GPS follow (`MapWidget`); key from repo-root `local.properties` (`MAPS_API_KEY=`, gitignored) | nav app hand-off already wired (tap nav / search) |
 | Now playing | `MediaSessionManager` (`MediaWidget`), any app with a MediaSession: Spotify, SYU radio/music if they publish one | — |
 | Speed dial | GPS ground speed (`SpeedWidget`) | canbus speed via `VehicleData.speedKph()` |
 | RPM dial, dual gauges (fuel/temp, batt/outside), tire psi | `VehicleData.STUB` → needles at rest, dashes | `CanbusVehicleData` once LSEC IPC `Main.DATA[]` indexes for rpm / tire psi / fuel / coolant / battery / outside temp are captured |
