@@ -177,3 +177,30 @@ top widget of FULL mode is also network-dependent.
 3. Launcher L2 (drop the JPEG) + L3 (dock resolution off-thread).
 4. Next truck session: the five camera truck-gated items, then
    `pm list packages syu` for L4, then `dumpsys` the SPLIT freeform behaviour.
+
+## Resolution log
+
+**2026-10-21 04:50 MDT — C1, C2, C3, L2 fixed** (Beau: "knock out C1-C3 and L2").
+Both apps rebuilt with Gradle on the Crimson box after the changes (camera 6.9 MB,
+launcher 1.0 MB, `EXIT=0`); new strings verified in the compiled dex.
+
+- **C1** `CameraController.open()` returns early when `wantOpen` and the
+  same camera id is already bound to the same `SurfaceHolder`. Every surface-
+  invalidating path (`onPause`, `surfaceDestroyed`) calls `close()` first,
+  which clears `wantOpen`, so the guard can never be satisfied by a dead
+  surface. Double `setMode(REAR)` on reverse and REAR→360 are now no-ops on
+  cam 14. Error recovery stays with the controller's own reopen loop.
+- **C2** `ReverseService.onCreate` calls `showCamera()` when the monitor's
+  seed state is already engaged (boot / service restart while in R).
+- **C3** Ongoing FGS notification moved to a new `IMPORTANCE_MIN` channel
+  (`phoenix_reverse_watch`, no sound/vibration, `setOnlyAlertOnce`); the HIGH
+  channel is now only used by the full-screen-intent fallback.
+- **L2** `docs/assets/ram-3500-blueprint.jpg` removed from the index and
+  git-ignored going forward (stays on disk locally so the tracer runs);
+  `tools/gen_truck.py` documents the input as licensed/local-only, accepts
+  `BLUEPRINT=` override and fails clearly if the file is absent; stale
+  `scratchpad/cad/` path fixed in the generator and `TruckOutline.java`;
+  `docs/LAUNCHER.md` updated. NOTE: the JPEG remains in branch history
+  (commit `07ef122`); a history rewrite was judged not worth it (per L2).
+
+Still open: C4, C5, L1, L3–L8, and the live-truck measurement items.

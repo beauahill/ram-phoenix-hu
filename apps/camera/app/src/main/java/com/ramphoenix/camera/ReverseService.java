@@ -36,7 +36,11 @@ import android.util.Log;
 public class ReverseService extends Service {
 
     private static final String TAG = "PhoenixCam";
+    /** HIGH-importance channel: only for the full-screen-intent fallback. */
     private static final String CH_ID = "phoenix_reverse";
+    /** MIN-importance channel for the permanent "watching" notification (review
+     *  C3): keeps it out of the heads-up slot on every boot / service restart. */
+    private static final String CH_ONGOING_ID = "phoenix_reverse_watch";
     private static final int FG_ID = 1;
     private static final int FULLSCREEN_ID = 2;
     /** How long we give the activity to resume before declaring the start blocked. */
@@ -62,6 +66,14 @@ public class ReverseService extends Service {
             }
         });
         monitor.start();
+        // Review C2: the monitor only fires on a CHANGE, so if the unit boots (or
+        // this service restarts) with the truck already in R — backing out of
+        // the garage as it boots — nothing would ever call showCamera(). Mirror
+        // the stock app's GET_BOOT_REVERSE_STATUS by acting on the seed state.
+        if (monitor.isEngaged()) {
+            Log.i(TAG, "reverse already engaged at service start -> showing camera");
+            showCamera();
+        }
     }
 
     @Override public int onStartCommand(Intent intent, int flags, int startId) {
@@ -135,12 +147,21 @@ public class ReverseService extends Service {
             ch.setDescription("Brings up the rear camera when you shift to reverse");
             ch.setShowBadge(false);
             nm.createNotificationChannel(ch);
+
+            NotificationChannel watch = new NotificationChannel(
+                    CH_ONGOING_ID, "Reverse watcher", NotificationManager.IMPORTANCE_MIN);
+            watch.setDescription("Background service that watches the reverse gear");
+            watch.setShowBadge(false);
+            watch.setSound(null, null);
+            watch.enableVibration(false);
+            nm.createNotificationChannel(watch);
         }
-        return new Notification.Builder(this, CH_ID)
+        return new Notification.Builder(this, CH_ONGOING_ID)
                 .setSmallIcon(android.R.drawable.ic_menu_camera)
                 .setContentTitle("Phoenix camera ready")
                 .setContentText("Watching for reverse gear")
                 .setOngoing(true)
+                .setOnlyAlertOnce(true)
                 .build();
     }
 

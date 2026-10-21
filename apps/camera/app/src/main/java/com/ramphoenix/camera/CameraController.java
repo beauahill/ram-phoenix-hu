@@ -75,10 +75,24 @@ public class CameraController {
      * Begin (or switch to) showing {@code id} on {@code holder}. Safe to call
      * repeatedly. Runs on the main thread (re-posts itself if called elsewhere)
      * because it may resize the SurfaceView.
+     *
+     * Idempotent (review C1): if this controller is already open (or opening)
+     * on the SAME camera id and the SAME holder, this is a no-op. Without this,
+     * every applyMode() (surfaceCreated / onResume / handleIntent / setMode)
+     * tore the live device down and reopened it, ~200-400 ms of black, and
+     * shifting into R with the app on screen did it twice (activity monitor +
+     * service intent). Every path that invalidates the surface (onPause,
+     * surfaceDestroyed) calls close() first, which clears wantOpen, so a stale
+     * surface can never satisfy this guard. Error recovery is owned by the
+     * controller's own reopen loop, not by callers re-issuing open().
      */
     public void open(final String id, final SurfaceHolder holder) {
         if (Looper.myLooper() != Looper.getMainLooper()) {
             main.post(() -> open(id, holder));
+            return;
+        }
+        if (wantOpen && id.equals(cameraId) && holder == attachedHolder) {
+            Log.d(TAG, "cam " + id + ": already open/opening on this surface, no-op");
             return;
         }
         final int gen;
