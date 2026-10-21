@@ -183,8 +183,20 @@ public class CameraController {
      * plenty for a reverse cam), then the largest advertised, then HwConfig
      * defaults. Characteristics lookup is a quick binder call; fine on main.
      */
+    /**
+     * Stream size for a virtual camera. The Unisoc HAL advertises one generic
+     * size table for all 15 virtual cams, but each analog input has ONE native
+     * producer size (VirCamPara.getSnsIdSize: cam 14 -> 720x504 interlaced).
+     * Asking for a non-native size configures fine but never delivers frames
+     * (observed live 2026-10-21: 1280x720 on cam 14 -> queued-frames=0).
+     * Resolution order: persist.phoenix.cam.size.<id> / persist.phoenix.cam.size
+     * (debug override, "WxH"), then HwConfig.nativeSize(id), then largest.
+     */
     private Size pickSize(String id) {
-        int w = HwConfig.CAP_WIDTH, h = HwConfig.CAP_HEIGHT;
+        Size override = sizeProp("persist.phoenix.cam.size." + id);
+        if (override == null) override = sizeProp("persist.phoenix.cam.size");
+        Size want = override != null ? override : HwConfig.nativeSize(id);
+        int w = want.getWidth(), h = want.getHeight();
         try {
             CameraCharacteristics cc = manager.getCameraCharacteristics(id);
             StreamConfigurationMap map = cc.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);
@@ -196,11 +208,10 @@ public class CameraController {
                 if (sizes != null && sizes.length > 0) {
                     Size pick = null;
                     for (Size s : sizes) {
-                        if (s.getWidth() == HwConfig.CAP_WIDTH && s.getHeight() == HwConfig.CAP_HEIGHT) {
-                            pick = s; break;
-                        }
+                        if (s.getWidth() == w && s.getHeight() == h) { pick = s; break; }
                     }
                     if (pick == null) {
+                        Log.w(TAG, "cam " + id + ": wanted " + w + "x" + h + " not advertised, falling back to largest");
                         for (Size s : sizes) {
                             if (pick == null || (long) s.getWidth() * s.getHeight()
                                     > (long) pick.getWidth() * pick.getHeight()) pick = s;
@@ -212,8 +223,19 @@ public class CameraController {
         } catch (Throwable t) {
             Log.w(TAG, "size query failed for " + id + ", using defaults: " + t.getMessage());
         }
-        Log.i(TAG, "cam " + id + " stream size " + w + "x" + h);
+        Log.i(TAG, "cam " + id + " stream size " + w + "x" + h + (override != null ? " (prop override)" : ""));
         return new Size(w, h);
+    }
+
+    /** Reads a "WxH" system property via reflection (debug knob; null if unset/invalid). */
+    private static Size sizeProp(String key) {
+        try {
+            Class<?> sp = Class.forName("android.os.SystemProperties");
+            String v = (String) sp.getMethod("get", String.class, String.class).invoke(null, key, "");
+            if (v == null || v.isEmpty()) return null;
+            String[] p = v.toLowerCase().split("x");
+            return new Size(Integer.parseInt(p[0].trim()), Integer.parseInt(p[1].trim()));
+        } catch (Throwable t) { return null; }
     }
 
     private void doClose() {

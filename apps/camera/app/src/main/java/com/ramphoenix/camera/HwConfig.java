@@ -27,6 +27,21 @@ public final class HwConfig {
     public static final String SURROUND_AUX_ID  = "10"; // CONFIRMED 360 second input
     public static final String FRONT_CAM_ID      = "12"; // TENTATIVE - confirm live before trusting
 
+    /**
+     * Native producer size per virtual camera, from the HAL's VirCamPara table
+     * captured live (getSnsIdSize hwId=2): 7->1920x1080, 8/9->1280x800,
+     * 10->720x504 (deinterlace), 11->1920x1080, 12/13->1280x800, 14->720x504 (deinterlace).
+     * The analog TP2850 inputs (10, 14) are 720x504; the HAL will not scale them.
+     */
+    public static android.util.Size nativeSize(String id) {
+        switch (id) {
+            case "7": case "11": return new android.util.Size(1920, 1080);
+            case "8": case "9": case "12": case "13": return new android.util.Size(1280, 800);
+            case "10": case "14": return new android.util.Size(720, 504);
+            default: return new android.util.Size(CAP_WIDTH, CAP_HEIGHT);
+        }
+    }
+
     // --- Preferred capture size (board supports these on the back cam) ---
     public static final int CAP_WIDTH  = 1280;
     public static final int CAP_HEIGHT = 720;

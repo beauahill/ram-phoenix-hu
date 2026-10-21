@@ -10,3 +10,4 @@ apps/launcher/build.log
 *.log
 # licensed source drawing (dwgmodels), local-only; see tools/gen_truck.py
 docs/assets/ram-3500-blueprint.jpg
+local.properties
