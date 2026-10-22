@@ -339,6 +339,7 @@ Desk work:
 | `docs/CANBUS-IPC.md` | ToolkitService Binder protocol, module codes, reverse code, full RAM 1500 climate read/write tables, live checklist. |
 | `docs/LIVE-2026-10-21.md` | Live truck session: first light, the 360-ECU-CVBS finding, sysfs flag proven dead, IPC trigger proven with timestamps, climate press, lifecycle. |
 | `docs/DASHBOARD-DESIGN.md` | Agreed launcher layout + climate cluster, 1080×1920 mock. |
+| `docs/RUNBOOK-CRIMSON.md` | **Step-by-step for a session on Crimson:** recover stock camera, build, install, test, what evidence to send back. |
 | `docs/LAUNCHER.md` | Launcher widgets, data sources, FULL/SPLIT, climate card, install, open items. |
 | `docs/findings.md` | Dated recon log (early entries corrected in place). |
 | `docs/REVIEW-2026-10-21.md` | Desk review of recon + camera M1 (what held up, what was stale). |
