@@ -17,13 +17,13 @@ Keep the vendor **SYU CANbus service (`com.syu.canbus`) as a dumb HAL.**
 It speaks a proprietary binary protocol to the MCU for steering-wheel buttons,
 climate, reverse-gear signal, and vehicle data. We do NOT reimplement that.
 
-How we actually talk to it (confirmed by decompile, not broadcasts):
-- **Reverse / camera state** surfaces as a world-rw (0666) sysfs control plane
-  at `/sys/lsecdcamctl/` (`fyt_car_reverse`, `backcar_mirror`, `video_rotation`,
-  `video_position`, `video_signal`). Our app polls/sets those directly.
-- **Richer vehicle data** (radar distances, steering angle, etc.) rides the
-  **LSEC IPC shared array** (`Main.DATA[]` + `U_*` signal ids) that the SYU apps
-  publish. That path is the fallback trigger and the source for parking sensors.
+How we actually talk to it (LIVE 2026-10-21, see `docs/STATUS.md`):
+- **Reverse** arrives over the SYU **ToolkitService IPC** (`com.syu.ms`,
+  `MODULE_MAIN` update 12 `U_BACKCAR`). The sysfs node `fyt_car_reverse` is written
+  by a stock app and is dead once the stock cameras are disabled.
+- **Climate, vehicle data, radar, steering** ride the same IPC (`MODULE_CANBUS`
+  update codes; write with `cmd(7, 0, {24, button})`). Protocol in `docs/CANBUS-IPC.md`.
+- **Camera feed** is Camera2 device 14 = the 360 ECU's composite video (720x504).
 
 We build everything above that:
 
@@ -45,6 +45,7 @@ We build everything above that:
 - `com.android.launcher6` — stock launcher (replace)
 
 ## Docs
+- **`docs/STATUS.md` — start here: what is proven, what is open, next truck session.**
 - `docs/CAMERA-MILESTONE-1.md` — the authoritative camera findings (feed path,
   reverse trigger, button path, 360 system, sysfs control plane, punch list).
 - `docs/findings.md` — dated recon log.

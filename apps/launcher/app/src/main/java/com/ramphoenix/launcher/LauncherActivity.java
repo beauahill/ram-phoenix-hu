@@ -2,7 +2,10 @@ package com.ramphoenix.launcher;
 
 import android.Manifest;
 import android.app.Activity;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
@@ -50,15 +53,17 @@ public class LauncherActivity extends Activity implements Pane.Host {
     private ImageView btnLayout;
 
     // shared widgets (inflated once, moved between containers)
-    private View mapCard, mediaCard, driveRow;
+    private View mapCard, mediaCard, driveRow, climateCard;
     private MapWidget map;
     private MediaWidget media;
     private SpeedWidget speed;
     private VehicleCardView vehicleCard;
+    private ClimateWidget climate;
+    private LinearLayout dock;
 
     // containers
     private View fullContainer, splitContainer;
-    private FrameLayout slotFullMap, slotFullMedia, slotFullDrive;
+    private FrameLayout slotFullMap, slotFullMedia, slotFullDrive, slotFullClimate;
     private Pane paneA, paneB;
 
     private VehicleData vehicle = VehicleData.STUB;
@@ -82,6 +87,12 @@ public class LauncherActivity extends Activity implements Pane.Host {
     };
 
     @Override
+    protected void attachBaseContext(Context base) {
+        super.attachBaseContext(base);
+        Ui.applyDensity(this);
+    }
+
+    @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_launcher);
@@ -96,7 +107,8 @@ public class LauncherActivity extends Activity implements Pane.Host {
         btnLayout.setOnClickListener(v -> toggleMode());
         findViewById(R.id.btn_settings).setOnClickListener(v -> openSettings());
 
-        Dock.build(this, (LinearLayout) findViewById(R.id.dock));
+        dock = findViewById(R.id.dock);
+        Dock.build(this, dock);
 
         // --- widgets ---
         ViewGroup content = findViewById(R.id.content);
@@ -104,6 +116,7 @@ public class LauncherActivity extends Activity implements Pane.Host {
         mapCard = li.inflate(R.layout.widget_map, content, false);
         mediaCard = li.inflate(R.layout.widget_media, content, false);
         driveRow = li.inflate(R.layout.widget_drive, content, false);
+        climateCard = li.inflate(R.layout.widget_climate, content, false);
 
         map = new MapWidget(this, mapCard.findViewById(R.id.map_container));
         mapCard.findViewById(R.id.btn_nav).setOnClickListener(v -> launchOrToast(Dock.navIntent(this)));
@@ -115,6 +128,7 @@ public class LauncherActivity extends Activity implements Pane.Host {
 
         vehicleCard = driveRow.findViewById(R.id.vehicle_card);
         speed = new SpeedWidget(this, vehicleCard);
+        climate = new ClimateWidget(this, climateCard);
 
         // --- containers ---
         fullContainer = findViewById(R.id.full_container);
@@ -122,6 +136,7 @@ public class LauncherActivity extends Activity implements Pane.Host {
         slotFullMap = findViewById(R.id.slot_full_map);
         slotFullMedia = findViewById(R.id.slot_full_media);
         slotFullDrive = findViewById(R.id.slot_full_drive);
+        slotFullClimate = findViewById(R.id.slot_full_climate);
         paneA = new Pane(this, findViewById(R.id.pane_a), "pane_a", prefs, Pane.Content.MAP);
         paneB = new Pane(this, findViewById(R.id.pane_b), "pane_b", prefs, Pane.Content.MEDIA);
 
@@ -146,6 +161,7 @@ public class LauncherActivity extends Activity implements Pane.Host {
             slotFullMap.removeAllViews();
             slotFullMedia.removeAllViews();
             slotFullDrive.removeAllViews();
+            slotFullClimate.removeAllViews();
             fullContainer.setVisibility(View.GONE);
             splitContainer.setVisibility(View.VISIBLE);
             Pane.Content a = paneA.content(), b = paneB.content();
@@ -161,6 +177,7 @@ public class LauncherActivity extends Activity implements Pane.Host {
             place(mapCard, slotFullMap);
             place(mediaCard, slotFullMedia);
             place(driveRow, slotFullDrive);
+            place(climateCard, slotFullClimate);
             media.setLarge(false);
         }
     }
@@ -177,6 +194,7 @@ public class LauncherActivity extends Activity implements Pane.Host {
             case MAP: return mapCard;
             case MEDIA: return mediaCard;
             case DRIVE: return driveRow;
+            case CLIMATE: return climateCard;
             default: throw new IllegalArgumentException("no shared widget for " + c);
         }
     }
@@ -205,15 +223,29 @@ public class LauncherActivity extends Activity implements Pane.Host {
         ui.post(vehicleTick);
         map.onResume();
         media.onResume();
+        climate.onResume();
         speed.start();
+        IntentFilter f = new IntentFilter();
+        f.addAction(Intent.ACTION_PACKAGE_ADDED);
+        f.addAction(Intent.ACTION_PACKAGE_REMOVED);
+        f.addAction(Intent.ACTION_PACKAGE_CHANGED);
+        f.addDataScheme("package");
+        registerReceiver(packageChanges, f);
     }
+
+    /** Dock targets can appear/disappear (e.g. the camera APK installed after us). */
+    private final BroadcastReceiver packageChanges = new BroadcastReceiver() {
+        @Override public void onReceive(Context c, Intent i) { Dock.build(LauncherActivity.this, dock); }
+    };
 
     @Override
     protected void onPause() {
         super.onPause();
         ui.removeCallbacks(clockTick);
         ui.removeCallbacks(vehicleTick);
+        try { unregisterReceiver(packageChanges); } catch (IllegalArgumentException ignored) {}
         speed.stop();
+        climate.onPause();
         media.onPause();
         map.onPause();
     }

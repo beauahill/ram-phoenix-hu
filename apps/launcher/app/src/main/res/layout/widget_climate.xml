@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Climate card: stock panel minus rear-zone controls. Row 1 modes, row 2
+     driver | passenger zones, row 3 fan + vent mode. Driven by ClimateWidget. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/climate_card"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="10dp"
+    android:background="@drawable/glass_card"
+    android:clipToOutline="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:paddingStart="6dp"
+        android:paddingEnd="6dp">
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/climate"
+            android:textColor="@color/text_secondary"
+            android:textSize="11sp"
+            android:letterSpacing="0.16"
+            android:fontFamily="sans-serif-medium" />
+        <TextView
+            android:id="@+id/climate_status"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="@color/text_tertiary"
+            android:textSize="11sp"
+            android:letterSpacing="0.12" />
+    </LinearLayout>
+
+    <!-- row 1: modes -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:layout_marginTop="4dp"
+        android:orientation="horizontal">
+        <TextView style="@style/ClimateChip" android:id="@+id/cl_power"  android:text="@string/cl_power" />
+        <TextView style="@style/ClimateChip" android:id="@+id/cl_auto"   android:text="@string/cl_auto" />
+        <TextView style="@style/ClimateChip" android:id="@+id/cl_sync"   android:text="@string/cl_dual" />
+        <TextView style="@style/ClimateChip" android:id="@+id/cl_ac"     android:text="@string/cl_ac" />
+        <TextView style="@style/ClimateChip" android:id="@+id/cl_acmax"  android:text="@string/cl_acmax" />
+        <TextView style="@style/ClimateChip" android:id="@+id/cl_fdef"   android:text="@string/cl_fdef" />
+        <TextView style="@style/ClimateChip" android:id="@+id/cl_rdef"   android:text="@string/cl_rdef" />
+        <TextView style="@style/ClimateChip" android:id="@+id/cl_recirc" android:text="@string/cl_recirc" />
+        <TextView style="@style/ClimateChip" android:id="@+id/cl_wheel"  android:text="@string/cl_wheel" />
+    </LinearLayout>
+
+    <!-- row 2: driver | passenger -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1.25"
+        android:layout_marginTop="4dp"
+        android:orientation="horizontal">
+        <TextView style="@style/ClimateChip" android:id="@+id/cl_heat_l" android:text="@string/cl_heat" android:layout_weight="1.3" />
+        <TextView style="@style/ClimateChip" android:id="@+id/cl_vent_l" android:text="@string/cl_vent" android:layout_weight="1.3" />
+        <TextView style="@style/ClimateChip" android:id="@+id/cl_tl_dn"  android:text="@string/minus" android:textSize="22sp" />
+        <TextView style="@style/ClimateValue" android:id="@+id/cl_temp_l" android:text="@string/no_data" />
+        <TextView style="@style/ClimateChip" android:id="@+id/cl_tl_up"  android:text="@string/plus" android:textSize="22sp" />
+        <View android:layout_width="10dp" android:layout_height="match_parent" />
+        <TextView style="@style/ClimateChip" android:id="@+id/cl_tr_dn"  android:text="@string/minus" android:textSize="22sp" />
+        <TextView style="@style/ClimateValue" android:id="@+id/cl_temp_r" android:text="@string/no_data" />
+        <TextView style="@style/ClimateChip" android:id="@+id/cl_tr_up"  android:text="@string/plus" android:textSize="22sp" />
+        <TextView style="@style/ClimateChip" android:id="@+id/cl_vent_r" android:text="@string/cl_vent" android:layout_weight="1.3" />
+        <TextView style="@style/ClimateChip" android:id="@+id/cl_heat_r" android:text="@string/cl_heat" android:layout_weight="1.3" />
+    </LinearLayout>
+
+    <!-- row 3: fan + vent mode -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:layout_marginTop="4dp"
+        android:orientation="horizontal">
+        <TextView style="@style/ClimateChip" android:id="@+id/cl_fan_dn" android:text="@string/minus" android:textSize="22sp" android:layout_weight="0.8" />
+        <TextView style="@style/ClimateValue" android:id="@+id/cl_fan" android:text="@string/no_data" android:layout_weight="2.2" android:textSize="16sp" android:letterSpacing="0.08" />
+        <TextView style="@style/ClimateChip" android:id="@+id/cl_fan_up" android:text="@string/plus" android:textSize="22sp" android:layout_weight="0.8" />
+        <View android:layout_width="10dp" android:layout_height="match_parent" />
+        <TextView style="@style/ClimateChip" android:id="@+id/cl_mode_face"     android:text="@string/cl_face" />
+        <TextView style="@style/ClimateChip" android:id="@+id/cl_mode_facefeet" android:text="@string/cl_facefeet" />
+        <TextView style="@style/ClimateChip" android:id="@+id/cl_mode_feet"     android:text="@string/cl_feet" />
+        <TextView style="@style/ClimateChip" android:id="@+id/cl_mode_feetdef"  android:text="@string/cl_feetdef" />
+    </LinearLayout>
+</LinearLayout>

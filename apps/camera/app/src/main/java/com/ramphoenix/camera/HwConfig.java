@@ -7,11 +7,14 @@ package com.ramphoenix.camera;
  * Single source of truth for every board-specific constant so the unknowns are
  * visible and tunable in one place rather than scattered as magic numbers.
  *
- * CONFIRMED (captured live via adb/logcat 2026-10-20):
- *   - Backup cam  = Camera2 device "14"  (stock com.syu.doublecamera binds it; HAL camId=2)
- *   - 360 2nd input = Camera2 device "10" (stock com.syu.us binds it alongside 14)
- *   - Reverse flag  = /sys/lsecdcamctl/fyt_car_reverse  (0 at rest -> 1 on gear-R, world 0666)
- *   - Feed is plain Camera2 at 1920x1080 / 1280x720; no /dev/video node.
+ * CONFIRMED (live 2026-10-20/21, see docs/STATUS.md):
+ *   - Backup feed   = Camera2 device "14": the 360 ECU's composite CVBS, 720x504,
+ *                     with the ECU's own OSD (view buttons, centerline) in the pixels.
+ *   - 360 2nd input = Camera2 device "10" (stock com.syu.us opens it on reverse)
+ *   - Reverse       = SYU ToolkitService IPC, MODULE_MAIN update 12 (U_BACKCAR).
+ *                     /sys/lsecdcamctl/fyt_car_reverse is stock-app-written and DEAD
+ *                     with the stock cameras disabled; kept only as an OR fallback.
+ *   - Panel density = 160 dpi; the UI is rendered at UI_DPI via an override.
  *
  * NEEDS LIVE CONFIRMATION (left tunable, see docs/CAMERA-MILESTONE-1.md open items):
  *   - FRONT_CAM_ID: the board has 3 TP2850 analog decoders (main/main2/sub video ic).
@@ -21,6 +24,12 @@ package com.ramphoenix.camera;
  */
 public final class HwConfig {
     private HwConfig() {}
+
+    /** Render density for this app's UI (panel reports 160; designs are 2x). */
+    public static final int UI_DPI = 320;
+    /** Device 14 already carries the ECU's centerline; ours is redundant unless the
+     *  ECU OSD can be switched off (open item). */
+    public static final boolean SHOW_GUIDELINES = false;
 
     // --- Camera2 device ids (strings, as CameraManager reports them) ---
     public static final String REAR_CAM_ID      = "14"; // CONFIRMED backup cam

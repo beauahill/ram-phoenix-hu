@@ -47,6 +47,15 @@
             android:src="@drawable/ic_gauge"
             android:contentDescription="@string/pane_drive" />
         <ImageView
+            android:id="@+id/sel_climate"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_marginTop="4dp"
+            android:padding="9dp"
+            android:background="@drawable/glass_circle"
+            android:src="@drawable/ic_climate"
+            android:contentDescription="@string/pane_climate" />
+        <ImageView
             android:id="@+id/sel_app"
             android:layout_width="40dp"
             android:layout_height="40dp"

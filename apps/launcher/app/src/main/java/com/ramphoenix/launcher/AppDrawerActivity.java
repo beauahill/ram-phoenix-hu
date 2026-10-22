@@ -2,6 +2,7 @@ package com.ramphoenix.launcher;
 
 import android.app.Activity;
 import android.content.ActivityNotFoundException;
+import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
@@ -20,6 +21,12 @@ public class AppDrawerActivity extends Activity {
 
     private final List<AppInfo> apps = new ArrayList<>();
     private AppGridAdapter adapter;
+
+    @Override
+    protected void attachBaseContext(Context base) {
+        super.attachBaseContext(base);
+        Ui.applyDensity(this);
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {

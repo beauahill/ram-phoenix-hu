@@ -26,7 +26,7 @@ import java.util.List;
  */
 public class Pane {
 
-    public enum Content { MAP, MEDIA, DRIVE, APP }
+    public enum Content { MAP, MEDIA, DRIVE, CLIMATE, APP }
 
     /** The activity hands out the shared widget views and arbitrates selections. */
     public interface Host {
@@ -39,7 +39,7 @@ public class Pane {
     private final String key;
     private final SharedPreferences prefs;
     private final FrameLayout slot;
-    private final ImageView selMap, selMedia, selDrive, selApp;
+    private final ImageView selMap, selMedia, selDrive, selClimate, selApp;
 
     private Content content;
     private ComponentName app;
@@ -62,10 +62,12 @@ public class Pane {
         selMap = root.findViewById(R.id.sel_map);
         selMedia = root.findViewById(R.id.sel_media);
         selDrive = root.findViewById(R.id.sel_drive);
+        selClimate = root.findViewById(R.id.sel_climate);
         selApp = root.findViewById(R.id.sel_app);
         selMap.setOnClickListener(v -> host.onSelect(this, Content.MAP));
         selMedia.setOnClickListener(v -> host.onSelect(this, Content.MEDIA));
         selDrive.setOnClickListener(v -> host.onSelect(this, Content.DRIVE));
+        selClimate.setOnClickListener(v -> host.onSelect(this, Content.CLIMATE));
         selApp.setOnClickListener(v -> host.onSelect(this, Content.APP));
 
         String saved = prefs.getString(key, def.name());
@@ -102,6 +104,7 @@ public class Pane {
         selMap.setAlpha(content == Content.MAP ? 1f : 0.45f);
         selMedia.setAlpha(content == Content.MEDIA ? 1f : 0.45f);
         selDrive.setAlpha(content == Content.DRIVE ? 1f : 0.45f);
+        selClimate.setAlpha(content == Content.CLIMATE ? 1f : 0.45f);
         selApp.setAlpha(content == Content.APP ? 1f : 0.45f);
     }
 

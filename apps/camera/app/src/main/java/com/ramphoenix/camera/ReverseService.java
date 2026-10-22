@@ -57,12 +57,10 @@ public class ReverseService extends Service {
             Log.i(TAG, "service reverse -> " + engaged);
             if (engaged) {
                 showCamera();
-            } else if (MainActivity.isVisible()) {
-                // tell the activity it can step back if it came up for reverse
-                Intent hide = new Intent(this, MainActivity.class)
-                        .setAction(MainActivity.ACTION_HIDE)
-                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                startActivity(hide);
+            } else {
+                // Same process: no intent to a resumed activity (that cycled
+                // pause/newIntent/resume and re-opened cam 14 for ~7 s, live 2026-10-21).
+                MainActivity.requestHide();
             }
         });
         monitor.start();
@@ -103,8 +101,8 @@ public class ReverseService extends Service {
                         | Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
 
         if (MainActivity.isVisible()) {
-            // Already in front: just deliver the intent so it switches to REAR.
-            startActivity(show);
+            // Already in front: switch it directly, no intent round-trip.
+            MainActivity.requestShowRear();
             return;
         }
 

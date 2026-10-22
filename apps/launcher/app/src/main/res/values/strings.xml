@@ -36,4 +36,23 @@
     <string name="pick_app_hint">Pick an app for this half</string>
     <string name="open">Open</string>
     <string name="freeform_hint">App opened full-screen: enable freeform windows for half-screen apps (see docs)</string>
+    <string name="climate">CLIMATE</string>
+    <string name="pane_climate">Climate</string>
+    <string name="cl_power">PWR</string>
+    <string name="cl_auto">AUTO</string>
+    <string name="cl_dual">DUAL</string>
+    <string name="cl_ac">A/C</string>
+    <string name="cl_acmax">MAX</string>
+    <string name="cl_fdef">FRONT</string>
+    <string name="cl_rdef">REAR</string>
+    <string name="cl_recirc">RECIRC</string>
+    <string name="cl_wheel">WHEEL</string>
+    <string name="cl_heat">HEAT</string>
+    <string name="cl_vent">VENT</string>
+    <string name="cl_face">FACE</string>
+    <string name="cl_facefeet">FACE+FT</string>
+    <string name="cl_feet">FEET</string>
+    <string name="cl_feetdef">FT+DEF</string>
+    <string name="minus">−</string>
+    <string name="plus">+</string>
 </resources>

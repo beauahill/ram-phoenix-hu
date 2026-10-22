@@ -1,8 +1,10 @@
 package com.ramphoenix.camera;
 
 import android.Manifest;
+import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.content.res.Configuration;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -22,22 +24,18 @@ import androidx.appcompat.app.AppCompatActivity;
 /**
  * The whole camera UI. Portrait, fullscreen, immersive.
  *
- * Triggers:
- *   - reverse gear  -> ReverseService (background) or the in-activity monitor
- *                      (foreground) -> REAR view, instant.
- *   - manual (launcher / ACTION_SHOW intent / view buttons) -> last/selected view.
+ * Reverse handling is owned by {@link ReverseService} (the only IPC subscriber):
+ *   - app not on screen: the service starts us with ACTION_SHOW + EXTRA_REVERSE.
+ *   - app on screen: the service calls {@link #requestShowRear()} /
+ *     {@link #requestHide()} directly (same process). No intents are delivered
+ *     to a resumed activity any more: on this unit that caused a
+ *     pause/newIntent/resume cycle that closed and re-opened camera 14 on every
+ *     shift (the "re-opened for ~7 s after HIDE" seen live 2026-10-21).
  *
- * View modes (per Beau's photo): Rear, Front, 360 (rear + overhead aux).
- * The 360 "overhead" panel currently shows the second ISP input (dev 10); true
- * stitched bird's-eye is a later milestone, and what dev 10 actually shows still
- * needs a live look (review 1C).
- *
- * Review fixes (2026-10-21):
- *  - #2 letterbox: rear/front feed + guideline overlay live in a runtime-sized
- *    16:9 box instead of a stretched full-screen portrait surface.
- *  - #4 sensor ticker is cancelled in onPause/onDestroy (no leaked activity).
- *  - 2A/2B: reverse-initiated launches return to the previous screen on
- *    disengage; ReverseService is kept running for reverse-from-anywhere.
+ * What device 14 is (live 2026-10-21): the 360 ECU's composite CVBS output,
+ * 720x504, with the ECU's own OSD (view buttons, centerline) burned into the
+ * pixels. So our guideline overlay is off by default (HwConfig.SHOW_GUIDELINES)
+ * and view switching is an ECU command still to be found, not a Camera2 id.
  */
 public class MainActivity extends AppCompatActivity {
 
@@ -48,10 +46,31 @@ public class MainActivity extends AppCompatActivity {
     public static final String ACTION_HIDE   = "com.ramphoenix.camera.HIDE";
     public static final String EXTRA_REVERSE = "reverse";
 
-    /** Set while this activity is resumed; ReverseService uses it to verify a
-     *  background launch actually reached the screen (blocked starts don't throw). */
-    private static volatile boolean sVisible;
-    public static boolean isVisible() { return sVisible; }
+    /** The resumed instance, if any. ReverseService drives a visible activity
+     *  through this instead of intents (see class doc). */
+    private static volatile MainActivity sResumed;
+    private static final Handler sMain = new Handler(Looper.getMainLooper());
+
+    public static boolean isVisible() { return sResumed != null; }
+
+    /** Reverse engaged while we are on screen: switch to REAR, mark reverse-initiated. */
+    public static void requestShowRear() {
+        sMain.post(() -> {
+            MainActivity a = sResumed;
+            if (a == null) return;
+            a.reverseInitiated = true;
+            a.setMode(CameraMode.REAR);
+        });
+    }
+
+    /** Reverse released: step back only if reverse brought us up. */
+    public static void requestHide() {
+        sMain.post(() -> {
+            MainActivity a = sResumed;
+            if (a == null) return;
+            if (a.reverseInitiated) { a.reverseInitiated = false; a.moveTaskToBack(true); }
+        });
+    }
 
     private FrameLayout feedBox;
     private SurfaceView surfaceMain, surfaceAux;
@@ -60,7 +79,6 @@ public class MainActivity extends AppCompatActivity {
     private LinearLayout selector;
 
     private CameraController camMain, camAux;
-    private ReverseMonitor reverse;
     private ParkingSensorSource sensorSource = ParkingSensorSource.STUB;
 
     private CameraMode mode = CameraMode.REAR;
@@ -70,6 +88,15 @@ public class MainActivity extends AppCompatActivity {
 
     private final Handler ui = new Handler(Looper.getMainLooper());
     private Runnable sensorTicker;
+
+    /** The panel reports 160 dpi (live 2026-10-21) but the UI is designed at 2x;
+     *  render this app at HwConfig.UI_DPI so dp/sp come out at the intended size. */
+    @Override protected void attachBaseContext(Context base) {
+        super.attachBaseContext(base);
+        Configuration c = new Configuration();
+        c.densityDpi = HwConfig.UI_DPI;
+        applyOverrideConfiguration(c);
+    }
 
     @Override protected void onCreate(Bundle b) {
         super.onCreate(b);
@@ -104,11 +131,6 @@ public class MainActivity extends AppCompatActivity {
             @Override public void surfaceDestroyed(@NonNull SurfaceHolder h) { auxSurfaceReady = false; camAux.close(); }
         });
 
-        reverse = new ReverseMonitor(this, engaged -> {
-            if (engaged) { reverseInitiated = true; setMode(CameraMode.REAR); }
-            else if (reverseInitiated) { reverseInitiated = false; moveTaskToBack(true); }
-        });
-
         permGranted = checkSelfPermission(Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED;
         if (!permGranted) {
             requestPermissions(new String[]{Manifest.permission.CAMERA}, REQ_CAM);
@@ -137,12 +159,13 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    /** Compute the 16:9 letterbox height from the real panel width and pin both
-     *  the main feed box and the aux (overhead) surface to it. Done at runtime
-     *  because dp heights drift across densities (review #2/#5). */
+    /** Compute the letterbox height for the feed's native aspect from the real
+     *  panel width and pin both the main feed box and the aux surface to it.
+     *  Device 14 is 720x504 (live), i.e. 10:7, not 16:9. */
     private void sizeFeedBoxes() {
         int screenW = getResources().getDisplayMetrics().widthPixels;
-        int boxH = Math.round(screenW * 9f / 16f);
+        android.util.Size n = HwConfig.nativeSize(HwConfig.REAR_CAM_ID);
+        int boxH = Math.round(screenW * (float) n.getHeight() / n.getWidth());
         if (feedBox != null) {
             FrameLayout.LayoutParams lp = (FrameLayout.LayoutParams) feedBox.getLayoutParams();
             lp.height = boxH;
@@ -178,7 +201,8 @@ public class MainActivity extends AppCompatActivity {
         applyMode();
     }
 
-    /** Idempotent: binds cameras + overlays to whatever the current mode is. */
+    /** Idempotent: binds cameras + overlays to whatever the current mode is.
+     *  CameraController.open() is itself a no-op for an unchanged id/surface. */
     private void applyMode() {
         if (!permGranted || !mainSurfaceReady) return;
 
@@ -186,7 +210,7 @@ public class MainActivity extends AppCompatActivity {
             case REAR:
                 setFeedGravity(Gravity.CENTER);
                 surfaceAux.setVisibility(View.GONE);
-                guidelines.setVisibility(View.VISIBLE);
+                guidelines.setVisibility(HwConfig.SHOW_GUIDELINES ? View.VISIBLE : View.GONE);
                 camAux.close();
                 camMain.open(HwConfig.REAR_CAM_ID, surfaceMain.getHolder());
                 break;
@@ -198,7 +222,6 @@ public class MainActivity extends AppCompatActivity {
                 camMain.open(HwConfig.FRONT_CAM_ID, surfaceMain.getHolder());
                 break;
             case SURROUND_360:
-                // overhead on top, rear below — each its own 16:9 box
                 setFeedGravity(Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL);
                 guidelines.setVisibility(View.GONE);
                 surfaceAux.setVisibility(View.VISIBLE);
@@ -252,17 +275,15 @@ public class MainActivity extends AppCompatActivity {
 
     @Override protected void onResume() {
         super.onResume();
-        sVisible = true;
+        sResumed = this;
         hideSystemBars();
-        if (reverse != null) reverse.start();
         startSensorTicker();
         applyMode();
     }
 
     @Override protected void onPause() {
         super.onPause();
-        sVisible = false;
-        if (reverse != null) reverse.stop();
+        if (sResumed == this) sResumed = null;
         stopSensorTicker();
         camMain.close();
         camAux.close();
