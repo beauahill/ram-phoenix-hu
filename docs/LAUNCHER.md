@@ -20,11 +20,15 @@ layouts (the layout icon in the status row toggles; the choice is remembered):
 │ (SPEED)   [truck]    (RPM)   │  vehicle info card: dials, truck top view
 │  psi                   psi   │  with tire psi, dual gauges fuel|temp and
 │ (fuel|temp)      (batt|out°) │  batt|outside (VehicleCardView)
+├──────────────────────────────┤
+│ PWR AUTO DUAL A/C MAX FR RR …│  climate card (ClimateWidget, over the SYU IPC):
+│ HEAT VENT − 72° +  − 70° + … │  stock panel minus rear zone; dimmed until the
+│ − ████░░░░ +  FACE FACE+FT … │  IPC binds, "NO CAN BUS"
 └──────────────────────────────┘
 ```
 
 **SPLIT** — two 50/50 landscape panes (each 1080x~800 px), each one its own
-screen. A picker pill on each pane's right edge chooses what it shows:
+screen. A picker pill on each pane's right edge chooses what it shows (map / media / drive / climate / app):
 ```
 ┌──────────────────────────────┐
 │ status row + dock            │
@@ -49,6 +53,8 @@ screen. A picker pill on each pane's right edge chooses what it shows:
   full-screen and a toast says so. The chosen app is remembered per pane and
   an Open button brings it back.
 
+The panel is 160 dpi; the launcher renders at 320 dpi (`Ui.DPI`) because every size here is designed at 2x.
+
 Plain framework widgets, **no AndroidX** (small, fast cold start, and it
 compiles against Google's Maven). One dependency: `com.google.android.gms:play-services-maps`
 (Play Services is on the unit). The Maps key is read at build time from the repo-root `local.properties`
@@ -62,6 +68,7 @@ or the `MAPS_API_KEY` env var; an empty key still builds, the map card just rend
 | Now playing | `MediaSessionManager` (`MediaWidget`), any app with a MediaSession: Spotify, SYU radio/music if they publish one | — |
 | Speed dial | GPS ground speed (`SpeedWidget`) | canbus speed via `VehicleData.speedKph()` |
 | RPM dial, dual gauges (fuel/temp, batt/outside), tire psi | `VehicleData.STUB` → needles at rest, dashes | `CanbusVehicleData` once LSEC IPC `Main.DATA[]` indexes for rpm / tire psi / fuel / coolant / battery / outside temp are captured |
+| Climate | SYU ToolkitService IPC (`ClimateWidget` + `SyuIpc`): reads `MODULE_CANBUS` codes 10–66, writes `cmd(7, 0, {24, id})` then `{24}` (press/release) | verify the read map and press semantics live |
 | Dock | intent categories (`CATEGORY_APP_MAPS`, `CATEGORY_APP_MUSIC`, `ACTION_DIAL`), then package fallbacks, then label match ("radio") | pin the real SYU radio/music/phone package names |
 
 The truck in the card is traced from the RAM 3500 crew-cab dually blueprint
