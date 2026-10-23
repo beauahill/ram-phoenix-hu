@@ -217,10 +217,18 @@ temp/fan/mode need the HVAC module awake (engine running).
 - By the time it reaches the decoder the signal is standard-definition composite: the HAL
   marks device 14 as 720x504 deinterlaced, and the capture shows composite cross-colour
   (rainbow fringes on "Adjust Centerline").
-- Open question: is the FAKRA link analog (factory radio got the same composite and just
-  processed it better) or a serial digital link that the lower board converts to composite
-  (quality lost inside this head unit)? Deciding fact: whether the truck originally had the
-  8.4" or 12" radio, plus the decoder nodes below.
+- **Truck: factory 12" Uconnect + 360 (Beau, 2026-10-23).** On these trucks the surround
+  cameras feed the CVPM (central vision processing module), and the CVPM reaches the radio
+  over a single FAKRA coax (owner reports, not FCA service docs). That coax is what is in
+  our red FAKRA socket.
+- **Most likely analog, so the factory radio got this same SD signal.** Reasoning: the
+  decoder on our side sees an interlaced 720x504 composite channel with cross-colour; a
+  vendor that had deserialized a digital link would feed the SoC's MIPI input directly
+  rather than re-encode to composite. **VERIFY** Sunday: decoder nodes should report a
+  CVBS/NTSC signal on that input.
+- Consequence: the factory radio's better picture came from better decoding and display
+  processing of the same signal. Matching it is a software and decoder-tuning job, and the
+  factory picture is a realistic target.
 - Either way, software recovers a lot. Measured on the first-light frame: the picture uses
   only luma 57-168 of 0-255, carries captured blanking on the edges, and the old build
   squashed it ~20 % vertically. Cropping, aspect, levels and light sharpening already look
