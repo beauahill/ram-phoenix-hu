@@ -207,6 +207,34 @@ temp/fan/mode need the HVAC module awake (engine running).
   below the app layer; stock opens dev 14 + dev 10 together. There is no separate
   AVM app, the 360 render lives in `com.syu.us` + `com.syu.doublecamera`.
 
+### Camera picture quality (desk analysis 2026-10-23, Beau confirmed the two facts)
+
+- **The on-screen buttons in the camera feed are the factory Ram UI** (rear, bird's-eye,
+  bed camera, zoom, Adjust Centerline). The truck's own camera module draws them into its
+  video; the factory radio showed the same picture.
+- **The truck's camera lead plugs into the red FAKRA socket on the head unit's lower board**,
+  not the yellow RCA "Camera video in" leads.
+- By the time it reaches the decoder the signal is standard-definition composite: the HAL
+  marks device 14 as 720x504 deinterlaced, and the capture shows composite cross-colour
+  (rainbow fringes on "Adjust Centerline").
+- Open question: is the FAKRA link analog (factory radio got the same composite and just
+  processed it better) or a serial digital link that the lower board converts to composite
+  (quality lost inside this head unit)? Deciding fact: whether the truck originally had the
+  8.4" or 12" radio, plus the decoder nodes below.
+- Either way, software recovers a lot. Measured on the first-light frame: the picture uses
+  only luma 57-168 of 0-255, carries captured blanking on the edges, and the old build
+  squashed it ~20 % vertically. Cropping, aspect, levels and light sharpening already look
+  clearly better on a screenshot (desk preview, not in the app yet).
+
+Plan for the next Crimson session (in order):
+1. `adb shell 'for f in /sys/lsecdcamctl/*; do echo "$f: $(cat $f 2>&1)"; done'`
+   (main/main2/sub video IC, NTSC/PAL, signal state; any brightness/contrast knobs).
+2. Stock settings: check for camera brightness / contrast / saturation options.
+3. Add a GPU processing stage to `apps/camera` (SurfaceTexture -> GLES shader: crop
+   blanking, correct aspect, black-level/contrast, mild sharpen), parameters as
+   `persist.phoenix.cam.*` properties so they can be tuned live with `setprop`, then tune
+   against `adb exec-out screencap` frames.
+
 ### Climate
 
 - Driver temp + on the stock strip produced exactly one canbus update: code **27**
@@ -304,6 +332,7 @@ Needs the truck on:
 - [ ] Climate send test: `cmd(7, 0, {24, 12})` (AUTO) from our app, watch code 13; settle press vs. release.
 - [ ] Register on CANBUS 10–66 and press every stock control once to confirm the read table; then
       walk 98–136 for TPMS ×4, odometer, outside temp, doors → `docs/CANBUS-INDEXES.md`.
+- [ ] Camera picture: GPU processing stage + live tuning (see "Camera picture quality").
 - [ ] Find the **ECU view-switch command** (how `com.syu.us` tells the 360 ECU front/rear/overhead)
       and whether the ECU OSD can be turned off.
 - [ ] Parking-sensor distances: real IPC slot (`U_BACKCAR_RADAR` 22 is the candidate).
