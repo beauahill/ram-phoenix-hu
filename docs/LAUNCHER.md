@@ -17,9 +17,9 @@ layouts (the layout icon in the status row toggles; the choice is remembered):
 │ [art]  Spotify · Falling     │  now playing
 │        Madeaux   ◀ ▶ ▶▶      │
 ├──────────────────────────────┤
-│ (SPEED)   [truck]    (RPM)   │  vehicle info card: dials, truck top view
-│  psi                   psi   │  with tire psi, dual gauges fuel|temp and
-│ (fuel|temp)      (batt|out°) │  batt|outside (VehicleCardView)
+│ (fuel|temp) [truck] (batt|out°)│  vehicle info card: traced truck top view
+│              psi   psi       │  with tire psi, dual gauges either side
+│   CAN BUS                    │  (VehicleCardView; dials dropped 2026-10-25)
 ├──────────────────────────────┤
 │ PWR AUTO DUAL A/C MAX FR RR …│  climate card (ClimateWidget, over the SYU IPC):
 │ HEAT VENT − 72° +  − 70° + … │  stock panel minus rear zone; dimmed until the
@@ -66,8 +66,7 @@ or the `MAPS_API_KEY` env var; an empty key still builds, the map card just rend
 |---|---|---|
 | Map | Google Maps SDK, night style, heading-up GPS follow (`MapWidget`); key from repo-root `local.properties` (`MAPS_API_KEY=`, gitignored) | nav app hand-off already wired (tap nav / search) |
 | Now playing | `MediaSessionManager` (`MediaWidget`), any app with a MediaSession: Spotify, SYU radio/music if they publish one | — |
-| Speed dial | GPS ground speed (`SpeedWidget`) | canbus speed via `VehicleData.speedKph()` |
-| RPM dial, dual gauges (fuel/temp, batt/outside), tire psi | `VehicleData.STUB` → needles at rest, dashes | `CanbusVehicleData` once LSEC IPC `Main.DATA[]` indexes for rpm / tire psi / fuel / coolant / battery / outside temp are captured |
+| Dual gauges (fuel/temp, batt/outside), tire psi | `VehicleData.STUB` → needles at rest, dashes | `CanbusVehicleData` once LSEC IPC `Main.DATA[]` indexes for rpm / tire psi / fuel / coolant / battery / outside temp are captured |
 | Climate | SYU ToolkitService IPC (`ClimateWidget` + `SyuIpc`): reads `MODULE_CANBUS` codes 10–66, writes `cmd(7, 0, {24, id})` then `{24}` (press/release) | verify the read map and press semantics live |
 | Dock | intent categories (`CATEGORY_APP_MAPS`, `CATEGORY_APP_MUSIC`, `ACTION_DIAL`), then package fallbacks, then label match ("radio") | pin the real SYU radio/music/phone package names |
 
@@ -83,9 +82,8 @@ local copy there, or set `BLUEPRINT=/path/to/file` when running the tracer.
 Only the traced outline is redistributable.
 
 `VehicleData` is the single seam for the canbus work: implement it, hand it to
-`LauncherActivity`, and the whole cluster (both dials, the four dual-gauge
-needles, tire colours, status temp) lights up. Scales: speed 0–120 mph, rpm
-0–7 x1000 with redline from 5.5, fuel 0–100 %, coolant 100–260 °F, battery
+`LauncherActivity`, and the whole card (the four dual-gauge needles, tire colours, status temp) lights
+up. Scales: fuel 0–100 %, coolant 100–260 °F, battery
 10–16 V, outside −20–120 °F, tire psi green 30–85 else amber.
 
 ## Install on the unit

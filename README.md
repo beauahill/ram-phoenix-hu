@@ -321,9 +321,8 @@ adb shell settings put global force_resizable_activities 1
    (dock on top, map, now-playing, truck card with TPMS/odo/maintenance-due,
    climate cluster = stock panel minus REAR-zone controls). Delta plan: (1) Google Maps
    swap **done**; (2) climate card wired to `SyuIpc` CANBUS reads/writes **done, needs
-   live verification**; (3) speed/RPM dials: **decision pending** — Beau asked for the
-   dial cluster on 2026-10-21, the spec says drop it as a duplicate of the dash; FULL
-   mode currently shows map / now-playing / cluster / climate, which is tight; (4)
+   live verification**; (3) speed/RPM dials **dropped** (Beau, 2026-10-25): the truck card keeps the traced
+   truck, tire psi and the two dual gauges; (4)
    maintenance-due slot in the truck card.
 3. **Car UI** — folds into the launcher climate strip; no separate app planned.
 4. **Maintenance tracker** (`apps/maintenance`, wish list) — oil, both Cummins fuel
@@ -359,7 +358,7 @@ Desk work:
 - [ ] Find the `com.syu.ms` IPC command that writes the persistent disabled-package list
       (store key 1022) so the stock cameras stay off across boots; or ship our own
       boot-time `disable-user` step.
-- [x] Launcher delta 2 (climate card) — 2026-10-22. Deltas 3 (dials decision) and 4 (maintenance slot) open.
+- [x] Launcher deltas 2 (climate card, 2026-10-22) and 3 (dials dropped, 2026-10-25). Delta 4 (maintenance slot) open.
 - [x] Camera C4 (activity no longer runs its own monitor), C5 (versions bumped); launcher L3
       (dock resolves off-thread), L5 (package-change refresh) — 2026-10-22.
 - [ ] Launcher L1 (cluster is 100 % stub until `CanbusVehicleData`), L4 (dock targets unverified), L6–L8.

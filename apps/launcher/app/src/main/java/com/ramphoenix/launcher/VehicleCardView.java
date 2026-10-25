@@ -14,23 +14,21 @@ import android.view.View;
 import java.util.Locale;
 
 /**
- * The vehicle info card, drawn as one instrument cluster:
+ * The vehicle info card:
  *
- *   ( SPEED dial )    [ truck, top view ]    ( RPM dial )
- *       psi                                       psi
- *   (fuel | temp)       status line         (batt | outside)
+ *   (fuel | temp)   [ truck, top view ]   (batt | outside)
+ *                    psi           psi
+ *     status
  *
+ * Speed / rpm dials were dropped on 2026-10-25 (the dash already has them).
  * Everything is laid out from the view's own size, so the same view works in
  * the FULL-mode slot and in a taller SPLIT pane. Pure Canvas, no per-frame
- * allocation. Values come from {@link VehicleData} (rpm, fuel, coolant,
- * battery, outside temp, tire psi) and {@link #setSpeed} (canbus or GPS).
- * Unknown values draw the needle at rest and an em dash.
+ * allocation. Values come from {@link VehicleData} (fuel, coolant, battery,
+ * outside temp, tire psi). Unknown values draw the needle at rest and an em dash.
  */
 public class VehicleCardView extends View {
 
     // ---- scales ----
-    private static final float SPEED_MAX_MPH = 120f, SPEED_MAX_KPH = 200f;
-    private static final float RPM_MAX = 7f, RPM_REDLINE = 5.5f;          // x1000
     private static final float FUEL_MIN = 0f, FUEL_MAX = 100f;
     private static final float COOL_MIN_F = 100f, COOL_MAX_F = 260f;
     private static final float BATT_MIN = 10f, BATT_MAX = 16f;
@@ -74,9 +72,6 @@ public class VehicleCardView extends View {
     private final int colorTeal, colorAmber, colorGreen, colorRed, colorPrimary, colorSecondary, colorTertiary, colorStroke;
 
     private VehicleData data = VehicleData.STUB;
-    private Float speed;             // in display units
-    private String speedSource = "";
-    private boolean mph = true;
 
     public VehicleCardView(Context c) { this(c, null); }
     public VehicleCardView(Context c, AttributeSet a) {
@@ -120,10 +115,6 @@ public class VehicleCardView extends View {
     // ---- inputs ----
 
     public void setData(VehicleData v) { data = (v == null) ? VehicleData.STUB : v; invalidate(); }
-    /** Speed in display units (mph or km/h per {@link #setUseMph}); null = unknown. */
-    public void setSpeed(Float v) { speed = v; invalidate(); }
-    public void setSpeedSource(String s) { speedSource = s == null ? "" : s; invalidate(); }
-    public void setUseMph(boolean useMph) { mph = useMph; invalidate(); }
 
     // ---- drawing ----
 
@@ -131,105 +122,26 @@ public class VehicleCardView extends View {
         final float W = getWidth(), H = getHeight();
         if (W <= 0 || H <= 0) return;
 
-        // layout
-        final float R = Math.min(H * 0.30f, W * 0.165f);          // big dial radius
-        final float dialY = H * 0.36f;
-        final float speedX = W * 0.19f, rpmX = W * 0.81f;
-        final float r2 = Math.min(H * 0.15f, W * 0.08f);          // dual gauge radius
-        final float dualY = H * 0.78f;
-
-        // big dials
-        float sMax = mph ? SPEED_MAX_MPH : SPEED_MAX_KPH;
-        drawDial(c, speedX, dialY, R, speed, 0f, sMax, mph ? 6 : 10, 4, -1f, -1f,
-                speed == null ? Fmt.NONE : String.valueOf(Math.round(speed)), mph ? "MPH" : "KM/H", "SPEED", 1f);
-        Float rpm = data.rpm();
-        drawDial(c, rpmX, dialY, R, rpm, 0f, RPM_MAX, 7, 2, RPM_REDLINE, RPM_MAX,
-                rpm == null ? Fmt.NONE : String.format(Locale.US, "%.1f", rpm), "x1000", "RPM", 1f);
-
-        // truck + tire pressure
-        final float truckH = H * 0.76f, truckW = truckH * (TruckOutline.WIDTH / TruckOutline.LENGTH);
+        // truck centred, one dual gauge either side
+        final float truckH = H * 0.90f, truckW = truckH * (TruckOutline.WIDTH / TruckOutline.LENGTH);
         final float tx = W / 2f - truckW / 2f, ty = H * 0.03f;
-        drawTruck(c, tx, ty, truckW, truckH);
+        final float r = Math.min(H * 0.26f, W * 0.13f);
+        final float gy = H * 0.42f, lx = W * 0.20f, rx = W * 0.80f;
 
-        // dual gauges
-        drawDual(c, speedX, dualY, r2,
+        drawDual(c, lx, gy, r,
                 data.fuelPercent(), FUEL_MIN, FUEL_MAX, "FUEL", Fmt.percent(data.fuelPercent()),
                 fOf(data.coolantC()), COOL_MIN_F, COOL_MAX_F, "TEMP", Fmt.tempF(data.coolantC()));
-        drawDual(c, rpmX, dualY, r2,
+        drawDual(c, rx, gy, r,
                 data.batteryVolts(), BATT_MIN, BATT_MAX, "BATT", Fmt.volts(data.batteryVolts()),
                 fOf(data.outsideC()), OUT_MIN_F, OUT_MAX_F, "OUTSIDE", Fmt.tempF(data.outsideC()));
+        drawTruck(c, tx, ty, truckW, truckH);
 
-        // status line under the truck
-        textLabel.setTextSize(r2 * 0.26f);
-        String status = data.available() ? "CAN BUS" : (speedSource.isEmpty() ? "NO VEHICLE DATA" : speedSource + " · NO CAN DATA");
-        c.drawText(status, W / 2f, H * 0.90f, textLabel);
+        textLabel.setTextSize(r * 0.20f);
+        textLabel.setTextAlign(Paint.Align.CENTER);
+        c.drawText(data.available() ? "CAN BUS" : "NO VEHICLE DATA", lx, H * 0.92f, textLabel);
     }
 
     private static Float fOf(Float celsius) { return celsius == null ? null : celsius * 9f / 5f + 32f; }
-
-    /**
-     * 270-degree dial: track, progress arc, ticks, optional red zone, needle,
-     * value in the middle, unit in the bottom gap, label near the top.
-     */
-    private void drawDial(Canvas c, float cx, float cy, float R, Float value, float min, float max,
-                          int majors, int minorsPerMajor, float redFrom, float redTo,
-                          String valueText, String unit, String label, float alpha) {
-        final float start = 135f, sweep = 270f;
-        final float frac = value == null ? 0f : clamp((value - min) / (max - min));
-        final float arcR = R * 0.90f;
-        rect.set(cx - arcR, cy - arcR, cx + arcR, cy + arcR);
-
-        track.setStrokeWidth(R * 0.075f);
-        c.drawArc(rect, start, sweep, false, track);
-        if (redFrom >= 0) {
-            redline.setStrokeWidth(R * 0.075f);
-            float a0 = start + sweep * (redFrom - min) / (max - min);
-            float a1 = start + sweep * (redTo - min) / (max - min);
-            c.drawArc(rect, a0, a1 - a0, false, redline);
-        }
-        if (frac > 0f) {
-            progress.setStrokeWidth(R * 0.075f);
-            progress.setColor(redFrom >= 0 && value != null && value >= redFrom ? colorRed : colorTeal);
-            c.drawArc(rect, start, sweep * frac, false, progress);
-        }
-
-        // ticks + numbers
-        textSmall.setTextSize(R * 0.13f);
-        textSmall.setColor(colorSecondary);
-        int total = majors * minorsPerMajor;
-        for (int i = 0; i <= total; i++) {
-            boolean major = i % minorsPerMajor == 0;
-            double a = Math.toRadians(start + sweep * i / total);
-            float cos = (float) Math.cos(a), sin = (float) Math.sin(a);
-            float ro = R * 0.80f, ri = major ? R * 0.70f : R * 0.75f;
-            tick.setStrokeWidth(major ? R * 0.02f : R * 0.012f);
-            c.drawLine(cx + cos * ro, cy + sin * ro, cx + cos * ri, cy + sin * ri, tick);
-            if (major) {
-                float v = min + (max - min) * i / total;
-                String s = String.valueOf(Math.round(v));
-                float lr = R * 0.62f;
-                c.drawText(s, cx + cos * lr, cy + sin * lr + textSmall.getTextSize() * 0.35f, textSmall);
-            }
-        }
-
-        // needle
-        double na = Math.toRadians(start + sweep * frac);
-        float ncos = (float) Math.cos(na), nsin = (float) Math.sin(na);
-        needle.setStrokeWidth(R * 0.035f);
-        needle.setColor(value == null ? Color.argb(120, 242, 169, 75) : colorAmber);
-        c.drawLine(cx - ncos * R * 0.10f, cy - nsin * R * 0.10f, cx + ncos * R * 0.80f, cy + nsin * R * 0.80f, needle);
-        c.drawCircle(cx, cy, R * 0.09f, hub);
-        hubRing.setStrokeWidth(R * 0.02f);
-        c.drawCircle(cx, cy, R * 0.09f, hubRing);
-
-        // texts
-        textLabel.setTextSize(R * 0.10f);
-        c.drawText(label, cx, cy - R * 0.24f, textLabel);
-        textBig.setTextSize(R * 0.33f);
-        c.drawText(valueText, cx, cy + R * 0.40f, textBig);
-        textSmall.setTextSize(R * 0.13f);
-        c.drawText(unit, cx, cy + R * 0.62f, textSmall);
-    }
 
     /**
      * Classic dual gauge: one dial, two 90-degree scales. Left scale climbs the

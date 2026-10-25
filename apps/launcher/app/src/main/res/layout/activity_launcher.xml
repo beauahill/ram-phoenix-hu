@@ -122,7 +122,7 @@
                     android:id="@+id/slot_full_map"
                     android:layout_width="match_parent"
                     android:layout_height="0dp"
-                    android:layout_weight="3.2" />
+                    android:layout_weight="3.4" />
                 <FrameLayout
                     android:id="@+id/slot_full_media"
                     android:layout_width="match_parent"
@@ -133,13 +133,13 @@
                     android:id="@+id/slot_full_drive"
                     android:layout_width="match_parent"
                     android:layout_height="0dp"
-                    android:layout_weight="2.8"
+                    android:layout_weight="2.2"
                     android:layout_marginTop="12dp" />
                 <FrameLayout
                     android:id="@+id/slot_full_climate"
                     android:layout_width="match_parent"
                     android:layout_height="0dp"
-                    android:layout_weight="2.4"
+                    android:layout_weight="2.6"
                     android:layout_marginTop="12dp" />
             </LinearLayout>
 

@@ -36,7 +36,7 @@ import java.util.Locale;
  *           picker selects, so each half behaves like its own screen.
  *
  * The three widgets are inflated once and re-parented between the FULL slots
- * and the panes. Data sources: map/speed = GPS; media = MediaSessionManager;
+ * and the panes. Data sources: map = GPS; media = MediaSessionManager;
  * vehicle = {@link VehicleData#STUB} until the canbus indexes are pinned.
  */
 public class LauncherActivity extends Activity implements Pane.Host {
@@ -56,7 +56,6 @@ public class LauncherActivity extends Activity implements Pane.Host {
     private View mapCard, mediaCard, driveRow, climateCard;
     private MapWidget map;
     private MediaWidget media;
-    private SpeedWidget speed;
     private VehicleCardView vehicleCard;
     private ClimateWidget climate;
     private LinearLayout dock;
@@ -127,7 +126,6 @@ public class LauncherActivity extends Activity implements Pane.Host {
         media = new MediaWidget(this, mediaCard);
 
         vehicleCard = driveRow.findViewById(R.id.vehicle_card);
-        speed = new SpeedWidget(this, vehicleCard);
         climate = new ClimateWidget(this, climateCard);
 
         // --- containers ---
@@ -224,7 +222,6 @@ public class LauncherActivity extends Activity implements Pane.Host {
         map.onResume();
         media.onResume();
         climate.onResume();
-        speed.start();
         IntentFilter f = new IntentFilter();
         f.addAction(Intent.ACTION_PACKAGE_ADDED);
         f.addAction(Intent.ACTION_PACKAGE_REMOVED);
@@ -244,7 +241,6 @@ public class LauncherActivity extends Activity implements Pane.Host {
         ui.removeCallbacks(clockTick);
         ui.removeCallbacks(vehicleTick);
         try { unregisterReceiver(packageChanges); } catch (IllegalArgumentException ignored) {}
-        speed.stop();
         climate.onPause();
         media.onPause();
         map.onPause();
@@ -278,7 +274,6 @@ public class LauncherActivity extends Activity implements Pane.Host {
     private void updateVehicle() {
         vehicleCard.setData(vehicle);
         tvOutside.setText(Fmt.tempF(vehicle.outsideC()));
-        speed.setVehicle(vehicle);
     }
 
     // ---- permissions ----
@@ -303,7 +298,6 @@ public class LauncherActivity extends Activity implements Pane.Host {
         super.onRequestPermissionsResult(requestCode, permissions, results);
         if (requestCode == REQ_LOC && hasLocation()) {
             map.enableLocation();
-            speed.start();
         }
     }
 
