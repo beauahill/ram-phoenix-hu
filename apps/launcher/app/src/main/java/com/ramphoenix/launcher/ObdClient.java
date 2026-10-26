@@ -130,6 +130,11 @@ public class ObdClient {
                     String[] parts = c.split(",");
                     if (parts.length >= 3) extras.add(parts);      // LABEL,req,formula[,unit]
                 }
+                // One-shot DID scan for finding the Cummins/68RFE identifiers that are not
+                // published anywhere: setprop persist.phoenix.obd.scan "7E1:B000-B0FF"
+                // then watch `logcat -s PhoenixObd` for "scan HIT". Cleared after it runs.
+                String scan = prop("persist.phoenix.obd.scan", "");
+                if (!scan.isEmpty()) { scanDids(in, out, scan); setProp("persist.phoenix.obd.scan", ""); }
                 while (running) {
                     header(in, out, "7DF");
                     coolantC = pidA(in, out, "0105", 0x05, a -> a - 40f);
@@ -221,6 +226,33 @@ public class ObdClient {
 
     /** "<request>,<formula with A and B>" e.g. "221E1C,A-40" or "2206C1,(A*256+B)/4". */
     private String curHeader = "";
+
+    private void scanDids(InputStream in, OutputStream out, String spec) throws Exception {
+        try {
+            String hdr = spec.substring(0, spec.indexOf(':'));
+            String[] range = spec.substring(spec.indexOf(':') + 1).split("-");
+            int from = Integer.parseInt(range[0], 16), to = Integer.parseInt(range[1], 16);
+            header(in, out, hdr);
+            cmd(in, out, "ATST10");                       // short per-request timeout (16 x 4 ms)
+            int hits = 0;
+            for (int did = from; did <= to && running; did++) {
+                String req = String.format("22%04X", did);
+                String r = cmd(in, out, req);
+                if (r.startsWith("62")) { hits++; Log.i(TAG, "scan HIT " + hdr + " " + req + " -> " + r); }
+            }
+            Log.i(TAG, "scan done " + spec + ": " + hits + " hits");
+            cmd(in, out, "ATST32");
+        } catch (Exception e) {
+            Log.w(TAG, "scan aborted: " + e.getMessage());
+        }
+    }
+
+    private static void setProp(String key, String value) {
+        try {
+            Class<?> sp = Class.forName("android.os.SystemProperties");
+            sp.getMethod("set", String.class, String.class).invoke(null, key, value);
+        } catch (Exception ignored) {}
+    }
 
     /** Set the request header (ATSH) only when it changes; the reply filter follows it. */
     private void header(InputStream in, OutputStream out, String h) throws Exception {
