@@ -133,9 +133,24 @@ public class ObdClient {
                 // One-shot DID scan for finding the Cummins/68RFE identifiers that are not
                 // published anywhere: setprop persist.phoenix.obd.scan "7E1:B000-B0FF"
                 // then watch `logcat -s PhoenixObd` for "scan HIT". Cleared after it runs.
-                String scan = prop("persist.phoenix.obd.scan", "");
-                if (!scan.isEmpty()) { scanDids(in, out, scan); setProp("persist.phoenix.obd.scan", ""); }
                 while (running) {
+                    String scan = prop("persist.phoenix.obd.scan", "");
+                    if (!scan.isEmpty()) { setProp("persist.phoenix.obd.scan", ""); scanDids(in, out, scan); }
+                    // live watch for identification: persist.phoenix.obd.watch = "7E0:A0CA,A0CB,...;7E1:A034"
+                    String watch = prop("persist.phoenix.obd.watch", "");
+                    if (!watch.isEmpty()) {
+                        StringBuilder wb = new StringBuilder("watch");
+                        for (String grp : watch.split(";")) {
+                            int ci = grp.indexOf(':'); if (ci < 0) continue;
+                            String hdr = grp.substring(0, ci);
+                            for (String did : grp.substring(ci + 1).split(",")) {
+                                did = did.trim(); if (did.isEmpty()) continue;
+                                if (did.length() == 4 && !did.startsWith("01")) { header(in, out, hdr); wb.append(' ').append(hdr).append(':').append(did).append('=').append(cmd(in, out, "22" + did).replaceFirst("^62" + did, "")); }
+                                else { header(in, out, "7DF"); wb.append(' ').append(did).append('=').append(cmd(in, out, did).replaceFirst("^4" + did.substring(1), "")); }
+                            }
+                        }
+                        Log.i(TAG, wb.toString());
+                    }
                     header(in, out, "7DF");
                     coolantC = pidA(in, out, "0105", 0x05, a -> a - 40f);
                     Float ot = pidA(in, out, "015C", 0x5C, a -> a - 40f);

@@ -131,12 +131,12 @@ public class VehicleCardView extends View {
         // a data column on the right (maintenance will stack in there later).
         // Everything is placed by width fractions so a taller card cannot push the
         // data column off the right edge (it did, 2026-10-26).
-        final float truckW = W * 0.135f;
+        final float truckW = W * 0.13f;
         final float truckH = Math.min(H * 0.92f, truckW * (TruckOutline.LENGTH / TruckOutline.WIDTH));
-        final float tx = W * 0.145f, ty = (H - truckH) / 2f;
-        final float r = Math.min(H * 0.36f, W * 0.095f);
+        final float tx = W * 0.105f, ty = (H - truckH) / 2f;           // readout column either side of the truck
+        final float r = Math.min(H * 0.36f, W * 0.09f);
         final float gy = H * 0.42f;
-        final float g1 = W * 0.405f, g2 = W * 0.625f;
+        final float g1 = W * 0.445f, g2 = W * 0.65f;                   // first dial starts right of the readouts
         drawDual(c, g1, gy, r,
                 fOf(data.coolantC()), COOL_MIN_F, COOL_MAX_F, "COOLANT", Fmt.tempF(data.coolantC()),
                 fOf(data.transC()), TRANS_MIN_F, TRANS_MAX_F, "TRANS", Fmt.tempF(data.transC()));
@@ -146,7 +146,7 @@ public class VehicleCardView extends View {
         drawTruck(c, tx, ty, truckW, truckH);
 
         // data column
-        final float colX = W * 0.745f, colW = W - colX - W * 0.03f;
+        final float colX = W * 0.765f, colW = W - colX - W * 0.03f;
         if (colW > r) {
             float rowH = H / 6.2f, y = H * 0.17f;
             textLabel.setTextSize(r * 0.17f); textLabel.setTextAlign(Paint.Align.LEFT);
