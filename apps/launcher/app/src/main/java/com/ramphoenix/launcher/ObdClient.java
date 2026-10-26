@@ -218,8 +218,7 @@ public class ObdClient {
     }
 
     private void init(InputStream in, OutputStream out) throws Exception {
-        cmd(in, out, "ATZ"); sleep(1500);
-        // drain anything the reset banner left behind
+        cmd(in, out, "ATWS"); sleep(800);              // warm start: no firmware reboot, no link hiccup
         while (in.available() > 0) in.read();
         cmd(in, out, "ATE0");     // echo off
         cmd(in, out, "ATL0");     // no linefeeds
@@ -255,6 +254,7 @@ public class ObdClient {
                 String req = String.format("22%04X", did);
                 String r = cmd(in, out, req);
                 if (r.startsWith("62")) { hits++; Log.i(TAG, "scan HIT " + hdr + " " + req + " -> " + r); }
+                else if (r.startsWith("7F")) Log.i(TAG, "scan NEG " + hdr + " " + req + " -> " + r);   // module present, DID refused
             }
             Log.i(TAG, "scan done " + spec + ": " + hits + " hits");
             cmd(in, out, "ATST32");
@@ -270,13 +270,27 @@ public class ObdClient {
         } catch (Exception ignored) {}
     }
 
-    /** Set the request header (ATSH) only when it changes; the reply filter follows it. */
+    /**
+     * Set the request header (ATSH) only when it changes; the reply filter follows it.
+     * 3-digit header = 11-bit CAN (ATSP6; engine 7E0, trans 7E1, broadcast 7DF).
+     * 8-digit header = 29-bit CAN (ATSP7; FCA body modules are 18DA<target>F1 and
+     * answer on 18DAF1<target>).
+     */
     private void header(InputStream in, OutputStream out, String h) throws Exception {
         if (h.equalsIgnoreCase(curHeader)) return;
-        cmd(in, out, "ATSH" + h);
-        if (h.equalsIgnoreCase("7DF")) cmd(in, out, "ATCRA"); else {
-            // 7E0 -> replies from 7E8, 7E1 -> 7E9
-            try { int rx = Integer.parseInt(h, 16) + 8; cmd(in, out, "ATCRA" + String.format("%03X", rx)); } catch (Exception ignored) {}
+        boolean ext = h.length() == 8;
+        boolean curExt = curHeader.length() == 8;
+        if (ext != curExt || curHeader.isEmpty()) cmd(in, out, ext ? "ATSP7" : "ATSP6");
+        if (ext) {
+            cmd(in, out, "ATCP" + h.substring(0, 2));            // priority byte (18)
+            cmd(in, out, "ATSH" + h.substring(2));               // DA 44 F1
+            String rx = h.substring(0, 4) + h.substring(6, 8) + h.substring(4, 6);   // 18DA F1 44
+            cmd(in, out, "ATCRA" + rx);
+        } else {
+            cmd(in, out, "ATSH" + h);
+            if (h.equalsIgnoreCase("7DF")) cmd(in, out, "ATCRA"); else {
+                try { int rx = Integer.parseInt(h, 16) + 8; cmd(in, out, "ATCRA" + String.format("%03X", rx)); } catch (Exception ignored) {}
+            }
         }
         curHeader = h;
     }
