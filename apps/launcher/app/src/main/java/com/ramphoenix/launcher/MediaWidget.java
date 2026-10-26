@@ -214,20 +214,20 @@ public class MediaWidget {
         title.setTextSize(TypedValue.COMPLEX_UNIT_SP, large ? 30 : 22);
         artist.setTextSize(TypedValue.COMPLEX_UNIT_SP, large ? 20 : 14);
         srcName.setTextSize(TypedValue.COMPLEX_UNIT_SP, large ? 16 : 13);
-        int play = dp(large ? 68 : 56), side = dp(large ? 52 : 44);
+        int play = dp(large ? 68 : 50), side = dp(large ? 52 : 40);
         ViewGroup.LayoutParams lp = btnPlay.getLayoutParams();
         lp.width = play; lp.height = play; btnPlay.setLayoutParams(lp);
-        int pad = dp(large ? 14 : 12);
+        int pad = dp(large ? 14 : 10);
         btnPlay.setPadding(pad, pad, pad, pad);
         for (ImageView b : new ImageView[]{btnPrev, btnNext}) {
             ViewGroup.LayoutParams p = b.getLayoutParams();
             p.width = side; p.height = side; b.setLayoutParams(p);
         }
         ViewGroup.MarginLayoutParams pp = (ViewGroup.MarginLayoutParams) progress.getLayoutParams();
-        pp.topMargin = dp(large ? 22 : 10); pp.height = dp(large ? 6 : 4); progress.setLayoutParams(pp);
+        pp.topMargin = dp(large ? 22 : 8); pp.height = dp(large ? 6 : 4); progress.setLayoutParams(pp);
         View controls = card.findViewById(R.id.media_controls);
         ViewGroup.MarginLayoutParams cp = (ViewGroup.MarginLayoutParams) controls.getLayoutParams();
-        cp.topMargin = dp(large ? 22 : 10); controls.setLayoutParams(cp);
+        cp.topMargin = dp(large ? 22 : 8); controls.setLayoutParams(cp);
         ViewGroup.MarginLayoutParams ip = (ViewGroup.MarginLayoutParams) card.findViewById(R.id.media_info).getLayoutParams();
         ip.leftMargin = dp(large ? 24 : 17); ip.rightMargin = dp(large ? 64 : 6);
         card.findViewById(R.id.media_info).setLayoutParams(ip);

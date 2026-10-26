@@ -128,7 +128,7 @@ public class VehicleCardView extends View {
         // Beau, 2026-10-25: truck on the left, two big dual gauges right beside it,
         // a data column on the right (maintenance will stack in there later).
         final float truckH = H * 0.92f, truckW = truckH * (TruckOutline.WIDTH / TruckOutline.LENGTH);
-        final float tx = W * 0.04f, ty = H * 0.04f;
+        final float tx = W * 0.11f, ty = H * 0.04f;
         final float r = Math.min(H * 0.36f, W * 0.135f);
         final float gy = H * 0.40f;
         final float g1 = tx + truckW + W * 0.03f + r * 1.05f, g2 = g1 + r * 2.35f;
@@ -300,14 +300,14 @@ public class VehicleCardView extends View {
 
         // tire pressure beside each wheel: big enough to read at a glance, red
         // below PSI_LOW (Beau, 2026-10-25: 30 psi), amber above PSI_HIGH.
-        textBig.setTextSize(h * 0.085f);
-        textLabel.setTextSize(h * 0.040f);
+        textBig.setTextSize(h * 0.17f);
+        textLabel.setTextSize(h * 0.075f);
         for (int i = 0; i < 4; i++) {
             Float psi = data.tirePsi(i);
             float[] u = TruckOutline.WHEELS[i];
             boolean left = (i % 2 == 0);
             float wx = left ? x + u[0] * s : x + u[2] * s;
-            float tx = left ? wx - h * 0.03f : wx + h * 0.03f;
+            float tx = left ? wx - h * 0.04f : wx + h * 0.04f;
             float midY = y + (u[1] + u[3]) / 2f * s;
             textBig.setTextAlign(left ? Paint.Align.RIGHT : Paint.Align.LEFT);
             textLabel.setTextAlign(left ? Paint.Align.RIGHT : Paint.Align.LEFT);
