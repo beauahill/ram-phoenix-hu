@@ -2,6 +2,7 @@ package com.ramphoenix.launcher;
 
 import android.app.Activity;
 import android.content.ActivityNotFoundException;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -43,30 +44,31 @@ public final class Dock {
     public static void build(final Activity act, final LinearLayout dock) {
         dock.removeAllViews();
         final float d = act.getResources().getDisplayMetrics().density;
-        final int size = Math.round(56 * d);
+        final int size = Math.round(46 * d);
         final ImageView[] buttons = new ImageView[ITEMS.length];
         for (int i = 0; i < ITEMS.length; i++) {
             Item it = ITEMS[i];
             ImageView b = new ImageView(act);
             b.setImageResource(it.icon);
             b.setScaleType(ImageView.ScaleType.FIT_CENTER);
-            int pad = Math.round(13 * d);
+            int pad = Math.round(11 * d);
             b.setPadding(pad, pad, pad, pad);
             GradientDrawable bg = new GradientDrawable();
             bg.setColor(act.getColor(it.color));
-            bg.setCornerRadius(17 * d);
+            bg.setCornerRadius(14 * d);
             if (it.color == R.color.dock_apps) bg.setStroke(Math.round(d), act.getColor(R.color.glass_stroke));
             b.setBackground(bg);
             b.setContentDescription(act.getString(it.label));
             b.setClickable(true);
             b.setFocusable(true);
             LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(size, size);
-            lp.leftMargin = lp.rightMargin = Math.round(8 * d);
+            lp.leftMargin = lp.rightMargin = Math.round(7 * d);
             b.setLayoutParams(lp);
             b.setAlpha(0.35f);
             b.setTag(null);
-            final int label = it.label;
+            final int label = it.label, slot = i;
             b.setOnClickListener(v -> launch(act, (Intent) v.getTag(), label));
+            if (i != 0) b.setOnLongClickListener(v -> { pickApp(act, dock, slot); return true; });
             dock.addView(b);
             buttons[i] = b;
         }
@@ -75,14 +77,48 @@ public final class Dock {
         set(buttons[6], new Intent(Settings.ACTION_SETTINGS));
 
         new Thread(() -> {
-            final Intent cam = cameraIntent(act), nav = navIntent(act), phone = phoneIntent(act),
-                    music = musicIntent(act), radio = radioIntent(act);
+            final Intent[] resolved = {null, cameraIntent(act), navIntent(act), phoneIntent(act),
+                    musicIntent(act), radioIntent(act), null};
+            // user overrides (long-press) win over the built-in resolution
+            final android.content.SharedPreferences prefs = act.getSharedPreferences("dock", Context.MODE_PRIVATE);
+            for (int i = 1; i < ITEMS.length; i++) {
+                String flat = prefs.getString("slot" + i, null);
+                if (flat == null) continue;
+                ComponentName cn = ComponentName.unflattenFromString(flat);
+                if (cn == null) continue;
+                Intent o = new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER).setComponent(cn);
+                if (resolves(act, o)) resolved[i] = o;
+                final int idx = i;
+                try {
+                    final android.graphics.drawable.Drawable icon = act.getPackageManager().getActivityIcon(cn);
+                    act.runOnUiThread(() -> { if (dock.getChildCount() == ITEMS.length) { buttons[idx].setImageDrawable(icon); buttons[idx].setPadding(Math.round(8 * d), Math.round(8 * d), Math.round(8 * d), Math.round(8 * d)); } });
+                } catch (Exception ignored) {}
+            }
             act.runOnUiThread(() -> {
                 if (dock.getChildCount() != ITEMS.length) return; // rebuilt meanwhile
-                set(buttons[1], cam); set(buttons[2], nav); set(buttons[3], phone);
-                set(buttons[4], music); set(buttons[5], radio);
+                for (int i = 1; i < 6; i++) set(buttons[i], resolved[i]);
             });
         }, "dock-resolve").start();
+    }
+
+    /** Long-press on a dock slot: choose any launchable app for it, or reset to the default. */
+    private static void pickApp(final Activity act, final LinearLayout dock, final int slot) {
+        new Thread(() -> {
+            final List<AppInfo> apps = AppRepository.loadLaunchable(act);
+            final String[] names = new String[apps.size() + 1];
+            names[0] = act.getString(R.string.dock_default);
+            for (int i = 0; i < apps.size(); i++) names[i + 1] = apps.get(i).label;
+            act.runOnUiThread(() -> new android.app.AlertDialog.Builder(act, android.R.style.Theme_DeviceDefault_Dialog_Alert)
+                    .setTitle(act.getString(R.string.dock_pick, act.getString(ITEMS[slot].label)))
+                    .setItems(names, (dlg, which) -> {
+                        android.content.SharedPreferences.Editor e = act.getSharedPreferences("dock", Context.MODE_PRIVATE).edit();
+                        if (which == 0) e.remove("slot" + slot);
+                        else e.putString("slot" + slot, apps.get(which - 1).component.flattenToString());
+                        e.apply();
+                        build(act, dock);
+                    })
+                    .show());
+        }, "dock-pick").start();
     }
 
     private static void set(ImageView b, Intent i) {
@@ -91,6 +127,14 @@ public final class Dock {
     }
 
     private static void launch(Activity act, Intent i, int label) {
+        // The drawer is ours: start it plainly in the launcher's own task. With
+        // NEW_TASK the system kept delivering it to a stale record that never came
+        // to the front (START_DELIVERED_TO_TOP, no window; live 2026-10-25).
+        if (i != null && i.getComponent() != null
+                && AppDrawerActivity.class.getName().equals(i.getComponent().getClassName())) {
+            act.startActivity(new Intent(act, AppDrawerActivity.class));
+            return;
+        }
         if (i == null) {
             Toast.makeText(act, act.getString(label) + ": " + act.getString(R.string.not_installed),
                     Toast.LENGTH_SHORT).show();

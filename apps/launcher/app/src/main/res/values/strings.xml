@@ -28,6 +28,8 @@
     <string name="no_data">—</string>
     <string name="not_installed">Not installed</string>
     <string name="apps">Apps</string>
+    <string name="dock_default">Default for this slot</string>
+    <string name="dock_pick">Choose app for %1$s</string>
     <string name="camera">Camera</string>
     <string name="navigation">Navigation</string>
     <string name="phone">Phone</string>

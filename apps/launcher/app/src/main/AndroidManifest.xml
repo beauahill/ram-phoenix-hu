@@ -48,6 +48,7 @@
         <activity
             android:name=".AppDrawerActivity"
             android:exported="false"
+            android:launchMode="singleTop"
             android:screenOrientation="portrait"
             android:excludeFromRecents="true" />
 
