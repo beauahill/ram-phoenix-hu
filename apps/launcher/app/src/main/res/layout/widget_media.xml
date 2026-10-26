@@ -103,31 +103,29 @@
             android:gravity="center">
             <ImageView
                 android:id="@+id/media_prev"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
-                android:layout_marginStart="14dp"
-                android:layout_marginEnd="14dp"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
                 android:padding="8dp"
-                android:src="@drawable/ic_prev"
-                android:background="@drawable/glass_circle"
+                android:src="@drawable/ic_m_skip_previous"
+                android:background="@drawable/media_btn"
                 android:contentDescription="@null" />
             <ImageView
                 android:id="@+id/media_play"
-                android:layout_width="46dp"
-                android:layout_height="46dp"
-                android:src="@drawable/ic_play"
-                android:background="@drawable/glass_circle"
-                android:padding="10dp"
+                android:layout_width="56dp"
+                android:layout_height="56dp"
+                android:layout_marginStart="18dp"
+                android:layout_marginEnd="18dp"
+                android:padding="12dp"
+                android:src="@drawable/ic_m_play_arrow"
+                android:background="@drawable/media_btn_accent"
                 android:contentDescription="@null" />
             <ImageView
                 android:id="@+id/media_next"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
-                android:layout_marginStart="14dp"
-                android:layout_marginEnd="14dp"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
                 android:padding="8dp"
-                android:src="@drawable/ic_next"
-                android:background="@drawable/glass_circle"
+                android:src="@drawable/ic_m_skip_next"
+                android:background="@drawable/media_btn"
                 android:contentDescription="@null" />
         </LinearLayout>
     </LinearLayout>

@@ -214,14 +214,14 @@ public class MediaWidget {
         title.setTextSize(TypedValue.COMPLEX_UNIT_SP, large ? 30 : 22);
         artist.setTextSize(TypedValue.COMPLEX_UNIT_SP, large ? 20 : 14);
         srcName.setTextSize(TypedValue.COMPLEX_UNIT_SP, large ? 16 : 13);
-        int play = dp(large ? 72 : 46), side = dp(large ? 44 : 30);
+        int play = dp(large ? 68 : 56), side = dp(large ? 52 : 44);
         ViewGroup.LayoutParams lp = btnPlay.getLayoutParams();
         lp.width = play; lp.height = play; btnPlay.setLayoutParams(lp);
-        int pad = dp(large ? 16 : 10);
+        int pad = dp(large ? 14 : 12);
         btnPlay.setPadding(pad, pad, pad, pad);
         for (ImageView b : new ImageView[]{btnPrev, btnNext}) {
             ViewGroup.LayoutParams p = b.getLayoutParams();
-            p.height = side; b.setLayoutParams(p);
+            p.width = side; p.height = side; b.setLayoutParams(p);
         }
         ViewGroup.MarginLayoutParams pp = (ViewGroup.MarginLayoutParams) progress.getLayoutParams();
         pp.topMargin = dp(large ? 22 : 10); pp.height = dp(large ? 6 : 4); progress.setLayoutParams(pp);
@@ -246,7 +246,7 @@ public class MediaWidget {
         artist.setText(R.string.media_tap_to_grant);
         art.setImageResource(R.drawable.ic_media_fallback);
         progress.setProgress(0);
-        btnPlay.setImageResource(R.drawable.ic_play);
+        btnPlay.setImageResource(R.drawable.ic_m_play_arrow);
         tint(null);
     }
 
@@ -286,7 +286,7 @@ public class MediaWidget {
         }
         setArt(null, R.drawable.ic_bluetooth);
         tint(null);
-        btnPlay.setImageResource(src.btPlaying() ? R.drawable.ic_pause : R.drawable.ic_play);
+        btnPlay.setImageResource(src.btPlaying() ? R.drawable.ic_m_pause : R.drawable.ic_m_play_arrow);
         renderProgress();
     }
 
@@ -298,7 +298,7 @@ public class MediaWidget {
         artist.setText(ps != null ? ps : act.getString(R.string.radio_hint));
         setArt(null, R.drawable.ic_radio);
         tint(null);
-        btnPlay.setImageResource(R.drawable.ic_pause);
+        btnPlay.setImageResource(R.drawable.ic_m_pause);
         progress.setProgress(0);
     }
 
@@ -314,7 +314,7 @@ public class MediaWidget {
             artist.setText(R.string.open_media_hint);
             setArt(null, R.drawable.ic_media_fallback);
             progress.setProgress(0);
-            btnPlay.setImageResource(R.drawable.ic_play);
+            btnPlay.setImageResource(R.drawable.ic_m_play_arrow);
             tint(null);
             return;
         }
@@ -349,7 +349,7 @@ public class MediaWidget {
 
         PlaybackState s = current.getPlaybackState();
         boolean playing = s != null && s.getState() == PlaybackState.STATE_PLAYING;
-        btnPlay.setImageResource(playing ? R.drawable.ic_pause : R.drawable.ic_play);
+        btnPlay.setImageResource(playing ? R.drawable.ic_m_pause : R.drawable.ic_m_play_arrow);
         renderProgress();
     }
 

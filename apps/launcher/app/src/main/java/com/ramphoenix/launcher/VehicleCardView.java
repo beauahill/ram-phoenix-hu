@@ -298,21 +298,24 @@ public class VehicleCardView extends View {
         drawPath(c, bedFloor, bedFill);
         drawPath(c, tailgate, bulgeFill); drawPath(c, tailgate, detail);
 
-        // tire pressure beside each wheel
-        textBig.setTextSize(h * 0.055f);
-        textLabel.setTextSize(h * 0.030f);
+        // tire pressure beside each wheel: big enough to read at a glance, red
+        // below PSI_LOW (Beau, 2026-10-25: 30 psi), amber above PSI_HIGH.
+        textBig.setTextSize(h * 0.085f);
+        textLabel.setTextSize(h * 0.040f);
         for (int i = 0; i < 4; i++) {
             Float psi = data.tirePsi(i);
             float[] u = TruckOutline.WHEELS[i];
             boolean left = (i % 2 == 0);
             float wx = left ? x + u[0] * s : x + u[2] * s;
-            float tx = left ? wx - h * 0.035f : wx + h * 0.035f;
+            float tx = left ? wx - h * 0.03f : wx + h * 0.03f;
             float midY = y + (u[1] + u[3]) / 2f * s;
             textBig.setTextAlign(left ? Paint.Align.RIGHT : Paint.Align.LEFT);
             textLabel.setTextAlign(left ? Paint.Align.RIGHT : Paint.Align.LEFT);
-            c.drawText(Fmt.psi(psi), tx, midY + textBig.getTextSize() * 0.1f, textBig);
-            c.drawText("PSI", tx, midY + textBig.getTextSize() * 0.1f + textLabel.getTextSize() * 1.3f, textLabel);
+            textBig.setColor(psi == null ? colorSecondary : psi < PSI_LOW ? colorRed : psi > PSI_HIGH ? colorAmber : colorPrimary);
+            c.drawText(Fmt.psi(psi), tx, midY + textBig.getTextSize() * 0.15f, textBig);
+            c.drawText("PSI", tx, midY + textBig.getTextSize() * 0.15f + textLabel.getTextSize() * 1.25f, textLabel);
         }
+        textBig.setColor(colorPrimary);
         textBig.setTextAlign(Paint.Align.CENTER);
         textLabel.setTextAlign(Paint.Align.CENTER);
     }
