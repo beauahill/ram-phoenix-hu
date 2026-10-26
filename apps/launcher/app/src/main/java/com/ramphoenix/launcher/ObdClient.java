@@ -132,11 +132,13 @@ public class ObdClient {
                 // unverified, raw A shown as psi). Override live with the setprops below.
                 // Pinned live against the cluster, 2026-10-26 (scan + diff, see docs):
                 //   trans temp   7E0 22 A0A3  = °C x 128      (cluster 93 °F ↔ 36 °C)
-                //   oil pressure 7E0 22 A0E1  = kPa           (cluster 37 psi ↔ 264 kPa)
+                //   oil pressure 7E0 22 A05C  = 0.25 kPa gauge (cluster 37 psi ↔ 0x40)
                 //   coolant      7E0 22 A047  = °C x 128      (same as 01 05)
                 //   oil temp     not found yet (not in A0xx / 90xx / 01xx); 01 5C unsupported.
                 String transCfg = prop("persist.phoenix.obd.trans", "7E0:22A0A3,(A*256+B)/128");
-                String oilCfg = prop("persist.phoenix.obd.oilpsi", "7E0:22A0E1,(A*256+B)*0.145038");
+                // oil pressure: A05C = gauge pressure in 0.25 kPa (A058 is the same +100 kPa, i.e.
+                // absolute). 0x40 -> 256 kPa -> 37 psi, exactly the cluster. A0E1 was a coincidence.
+                String oilCfg = prop("persist.phoenix.obd.oilpsi", "7E0:22A05C,(A*256+B)*0.0362595");
                 String oilTCfg = prop("persist.phoenix.obd.oiltemp", "");
                 java.util.List<String[]> extras = new java.util.ArrayList<>();
                 for (int i = 1; i <= 4; i++) {
@@ -260,17 +262,22 @@ public class ObdClient {
             String hdr = spec.substring(0, spec.indexOf(':'));
             String[] range = spec.substring(spec.indexOf(':') + 1).split("-");
             int from = Integer.parseInt(range[0], 16), to = Integer.parseInt(range[1], 16);
+            boolean open = hdr.startsWith("!");
+            if (open) hdr = hdr.substring(1);
             header(in, out, hdr);
+            if (open) { cmd(in, out, "ATCRA"); cmd(in, out, "ATH1"); curHeader = ""; }   // show every reply, with its id
             cmd(in, out, "ATST10");                       // short per-request timeout (16 x 4 ms)
             int hits = 0;
             for (int did = from; did <= to && running; did++) {
                 String req = String.format("22%04X", did);
                 String r = cmd(in, out, req);
-                if (r.startsWith("62")) { hits++; Log.i(TAG, "scan HIT " + hdr + " " + req + " -> " + r); }
-                else if (r.startsWith("7F")) Log.i(TAG, "scan NEG " + hdr + " " + req + " -> " + r);   // module present, DID refused
+                if (r.startsWith("62") || (open && r.contains("62"))) { hits++; Log.i(TAG, "scan HIT " + hdr + " " + req + " -> " + r); }
+                else if (r.startsWith("7F") || (open && r.contains("7F"))) Log.i(TAG, "scan NEG " + hdr + " " + req + " -> " + r);   // module present, DID refused
+                else if (open && !r.isEmpty()) Log.i(TAG, "scan ANY " + hdr + " " + req + " -> " + r);
             }
             Log.i(TAG, "scan done " + spec + ": " + hits + " hits");
             cmd(in, out, "ATST32");
+            if (open) cmd(in, out, "ATH0");
         } catch (Exception e) {
             Log.w(TAG, "scan aborted: " + e.getMessage());
         }
