@@ -63,7 +63,7 @@ public class ObdClient {
     public Float coolantC() { return coolantC; }
     public Float oilTempC() { return oilTempC; }
     public Float transC() { return transC; }
-    public Float oilPsi() { return oilPsi; }
+    public Float oilPsi() { return oilPsiClamped(); }
     public Float volts() { return volts; }
 
     /**
@@ -138,7 +138,7 @@ public class ObdClient {
                 String transCfg = prop("persist.phoenix.obd.trans", "7E0:22A0A3,(A*256+B)/128");
                 // oil pressure: A05C = gauge pressure in 0.25 kPa (A058 is the same +100 kPa, i.e.
                 // absolute). 0x40 -> 256 kPa -> 37 psi, exactly the cluster. A0E1 was a coincidence.
-                String oilCfg = prop("persist.phoenix.obd.oilpsi", "7E0:22A05C,(A*256+B)*0.0362595");
+                String oilCfg = prop("persist.phoenix.obd.oilpsi", "7E0:22A05C,S*0.0362595");   // S = signed 16-bit A:B
                 String oilTCfg = prop("persist.phoenix.obd.oiltemp", "");
                 java.util.List<String[]> extras = new java.util.ArrayList<>();
                 for (int i = 1; i <= 4; i++) {
@@ -333,6 +333,8 @@ public class ObdClient {
         return Expr.eval(formula, a, b);
     }
 
+    public Float oilPsiClamped() { Float v = oilPsi; return v == null ? null : Math.max(0f, v); }
+
     private static Float parseVolts(String r) {
         try {
             String s = r.replace("V", "").trim();
@@ -382,10 +384,13 @@ public class ObdClient {
         } catch (Exception e) { return def; }
     }
 
-    /** Tiny arithmetic evaluator for the custom-PID formula: + - * / parentheses, A and B. */
+    /** Tiny arithmetic evaluator for the custom-PID formula: + - * / parentheses, A, B and S (signed A:B). */
     static final class Expr {
-        private final String s; private int p; private final float a, b;
-        private Expr(String s, float a, float b) { this.s = s.replace(" ", ""); this.a = a; this.b = b; }
+        private final String s; private int p; private final float a, b, sg;
+        private Expr(String s, float a, float b) {
+            this.s = s.replace(" ", ""); this.a = a; this.b = b;
+            int w = (int) a * 256 + (int) b; this.sg = w > 32767 ? w - 65536 : w;
+        }
         static Float eval(String s, float a, float b) {
             try { return new Expr(s, a, b).expr(); } catch (Exception e) { return null; }
         }
@@ -396,6 +401,7 @@ public class ObdClient {
             if (c == '(') { p++; float v = expr(); p++; return v; }
             if (c == 'A' || c == 'a') { p++; return a; }
             if (c == 'B' || c == 'b') { p++; return b; }
+            if (c == 'S' || c == 's') { p++; return sg; }
             if (c == '-') { p++; return -atom(); }
             int st = p; while (p < s.length() && (Character.isDigit(s.charAt(p)) || s.charAt(p) == '.')) p++;
             return Float.parseFloat(s.substring(st, p));
