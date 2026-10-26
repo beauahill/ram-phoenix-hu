@@ -103,8 +103,7 @@ public class ObdClient {
                 BluetoothDevice dev = findAdapter();
                 if (dev == null) { sleep(RETRY_MS); continue; }
                 set("OBD: connecting " + dev.getName());
-                sock = dev.createRfcommSocketToServiceRecord(SPP);
-                sock.connect();
+                sock = openSpp(dev);
                 InputStream in = sock.getInputStream();
                 OutputStream out = sock.getOutputStream();
                 init(in, out);
@@ -137,6 +136,40 @@ public class ObdClient {
             }
             try { sleep(RETRY_MS); } catch (InterruptedException e) { break; }
         }
+    }
+
+    /**
+     * SPP connect with the usual Android fallbacks: the secure SDP socket failed
+     * instantly on this unit ("read failed, socket might closed", live 2026-10-25),
+     * which on many stacks means the insecure socket or a fixed RFCOMM channel is
+     * needed. Tries each in turn and reports which one worked.
+     */
+    @SuppressLint({"MissingPermission", "DiscouragedPrivateApi"})
+    private BluetoothSocket openSpp(BluetoothDevice dev) throws Exception {
+        Exception last = null;
+        String[] names = {"secure SDP", "insecure SDP", "channel 1", "channel 2"};
+        for (int attempt = 0; attempt < names.length; attempt++) {
+            BluetoothSocket s = null;
+            try {
+                switch (attempt) {
+                    case 0: s = dev.createRfcommSocketToServiceRecord(SPP); break;
+                    case 1: s = dev.createInsecureRfcommSocketToServiceRecord(SPP); break;
+                    default: {
+                        java.lang.reflect.Method m = dev.getClass().getMethod("createRfcommSocket", int.class);
+                        s = (BluetoothSocket) m.invoke(dev, attempt - 1);
+                    }
+                }
+                s.connect();
+                Log.i(TAG, "OBD: SPP up via " + names[attempt]);
+                return s;
+            } catch (Exception e) {
+                last = e;
+                Log.w(TAG, "OBD: " + names[attempt] + " failed: " + e.getMessage());
+                try { if (s != null) s.close(); } catch (Exception ignored) {}
+                Thread.sleep(400);
+            }
+        }
+        throw last != null ? last : new Exception("no SPP route");
     }
 
     private void init(InputStream in, OutputStream out) throws Exception {

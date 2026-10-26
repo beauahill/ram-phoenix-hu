@@ -58,8 +58,8 @@ public class ClimateWidget {
 
     private final TextView status, tempL, tempR, heatL, heatR, ventL, ventR;
     private final View power, rearDef, wheel;
-    private final TextView auto, sync, ac, acMax, frontDef, recirc;
-    private final TextView modeFace, modeFaceFeet, modeFeet, modeFeetDef;
+    private final TextView auto, sync, ac, acMax;
+    private final View frontDef, recirc, modeFace, modeFaceFeet, modeFeet, modeFeetDef;
     private final android.widget.SeekBar fan;
     private boolean fanDragging;
 
@@ -84,9 +84,9 @@ public class ClimateWidget {
         sync = chip(R.id.cl_sync, B_SYNC);
         ac = chip(R.id.cl_ac, B_AC);
         acMax = chip(R.id.cl_acmax, B_AC_MAX);
-        frontDef = chip(R.id.cl_fdef, B_FRONT_DEF);
+        frontDef = button(R.id.cl_fdef, B_FRONT_DEF);
         rearDef = button(R.id.cl_rdef, B_REAR_DEF);
-        recirc = chip(R.id.cl_recirc, B_RECIRC);
+        recirc = button(R.id.cl_recirc, B_RECIRC);
         wheel = button(R.id.cl_wheel, B_HEAT_WHEEL);
 
         heatL = chip(R.id.cl_heat_l, B_SEAT_HEAT_L);
@@ -111,10 +111,10 @@ public class ClimateWidget {
                 stepFan(sb.getProgress());
             }
         });
-        modeFace = chip(R.id.cl_mode_face, B_MODE_FACE);
-        modeFaceFeet = chip(R.id.cl_mode_facefeet, B_MODE_FACE_FEET);
-        modeFeet = chip(R.id.cl_mode_feet, B_MODE_FEET);
-        modeFeetDef = chip(R.id.cl_mode_feetdef, B_MODE_FEET_DEF);
+        modeFace = button(R.id.cl_mode_face, B_MODE_FACE);
+        modeFaceFeet = button(R.id.cl_mode_facefeet, B_MODE_FACE_FEET);
+        modeFeet = button(R.id.cl_mode_feet, B_MODE_FEET);
+        modeFeetDef = button(R.id.cl_mode_feetdef, B_MODE_FEET_DEF);
         render();
     }
 
@@ -166,7 +166,7 @@ public class ClimateWidget {
         toggle(sync, on(C_SYNC));
         toggle(ac, on(C_AC));
         toggle(acMax, on(C_AC_MAX));
-        toggle(frontDef, on(C_FRONT_DEF));
+        frontDef.setSelected(on(C_FRONT_DEF));
         rearDef.setSelected(on(C_REAR_DEF));
         recirc.setSelected(on(C_RECIRC));
         wheel.setSelected(on(C_HEAT_WHEEL));
@@ -183,10 +183,10 @@ public class ClimateWidget {
         fan.setEnabled(f >= 0);
 
         boolean up = on(C_VENT_UP), body = on(C_VENT_BODY), foot = on(C_VENT_FOOT);
-        toggle(modeFace, body && !foot && !up);
-        toggle(modeFaceFeet, body && foot);
-        toggle(modeFeet, foot && !body && !up);
-        toggle(modeFeetDef, foot && up);
+        modeFace.setSelected(body && !foot && !up);
+        modeFaceFeet.setSelected(body && foot);
+        modeFeet.setSelected(foot && !body && !up);
+        modeFeetDef.setSelected(foot && up);
     }
 
     private static void toggle(TextView chip, boolean on) {

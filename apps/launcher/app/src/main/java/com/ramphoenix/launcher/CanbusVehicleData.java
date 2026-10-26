@@ -87,6 +87,8 @@ public class CanbusVehicleData implements VehicleData {
     @Override public Float batteryVolts() { return obd != null ? obd.volts() : null; }
     @Override public Float transC() { return obd != null ? obd.transC() : null; }
     @Override public Float oilPsi() { return obd != null ? obd.oilPsi() : null; }
+    @Override public Float oilTempC() { return obd != null ? obd.oilTempC() : null; }
+    @Override public int doorsOpen() { if (!connected) return -1; int n = 0; for (boolean d : doors) if (d) n++; return n; }
     @Override public Float outsideC() { return outsideC; }
     @Override public Float speedKph() { return speedKph; }
     @Override public Float rpm() { return null; }

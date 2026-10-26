@@ -124,26 +124,47 @@ public class VehicleCardView extends View {
         final float W = getWidth(), H = getHeight();
         if (W <= 0 || H <= 0) return;
 
-        // truck centred, one dual gauge either side
-        final float truckH = H * 0.90f, truckW = truckH * (TruckOutline.WIDTH / TruckOutline.LENGTH);
-        final float tx = W / 2f - truckW / 2f, ty = H * 0.03f;
-        final float r = Math.min(H * 0.26f, W * 0.13f);
-        final float gy = H * 0.42f, lx = W * 0.20f, rx = W * 0.80f;
+        // Beau, 2026-10-25: truck on the left, two big dual gauges right beside it,
+        // a data column on the right (maintenance will stack in there later).
+        final float truckH = H * 0.92f, truckW = truckH * (TruckOutline.WIDTH / TruckOutline.LENGTH);
+        final float tx = W * 0.04f, ty = H * 0.04f;
+        final float r = Math.min(H * 0.36f, W * 0.135f);
+        final float gy = H * 0.40f;
+        final float g1 = tx + truckW + W * 0.03f + r * 1.05f, g2 = g1 + r * 2.35f;
 
-        // Beau, 2026-10-25: coolant, transmission and oil pressure matter; fuel does
-        // not (the dash has it). These three are not on the head unit's bus decode
-        // and wait for an OBD feed; they read as dashes until then.
-        drawDual(c, lx, gy, r,
+        drawDual(c, g1, gy, r,
                 fOf(data.coolantC()), COOL_MIN_F, COOL_MAX_F, "COOLANT", Fmt.tempF(data.coolantC()),
                 fOf(data.transC()), TRANS_MIN_F, TRANS_MAX_F, "TRANS", Fmt.tempF(data.transC()));
-        drawDual(c, rx, gy, r,
+        drawDual(c, g2, gy, r,
                 data.oilPsi(), OIL_MIN, OIL_MAX, "OIL PSI", data.oilPsi() == null ? Fmt.NONE : String.format(java.util.Locale.US, "%.0f", data.oilPsi()),
-                fOf(data.outsideC()), OUT_MIN_F, OUT_MAX_F, "OUTSIDE", Fmt.tempF(data.outsideC()));
+                data.batteryVolts(), BATT_MIN, BATT_MAX, "BATT", Fmt.volts(data.batteryVolts()));
         drawTruck(c, tx, ty, truckW, truckH);
 
-        textLabel.setTextSize(r * 0.20f);
+        // data column
+        final float colX = g2 + r * 1.25f, colW = W - colX - W * 0.03f;
+        if (colW > r) {
+            float rowH = H / 6.2f, y = H * 0.17f;
+            textLabel.setTextSize(r * 0.17f); textLabel.setTextAlign(Paint.Align.LEFT);
+            textSmall.setTextSize(r * 0.27f); textSmall.setTextAlign(Paint.Align.RIGHT); textSmall.setColor(colorPrimary);
+            String[][] rows = {
+                {"OUTSIDE", Fmt.tempF(data.outsideC())},
+                {"OIL TEMP", Fmt.tempF(data.oilTempC())},
+                {"SPEED", data.speedKph() == null ? Fmt.NONE : String.format(java.util.Locale.US, "%.0f", data.speedKph() * 0.621371f)},
+                {"DOORS", data.doorsOpen() < 0 ? Fmt.NONE : data.doorsOpen() == 0 ? "CLOSED" : data.doorsOpen() + " OPEN"},
+                {"SERVICE", Fmt.NONE},
+            };
+            for (String[] row : rows) {
+                c.drawText(row[0], colX, y, textLabel);
+                c.drawText(row[1], colX + colW, y, textSmall);
+                y += rowH;
+            }
+            textSmall.setColor(colorSecondary);
+            textSmall.setTextAlign(Paint.Align.CENTER);
+        }
+
+        textLabel.setTextSize(r * 0.16f);
         textLabel.setTextAlign(Paint.Align.CENTER);
-        c.drawText(data.available() ? "CAN BUS" : "NO VEHICLE DATA", lx, H * 0.92f, textLabel);
+        c.drawText(data.available() ? "CAN BUS" : "NO VEHICLE DATA", tx + truckW / 2f, H * 0.985f, textLabel);
     }
 
     private static Float fOf(Float celsius) { return celsius == null ? null : celsius * 9f / 5f + 32f; }

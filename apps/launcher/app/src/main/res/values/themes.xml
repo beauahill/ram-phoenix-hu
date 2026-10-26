@@ -23,10 +23,22 @@
         <item name="android:textSize">9sp</item>
         <item name="android:letterSpacing">0.06</item>
         <item name="android:fontFamily">sans-serif-medium</item>
-        <item name="android:drawablePadding">2dp</item>
-        <item name="android:paddingTop">3dp</item>
-        <item name="android:paddingBottom">3dp</item>
+        <item name="android:drawablePadding">0dp</item>
+        <item name="android:paddingTop">2dp</item>
+        <item name="android:paddingBottom">2dp</item>
         <item name="android:maxLines">1</item>
+        <item name="android:clickable">true</item>
+        <item name="android:focusable">true</item>
+    </style>
+    <style name="ClimateTileImg">
+        <item name="android:layout_width">0dp</item>
+        <item name="android:layout_height">match_parent</item>
+        <item name="android:layout_weight">1</item>
+        <item name="android:layout_marginStart">3dp</item>
+        <item name="android:layout_marginEnd">3dp</item>
+        <item name="android:padding">9dp</item>
+        <item name="android:scaleType">fitCenter</item>
+        <item name="android:background">@drawable/climate_tile</item>
         <item name="android:clickable">true</item>
         <item name="android:focusable">true</item>
     </style>
