@@ -79,9 +79,12 @@ public class MainActivity extends AppCompatActivity {
     private LinearLayout selector;
 
     private CameraController camMain, camAux;
-    private ParkingSensorSource sensorSource = ParkingSensorSource.STUB;
+    /** Fed by ReverseService's IPC subscription (same process); see IpcRadarSource. */
+    private ParkingSensorSource sensorSource = new IpcRadarSource();
 
     private CameraMode mode = CameraMode.REAR;
+    /** Letterbox height of one feed at the panel width; set by sizeFeedBoxes(). */
+    private int feedH;
     private boolean mainSurfaceReady, auxSurfaceReady, permGranted;
     /** True when the current foregrounding was caused by shifting into reverse. */
     private boolean reverseInitiated;
@@ -130,6 +133,7 @@ public class MainActivity extends AppCompatActivity {
             @Override public void surfaceChanged(@NonNull SurfaceHolder h, int f, int w, int ht) {}
             @Override public void surfaceDestroyed(@NonNull SurfaceHolder h) { auxSurfaceReady = false; camAux.close(); }
         });
+        feedBox.setOnTouchListener(this::forwardTouch);
 
         permGranted = checkSelfPermission(Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED;
         if (!permGranted) {
@@ -166,6 +170,7 @@ public class MainActivity extends AppCompatActivity {
         int screenW = getResources().getDisplayMetrics().widthPixels;
         android.util.Size n = HwConfig.nativeSize(HwConfig.REAR_CAM_ID);
         int boxH = Math.round(screenW * (float) n.getHeight() / n.getWidth());
+        feedH = boxH;
         if (feedBox != null) {
             FrameLayout.LayoutParams lp = (FrameLayout.LayoutParams) feedBox.getLayoutParams();
             lp.height = boxH;
@@ -180,6 +185,12 @@ public class MainActivity extends AppCompatActivity {
 
     private void buildSelector() {
         selector.removeAllViews();
+        // Live 2026-10-25: devices 10, 12 and 14 all carry the same factory
+        // composite, so Front / 360 only ever showed the rear picture again.
+        // View switching is done by tapping the module's own on-screen buttons
+        // (forwarded as MAIN cmd 56). The selector stays in the code behind
+        // persist.phoenix.cam.selector=1 for experiments and is hidden otherwise.
+        if (propInt("persist.phoenix.cam.selector", 0) == 0) { selector.setVisibility(View.GONE); return; }
         for (final CameraMode m : CameraMode.values()) {
             Button btn = new Button(this);
             btn.setText(m.label);
@@ -201,6 +212,67 @@ public class MainActivity extends AppCompatActivity {
         applyMode();
     }
 
+    // ---- factory OSD touch forwarding ----
+    // The picture is the factory camera module's composite with its own buttons
+    // burned in. This truck's canbus profile is a "PA" RAM box (live 2026-10-25),
+    // and for CAR_PA_RAM_22_H the stock app forwards taps on the picture as
+    //   CANBUS cmd 1029 {touch, x, y}   touch 0 = down, 1 = up   (com.syu.us
+    //   PageBack.handleCanbusSendTouch -> FuncSet.send360Touch)
+    // with x, y as raw pixels inside its video view. Our feed is letterboxed, so
+    // the coordinate space is selectable live until one is proven:
+    //   setprop persist.phoenix.cam.touch N     (default 4: proven live 2026-10-25, all OSD buttons respond)
+    //     0 off
+    //     1 CANBUS 1029, px inside the feed box            (feed 1080 x 756)
+    //     2 CANBUS 1029, raw panel px                       (1080 x 1920 portrait)
+    //     3 CANBUS 1029, feed scaled to 1920 x 1080
+    //     4 CANBUS 1029, feed scaled to 1024 x 600
+    //     5 MAIN 56 {action, x, y}, feed scaled to 800 x 480 (the MCU/360 path)
+    private static final int CMD_TOUCH_MAIN = 56, CMD_TOUCH_CANBUS = 1029;
+    private long lastMoveMs;
+
+    private boolean forwardTouch(View v, android.view.MotionEvent e) {
+        int mode = propInt("persist.phoenix.cam.touch", 4);
+        if (mode == 0) return false;
+        int action = e.getActionMasked();
+        boolean move = action == android.view.MotionEvent.ACTION_MOVE;
+        if (action != android.view.MotionEvent.ACTION_DOWN && action != android.view.MotionEvent.ACTION_UP && !move) return false;
+        if (move && mode != 5) return true;                 // the canbus path sends down/up only
+        if (move) {
+            long now = android.os.SystemClock.uptimeMillis();
+            if (now - lastMoveMs < 50) return true;
+            lastMoveMs = now;
+        }
+        float fx = e.getX(), fy = e.getY();
+        int w = Math.max(1, v.getWidth()), h = Math.max(1, v.getHeight());
+        int x, y;
+        switch (mode) {
+            case 2:  x = Math.round(e.getRawX());    y = Math.round(e.getRawY());    break;
+            case 3:  x = Math.round(fx * 1920f / w); y = Math.round(fy * 1080f / h); break;
+            case 4:  x = Math.round(fx * 1024f / w); y = Math.round(fy * 600f / h);  break;
+            case 5:  x = Math.round(fx * 800f / w);  y = Math.round(fy * 480f / h);  break;
+            default: x = Math.round(fx);             y = Math.round(fy);             break;
+        }
+        int a = action == android.view.MotionEvent.ACTION_DOWN ? 0 : action == android.view.MotionEvent.ACTION_UP ? 1 : 2;
+        boolean ok = mode == 5
+                ? ReverseService.ipcCmd(SyuIpc.MODULE_MAIN, CMD_TOUCH_MAIN, new int[]{a, x, y})
+                : ReverseService.ipcCmd(SyuIpc.MODULE_CANBUS, CMD_TOUCH_CANBUS, new int[]{a, x, y});
+        if (!move) {
+            Log.i(TAG, "osd touch mode=" + mode + " a=" + a + " (" + x + "," + y + ") from (" + Math.round(fx) + "," + Math.round(fy)
+                    + ") of " + w + "x" + h + (ok ? "" : " NOT SENT"));
+        }
+        return true;
+    }
+
+    private static int propInt(String key, int def) {
+        try {
+            Class<?> sp = Class.forName("android.os.SystemProperties");
+            String s = (String) sp.getMethod("get", String.class, String.class).invoke(null, key, "");
+            return (s == null || s.isEmpty()) ? def : Integer.parseInt(s.trim());
+        } catch (Exception e) {
+            return def;
+        }
+    }
+
     /** Idempotent: binds cameras + overlays to whatever the current mode is.
      *  CameraController.open() is itself a no-op for an unchanged id/surface. */
     private void applyMode() {
@@ -208,21 +280,21 @@ public class MainActivity extends AppCompatActivity {
 
         switch (mode) {
             case REAR:
-                setFeedGravity(Gravity.CENTER);
+                placeFeeds(false);
                 surfaceAux.setVisibility(View.GONE);
                 guidelines.setVisibility(HwConfig.SHOW_GUIDELINES ? View.VISIBLE : View.GONE);
                 camAux.close();
                 camMain.open(HwConfig.REAR_CAM_ID, surfaceMain.getHolder());
                 break;
             case FRONT:
-                setFeedGravity(Gravity.CENTER);
+                placeFeeds(false);
                 surfaceAux.setVisibility(View.GONE);
                 guidelines.setVisibility(View.GONE);
                 camAux.close();
                 camMain.open(HwConfig.FRONT_CAM_ID, surfaceMain.getHolder());
                 break;
             case SURROUND_360:
-                setFeedGravity(Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL);
+                placeFeeds(true);
                 guidelines.setVisibility(View.GONE);
                 surfaceAux.setVisibility(View.VISIBLE);
                 camMain.open(HwConfig.REAR_CAM_ID, surfaceMain.getHolder());
@@ -235,11 +307,28 @@ public class MainActivity extends AppCompatActivity {
         highlightSelector();
     }
 
-    private void setFeedGravity(int gravity) {
-        if (feedBox == null) return;
-        FrameLayout.LayoutParams lp = (FrameLayout.LayoutParams) feedBox.getLayoutParams();
-        lp.gravity = gravity;
-        feedBox.setLayoutParams(lp);
+    /**
+     * Feeds hug the top of the panel (Beau, live 2026-10-25: a centred feed sat too
+     * low for a quick glance). Single-feed modes put the main box at the top; 360
+     * keeps the aux feed on top with the main feed directly under it. The selector
+     * drops to just below whatever is showing so it never covers the picture.
+     */
+    private void placeFeeds(boolean stacked) {
+        if (feedBox != null) {
+            FrameLayout.LayoutParams lp = (FrameLayout.LayoutParams) feedBox.getLayoutParams();
+            lp.gravity = Gravity.TOP;
+            lp.topMargin = stacked ? feedH : 0;
+            feedBox.setLayoutParams(lp);
+        }
+        if (selector != null) {
+            FrameLayout.LayoutParams lp = (FrameLayout.LayoutParams) selector.getLayoutParams();
+            // Two stacked feeds (2 x 756 px of 1920) leave no room underneath for a
+            // vertical selector, so park it bottom-right there (live 2026-10-25: the
+            // 360 button clipped off the panel when it was placed below both feeds).
+            lp.gravity = stacked ? (Gravity.BOTTOM | Gravity.END) : (Gravity.TOP | Gravity.END);
+            lp.topMargin = stacked ? 0 : feedH;
+            selector.setLayoutParams(lp);
+        }
     }
 
     private void highlightSelector() {

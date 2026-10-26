@@ -22,6 +22,10 @@ public interface VehicleData {
     Float coolantC();
     /** Battery voltage, or null. */
     Float batteryVolts();
+    /** Transmission fluid temperature in Celsius, or null. */
+    Float transC();
+    /** Engine oil pressure in psi, or null. */
+    Float oilPsi();
     /** Outside temperature in Celsius, or null. */
     Float outsideC();
     /** Vehicle speed from the bus in km/h, or null (dashboard falls back to GPS). */
@@ -36,6 +40,8 @@ public interface VehicleData {
         @Override public Float fuelPercent() { return null; }
         @Override public Float coolantC() { return null; }
         @Override public Float batteryVolts() { return null; }
+        @Override public Float transC() { return null; }
+        @Override public Float oilPsi() { return null; }
         @Override public Float outsideC() { return null; }
         @Override public Float speedKph() { return null; }
         @Override public Float rpm() { return null; }

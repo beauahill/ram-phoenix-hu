@@ -65,7 +65,7 @@ public class LauncherActivity extends Activity implements Pane.Host {
     private FrameLayout slotFullMap, slotFullMedia, slotFullDrive, slotFullClimate;
     private Pane paneA, paneB;
 
-    private VehicleData vehicle = VehicleData.STUB;
+    private CanbusVehicleData vehicle;
 
     private final Handler ui = new Handler(Looper.getMainLooper());
     private final SimpleDateFormat timeFmt = new SimpleDateFormat("h:mm a", Locale.US);
@@ -118,15 +118,38 @@ public class LauncherActivity extends Activity implements Pane.Host {
         climateCard = li.inflate(R.layout.widget_climate, content, false);
 
         map = new MapWidget(this, mapCard.findViewById(R.id.map_container));
-        mapCard.findViewById(R.id.btn_nav).setOnClickListener(v -> launchOrToast(Dock.navIntent(this)));
-        mapCard.findViewById(R.id.search_bar).setOnClickListener(v -> launchOrToast(Dock.navIntent(this)));
+        final View btnNav = mapCard.findViewById(R.id.btn_nav);
+        final View btn3d = mapCard.findViewById(R.id.btn_3d), btnTraffic = mapCard.findViewById(R.id.btn_traffic);
+        final View destBar = mapCard.findViewById(R.id.dest_bar);
+        final TextView destName = mapCard.findViewById(R.id.dest_name);
+        btnNav.setOnClickListener(v -> map.recenter());
+        btnNav.setOnLongClickListener(v -> { launchOrToast(Dock.navIntent(this)); return true; });
+        mapCard.findViewById(R.id.search_bar).setOnClickListener(v -> map.promptSearch(this));
         mapCard.findViewById(R.id.btn_zoom_in).setOnClickListener(v -> map.zoomIn());
         mapCard.findViewById(R.id.btn_zoom_out).setOnClickListener(v -> map.zoomOut());
+        mapCard.findViewById(R.id.btn_layers).setOnClickListener(v ->
+                Toast.makeText(this, map.cycleMapType(), Toast.LENGTH_SHORT).show());
+        btn3d.setOnClickListener(v -> map.toggle3D());
+        btnTraffic.setOnClickListener(v -> map.toggleTraffic());
+        mapCard.findViewById(R.id.dest_go).setOnClickListener(v -> map.navigate(this));
+        mapCard.findViewById(R.id.dest_clear).setOnClickListener(v -> map.clearDestination());
+        map.setHost(new MapWidget.Host() {
+            @Override public void onFollowingChanged(boolean following) { btnNav.setAlpha(following ? 1f : 0.55f); }
+            @Override public void onDestinationChanged(String name) {
+                destBar.setVisibility(name == null ? View.GONE : View.VISIBLE);
+                destName.setText(name == null ? "" : name);
+            }
+            @Override public void onToggles(int mapType, boolean threeD, boolean traffic) {
+                btn3d.setAlpha(threeD ? 1f : 0.45f);
+                btnTraffic.setAlpha(traffic ? 1f : 0.45f);
+            }
+        });
 
         media = new MediaWidget(this, mediaCard);
 
         vehicleCard = driveRow.findViewById(R.id.vehicle_card);
         climate = new ClimateWidget(this, climateCard);
+        vehicle = new CanbusVehicleData(this, this::updateVehicle);
 
         // --- containers ---
         fullContainer = findViewById(R.id.full_container);
@@ -222,6 +245,7 @@ public class LauncherActivity extends Activity implements Pane.Host {
         map.onResume();
         media.onResume();
         climate.onResume();
+        vehicle.connect();
         IntentFilter f = new IntentFilter();
         f.addAction(Intent.ACTION_PACKAGE_ADDED);
         f.addAction(Intent.ACTION_PACKAGE_REMOVED);
@@ -242,6 +266,7 @@ public class LauncherActivity extends Activity implements Pane.Host {
         ui.removeCallbacks(vehicleTick);
         try { unregisterReceiver(packageChanges); } catch (IllegalArgumentException ignored) {}
         climate.onPause();
+        vehicle.disconnect();
         media.onPause();
         map.onPause();
     }

@@ -32,6 +32,8 @@ public class VehicleCardView extends View {
     private static final float FUEL_MIN = 0f, FUEL_MAX = 100f;
     private static final float COOL_MIN_F = 100f, COOL_MAX_F = 260f;
     private static final float BATT_MIN = 10f, BATT_MAX = 16f;
+    private static final float TRANS_MIN_F = 100f, TRANS_MAX_F = 260f;
+    private static final float OIL_MIN = 0f, OIL_MAX = 80f;
     private static final float OUT_MIN_F = -20f, OUT_MAX_F = 120f;
     private static final float PSI_LOW = 30f, PSI_HIGH = 85f;
 
@@ -128,11 +130,14 @@ public class VehicleCardView extends View {
         final float r = Math.min(H * 0.26f, W * 0.13f);
         final float gy = H * 0.42f, lx = W * 0.20f, rx = W * 0.80f;
 
+        // Beau, 2026-10-25: coolant, transmission and oil pressure matter; fuel does
+        // not (the dash has it). These three are not on the head unit's bus decode
+        // and wait for an OBD feed; they read as dashes until then.
         drawDual(c, lx, gy, r,
-                data.fuelPercent(), FUEL_MIN, FUEL_MAX, "FUEL", Fmt.percent(data.fuelPercent()),
-                fOf(data.coolantC()), COOL_MIN_F, COOL_MAX_F, "TEMP", Fmt.tempF(data.coolantC()));
+                fOf(data.coolantC()), COOL_MIN_F, COOL_MAX_F, "COOLANT", Fmt.tempF(data.coolantC()),
+                fOf(data.transC()), TRANS_MIN_F, TRANS_MAX_F, "TRANS", Fmt.tempF(data.transC()));
         drawDual(c, rx, gy, r,
-                data.batteryVolts(), BATT_MIN, BATT_MAX, "BATT", Fmt.volts(data.batteryVolts()),
+                data.oilPsi(), OIL_MIN, OIL_MAX, "OIL PSI", data.oilPsi() == null ? Fmt.NONE : String.format(java.util.Locale.US, "%.0f", data.oilPsi()),
                 fOf(data.outsideC()), OUT_MIN_F, OUT_MAX_F, "OUTSIDE", Fmt.tempF(data.outsideC()));
         drawTruck(c, tx, ty, truckW, truckH);
 

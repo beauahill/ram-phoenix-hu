@@ -24,6 +24,59 @@
         <item name="android:clickable">true</item>
         <item name="android:focusable">true</item>
     </style>
+    <!-- Media card source selector (BT / RADIO / APPS). -->
+    <style name="SourcePill">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">24dp</item>
+        <item name="android:layout_marginStart">6dp</item>
+        <item name="android:paddingStart">10dp</item>
+        <item name="android:paddingEnd">10dp</item>
+        <item name="android:gravity">center</item>
+        <item name="android:background">@drawable/glass_tile_selector</item>
+        <item name="android:textColor">@color/text_primary</item>
+        <item name="android:textSize">10sp</item>
+        <item name="android:letterSpacing">0.08</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+        <item name="android:clickable">true</item>
+        <item name="android:focusable">true</item>
+    </style>
+    <!-- Icon above a short label; the icon tints with the chip's text colour. -->
+    <style name="ClimateIconChip" parent="ClimateChip">
+        <item name="android:background">@drawable/glass_tile_selector_sq</item>
+        <item name="android:textSize">10sp</item>
+        <item name="android:letterSpacing">0.03</item>
+        <item name="android:drawablePadding">1dp</item>
+        <item name="android:paddingTop">3dp</item>
+        <item name="android:paddingBottom">2dp</item>
+        <item name="android:paddingStart">1dp</item>
+        <item name="android:paddingEnd">1dp</item>
+        <item name="android:layout_margin">2dp</item>
+        <item name="android:gravity">center</item>
+    </style>
+    <!-- Value readout (temperature / fan) with a small caption under it. -->
+    <style name="ClimateValueBox">
+        <item name="android:layout_width">0dp</item>
+        <item name="android:layout_height">match_parent</item>
+        <item name="android:layout_weight">1.5</item>
+        <item name="android:orientation">vertical</item>
+        <item name="android:gravity">center</item>
+    </style>
+    <style name="ClimateValueText">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:textColor">@color/text_primary</item>
+        <item name="android:textSize">26sp</item>
+        <item name="android:maxLines">1</item>
+        <item name="android:gravity">center</item>
+    </style>
+    <style name="ClimateValueLabel">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:textColor">@color/text_tertiary</item>
+        <item name="android:textSize">9sp</item>
+        <item name="android:letterSpacing">0.14</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+    </style>
     <style name="ClimateValue" parent="ClimateChip">
         <item name="android:layout_weight">1.4</item>
         <item name="android:background">@null</item>

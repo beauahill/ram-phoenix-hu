@@ -7,6 +7,8 @@ restart loop every time you shift into reverse. This repo replaces the launcher,
 camera, and the car UI while keeping the vendor's CAN/MCU bridge as a dumb hardware
 abstraction layer.
 
+> **Status (2026-10-25):** see `docs/LIVE-2026-10-25.md` for the latest live session; the summary below predates it.
+>
 > **Status (2026-10-22):** Camera Milestone 1 is installed on the truck and the
 > reverse trigger is **proven live** (two shifts, ~130 ms from signal to first frame on
 > our side). Launcher v0.4 (dashboard, Google Maps, instrument cluster, climate card)
@@ -374,6 +376,7 @@ Desk work:
 | `docs/CAMERA-MILESTONE-1.md` | Authoritative camera write-up: stock pipeline decompile, why it lags, sysfs control plane, 360 system, review fixes, install. Note its sysfs-trigger section is superseded by `LIVE-2026-10-21.md` + `CANBUS-IPC.md`. |
 | `docs/CANBUS-IPC.md` | ToolkitService Binder protocol, module codes, reverse code, full RAM 1500 climate read/write tables, live checklist. |
 | `docs/LIVE-2026-10-21.md` | Live truck session: first light, the 360-ECU-CVBS finding, sysfs flag proven dead, IPC trigger proven with timestamps, climate press, lifecycle. |
+| `docs/LIVE-2026-10-25.md` | **Read this first.** Parking sensors + steering pinned, climate write bug found and fixed, audio source (app id) protocol, radio/BT codes, what vehicle data the firmware does and does not decode, OSD touch forwarding, map card. |
 | `docs/DASHBOARD-DESIGN.md` | Agreed launcher layout + climate cluster, 1080×1920 mock. |
 | `docs/RUNBOOK-CRIMSON.md` | **Step-by-step for a session on Crimson:** recover stock camera, build, install, test, what evidence to send back. |
 | `docs/LAUNCHER.md` | Launcher widgets, data sources, FULL/SPLIT, climate card, install, open items. |

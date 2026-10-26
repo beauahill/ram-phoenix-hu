@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Live map card. The Google MapView is added into map_container in code. -->
+<!-- Live map card. The Google MapView is added into map_container in code.
+     Controls: recenter (top-left), zoom / layers / 3D / traffic column (right),
+     destination bar (appears above the search bar once a pin is set), search bar. -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/map_card"
     android:layout_width="match_parent"
@@ -21,8 +23,8 @@
         android:layout_margin="14dp"
         android:padding="9dp"
         android:background="@drawable/glass_circle"
-        android:src="@drawable/ic_nav"
-        android:contentDescription="@string/navigation" />
+        android:src="@drawable/ic_recenter"
+        android:contentDescription="@string/recenter" />
 
     <LinearLayout
         android:layout_width="42dp"
@@ -52,28 +54,95 @@
             android:text="@string/zoom_out"
             android:textColor="@color/text_primary"
             android:textSize="22sp" />
+        <View
+            android:layout_width="24dp"
+            android:layout_height="1dp"
+            android:layout_gravity="center_horizontal"
+            android:background="@color/glass_stroke" />
+        <ImageView
+            android:id="@+id/btn_layers"
+            android:layout_width="match_parent"
+            android:layout_height="40dp"
+            android:padding="9dp"
+            android:src="@drawable/ic_layers"
+            android:contentDescription="@string/map_layers" />
+        <ImageView
+            android:id="@+id/btn_3d"
+            android:layout_width="match_parent"
+            android:layout_height="40dp"
+            android:padding="9dp"
+            android:src="@drawable/ic_3d"
+            android:contentDescription="@string/map_3d" />
+        <ImageView
+            android:id="@+id/btn_traffic"
+            android:layout_width="match_parent"
+            android:layout_height="40dp"
+            android:padding="9dp"
+            android:src="@drawable/ic_traffic"
+            android:contentDescription="@string/map_traffic" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/dest_bar"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:layout_gravity="bottom"
+        android:layout_marginStart="14dp"
+        android:layout_marginEnd="72dp"
+        android:layout_marginBottom="54dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingStart="16dp"
+        android:paddingEnd="6dp"
+        android:background="@drawable/glass_pill"
+        android:visibility="gone">
+        <TextView
+            android:id="@+id/dest_name"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:singleLine="true"
+            android:ellipsize="end"
+            android:textColor="@color/text_primary"
+            android:textSize="16sp" />
+        <TextView
+            android:id="@+id/dest_go"
+            android:layout_width="wrap_content"
+            android:layout_height="36dp"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            android:gravity="center"
+            android:text="@string/go"
+            android:textStyle="bold"
+            android:textColor="@color/text_primary"
+            android:background="@drawable/glass_pill"
+            android:drawableStart="@drawable/ic_directions"
+            android:drawablePadding="8dp" />
+        <ImageView
+            android:id="@+id/dest_clear"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_marginStart="6dp"
+            android:padding="8dp"
+            android:src="@drawable/ic_close"
+            android:contentDescription="@string/clear" />
     </LinearLayout>
 
     <LinearLayout
         android:id="@+id/search_bar"
-        android:layout_width="match_parent"
-        android:layout_height="48dp"
-        android:layout_gravity="bottom"
-        android:layout_margin="14dp"
+        android:layout_width="200dp"
+        android:layout_height="28dp"
+        android:layout_gravity="bottom|start"
+        android:layout_marginStart="14dp"
+        android:layout_marginBottom="12dp"
         android:orientation="horizontal"
         android:gravity="center_vertical"
-        android:paddingStart="16dp"
-        android:paddingEnd="16dp"
+        android:paddingStart="12dp"
+        android:paddingEnd="12dp"
         android:background="@drawable/glass_pill">
         <ImageView
-            android:layout_width="22dp"
-            android:layout_height="22dp"
-            android:src="@drawable/ic_mic"
-            android:contentDescription="@null" />
-        <ImageView
-            android:layout_width="22dp"
-            android:layout_height="22dp"
-            android:layout_marginStart="14dp"
+            android:layout_width="14dp"
+            android:layout_height="16dp"
             android:src="@drawable/ic_search"
             android:contentDescription="@null" />
         <TextView
@@ -83,6 +152,6 @@
             android:layout_marginStart="16dp"
             android:text="@string/where_to"
             android:textColor="@color/text_secondary"
-            android:textSize="16sp" />
+            android:textSize="12sp" />
     </LinearLayout>
 </FrameLayout>

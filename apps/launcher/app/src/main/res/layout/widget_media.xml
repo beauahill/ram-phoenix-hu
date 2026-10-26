@@ -16,9 +16,12 @@
         android:id="@+id/media_art"
         android:layout_width="wrap_content"
         android:layout_height="match_parent"
+        android:layout_marginTop="6dp"
+        android:layout_marginBottom="6dp"
+        android:padding="18dp"
         android:scaleType="centerCrop"
         android:src="@drawable/ic_media_fallback"
-        android:background="@drawable/glass_tile"
+        android:background="@drawable/glass_tile_sq"
         android:contentDescription="@null" />
 
     <LinearLayout
@@ -42,11 +45,18 @@
                 android:contentDescription="@null" />
             <TextView
                 android:id="@+id/media_src_name"
-                android:layout_width="wrap_content"
+                android:layout_width="0dp"
+                android:layout_weight="1"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="7dp"
+                android:maxLines="1"
+                android:ellipsize="end"
                 android:textColor="@color/text_secondary"
                 android:textSize="13sp" />
+            <!-- source pills: which input the unit's amplifier is on -->
+            <TextView style="@style/SourcePill" android:id="@+id/media_src_bt"    android:text="@string/source_bt" />
+            <TextView style="@style/SourcePill" android:id="@+id/media_src_radio" android:text="@string/source_radio" />
+            <TextView style="@style/SourcePill" android:id="@+id/media_src_apps"  android:text="@string/source_apps" />
         </LinearLayout>
 
         <TextView
@@ -81,7 +91,7 @@
             android:layout_marginTop="10dp"
             android:max="1000"
             android:progress="0"
-            android:progressTint="@color/teal"
+            android:progressTint="@color/accent"
             android:progressBackgroundTint="@color/glass_stroke" />
 
         <LinearLayout
@@ -90,15 +100,16 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="10dp"
             android:orientation="horizontal"
-            android:gravity="center_vertical">
+            android:gravity="center">
             <ImageView
                 android:id="@+id/media_prev"
-                android:layout_width="0dp"
-                android:layout_height="30dp"
-                android:layout_weight="1"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_marginStart="14dp"
+                android:layout_marginEnd="14dp"
+                android:padding="8dp"
                 android:src="@drawable/ic_prev"
                 android:background="@drawable/glass_circle"
-                android:padding="2dp"
                 android:contentDescription="@null" />
             <ImageView
                 android:id="@+id/media_play"
@@ -110,12 +121,13 @@
                 android:contentDescription="@null" />
             <ImageView
                 android:id="@+id/media_next"
-                android:layout_width="0dp"
-                android:layout_height="30dp"
-                android:layout_weight="1"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_marginStart="14dp"
+                android:layout_marginEnd="14dp"
+                android:padding="8dp"
                 android:src="@drawable/ic_next"
                 android:background="@drawable/glass_circle"
-                android:padding="2dp"
                 android:contentDescription="@null" />
         </LinearLayout>
     </LinearLayout>

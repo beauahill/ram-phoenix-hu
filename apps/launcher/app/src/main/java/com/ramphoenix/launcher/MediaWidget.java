@@ -47,6 +47,9 @@ public class MediaWidget {
     private MediaController current;
     private boolean needsAccess;
     private final float density;
+    /** The unit's own audio source (radio / BT music / Android) over the SYU IPC. */
+    private final AudioSource src;
+    private final TextView pillBt, pillRadio, pillApps;
 
     private final Handler ui = new Handler(Looper.getMainLooper());
     private final Runnable progressTick = new Runnable() {
@@ -82,14 +85,35 @@ public class MediaWidget {
         msm = (MediaSessionManager) act.getSystemService(Context.MEDIA_SESSION_SERVICE);
         listener = new ComponentName(act, MediaListenerService.class);
 
-        btnPrev.setOnClickListener(v -> { if (current != null) current.getTransportControls().skipToPrevious(); });
-        btnNext.setOnClickListener(v -> { if (current != null) current.getTransportControls().skipToNext(); });
+        src = new AudioSource(act, this::render);
+        pillBt = card.findViewById(R.id.media_src_bt);
+        pillRadio = card.findViewById(R.id.media_src_radio);
+        pillApps = card.findViewById(R.id.media_src_apps);
+        btnPrev.setOnClickListener(v -> {
+            if (src.isBtMusic()) src.btPrev();
+            else if (src.isRadio()) src.radioSeekDown();
+            else if (current != null) current.getTransportControls().skipToPrevious();
+        });
+        btnNext.setOnClickListener(v -> {
+            if (src.isBtMusic()) src.btNext();
+            else if (src.isRadio()) src.radioSeekUp();
+            else if (current != null) current.getTransportControls().skipToNext();
+        });
         btnPlay.setOnClickListener(v -> togglePlay());
-        card.setOnClickListener(v -> onCardTap());
+        // Beau, 2026-10-25: the card is a controller, not a shortcut. A tap only
+        // fixes the notification-access grant when that is missing; long-press
+        // opens the source app for the rare case the card cannot do something.
+        card.setOnClickListener(v -> { if (needsAccess) onCardTap(); });
+        card.setOnLongClickListener(v -> { onCardTap(); return true; });
+
+        pillBt.setOnClickListener(v -> src.selectBt());
+        pillRadio.setOnClickListener(v -> src.selectRadio());
+        pillApps.setOnClickListener(v -> src.selectAndroid());
         tint(null);
     }
 
     public void onResume() {
+        src.connect();
         try {
             msm.addOnActiveSessionsChangedListener(sessionsListener, listener);
             needsAccess = false;
@@ -103,6 +127,7 @@ public class MediaWidget {
     }
 
     public void onPause() {
+        src.disconnect();
         ui.removeCallbacks(progressTick);
         try { msm.removeOnActiveSessionsChangedListener(sessionsListener); } catch (Exception ignored) {}
         setController(null);
@@ -142,7 +167,19 @@ public class MediaWidget {
     }
 
     private void togglePlay() {
-        if (current == null) { onCardTap(); return; }
+        if (src.isBtMusic()) { src.btPlayPause(); return; }
+        if (current == null) {
+            // Nothing has a session yet: if a phone is paired, start BT music;
+            // otherwise ask the last media app to resume via the media button.
+            if (src.isConnected() && src.btConnected()) { src.selectBt(); return; }
+            android.media.AudioManager am = (android.media.AudioManager) act.getSystemService(Context.AUDIO_SERVICE);
+            if (am != null) {
+                android.view.KeyEvent k = new android.view.KeyEvent(android.view.KeyEvent.ACTION_DOWN, android.view.KeyEvent.KEYCODE_MEDIA_PLAY);
+                am.dispatchMediaKeyEvent(k);
+                am.dispatchMediaKeyEvent(android.view.KeyEvent.changeAction(k, android.view.KeyEvent.ACTION_UP));
+            }
+            return;
+        }
         PlaybackState s = current.getPlaybackState();
         if (s != null && s.getState() == PlaybackState.STATE_PLAYING) {
             current.getTransportControls().pause();
@@ -208,14 +245,69 @@ public class MediaWidget {
         tint(null);
     }
 
+    /** Album art fills the tile; a glyph (BT / radio / fallback) sits small in the middle of it. */
+    private void setArt(Bitmap bmp, int glyphRes) {
+        if (bmp != null) {
+            art.setScaleType(android.widget.ImageView.ScaleType.CENTER_CROP);
+            art.setPadding(0, 0, 0, 0);
+            art.setImageBitmap(bmp);
+        } else {
+            art.setScaleType(android.widget.ImageView.ScaleType.FIT_CENTER);
+            int p = Math.max(dp(18), art.getHeight() / 3);
+            art.setPadding(p, p, p, p);
+            art.setImageResource(glyphRes);
+        }
+    }
+
+    private void renderPills() {
+        boolean ipc = src.isConnected();
+        for (TextView p : new TextView[]{pillBt, pillRadio, pillApps}) p.setAlpha(ipc ? 1f : 0.4f);
+        pillBt.setSelected(src.isBtMusic());
+        pillRadio.setSelected(src.isRadio());
+        pillApps.setSelected(ipc && !src.isHardwareSource());
+    }
+
+    /** Bluetooth music from the phone: metadata and transport come over the BT module, not a MediaSession. */
+    private void renderBt() {
+        srcIcon.setImageResource(R.drawable.ic_bluetooth);
+        srcName.setText(R.string.bluetooth_audio);
+        String t = src.btTitle(), a = src.btArtist();
+        if (!src.btConnected()) {
+            title.setText(R.string.bt_not_connected);
+            artist.setText("");
+        } else {
+            title.setText(t != null && !t.isEmpty() ? t : act.getString(R.string.bluetooth_audio));
+            artist.setText(a != null ? a : act.getString(R.string.bt_connected_hint));
+        }
+        setArt(null, R.drawable.ic_bluetooth);
+        tint(null);
+        btnPlay.setImageResource(src.btPlaying() ? R.drawable.ic_pause : R.drawable.ic_play);
+        renderProgress();
+    }
+
+    private void renderRadio() {
+        srcIcon.setImageResource(R.drawable.ic_radio);
+        srcName.setText(R.string.radio);
+        String f = src.radioLabel(), ps = src.radioStation();
+        title.setText(f != null ? f : act.getString(R.string.radio));
+        artist.setText(ps != null ? ps : act.getString(R.string.radio_hint));
+        setArt(null, R.drawable.ic_radio);
+        tint(null);
+        btnPlay.setImageResource(R.drawable.ic_pause);
+        progress.setProgress(0);
+    }
+
     private void render() {
+        renderPills();
+        if (src.isBtMusic()) { renderBt(); return; }
+        if (src.isRadio()) { renderRadio(); return; }
         if (needsAccess) { renderNeedsAccess(); return; }
         if (current == null) {
             srcIcon.setImageDrawable(null);
             srcName.setText("");
             title.setText(R.string.nothing_playing);
             artist.setText(R.string.open_media_hint);
-            art.setImageResource(R.drawable.ic_media_fallback);
+            setArt(null, R.drawable.ic_media_fallback);
             progress.setProgress(0);
             btnPlay.setImageResource(R.drawable.ic_play);
             tint(null);
@@ -247,7 +339,7 @@ public class MediaWidget {
             if (bmp == null) bmp = md.getBitmap(MediaMetadata.METADATA_KEY_ART);
             if (bmp == null) bmp = md.getBitmap(MediaMetadata.METADATA_KEY_DISPLAY_ICON);
         }
-        if (bmp != null) art.setImageBitmap(bmp); else art.setImageResource(R.drawable.ic_media_fallback);
+        setArt(bmp, R.drawable.ic_media_fallback);
         tint(bmp);
 
         PlaybackState s = current.getPlaybackState();
@@ -257,6 +349,11 @@ public class MediaWidget {
     }
 
     private void renderProgress() {
+        if (src.isBtMusic()) {
+            int pos = src.btPos(), dur = src.btDur();
+            progress.setProgress(dur > 0 && pos >= 0 ? (int) Math.min(1000L, pos * 1000L / dur) : 0);
+            return;
+        }
         if (current == null) { progress.setProgress(0); return; }
         MediaMetadata md = current.getMetadata();
         PlaybackState s = current.getPlaybackState();
@@ -279,21 +376,10 @@ public class MediaWidget {
         return null;
     }
 
-    /** Card background: gradient from the album art's dominant colour, or the default purple/teal. */
+    /** Card background: the same glass as every other card (Beau, 2026-10-25: the
+     *  purple gradient did not fit the dashboard). Art colour is no longer used. */
     private void tint(Bitmap bmp) {
-        int start, end;
-        if (bmp != null) {
-            int c = ArtColor.dominant(bmp, act.getColor(R.color.media_grad_start));
-            start = withAlpha(ArtColor.toneDown(c, 0.80f), 0x8C);
-            end = withAlpha(ArtColor.toneDown(c, 0.45f), 0x73);
-        } else {
-            start = act.getColor(R.color.media_grad_start);
-            end = act.getColor(R.color.media_grad_end);
-        }
-        GradientDrawable g = new GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT, new int[]{start, end});
-        g.setCornerRadius(24f * density);
-        g.setStroke(Math.round(density), act.getColor(R.color.glass_stroke));
-        card.setBackground(g);
+        card.setBackgroundResource(R.drawable.glass_card);
     }
 
     private static int withAlpha(int c, int alpha) {

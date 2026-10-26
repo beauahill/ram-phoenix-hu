@@ -48,11 +48,37 @@ public class ReverseService extends Service {
 
     private final Handler main = new Handler(Looper.getMainLooper());
     private ReverseMonitor monitor;
+    private static volatile ReverseService sInstance;
+
+    /** Send a raw ToolkitService command through the service's IPC. False if the service
+     *  or its IPC is down. Used by MainActivity to forward taps on the factory OSD. */
+    public static boolean ipcCmd(int module, int code, int[] ints) {
+        ReverseService s = sInstance;
+        return s != null && s.monitor != null && s.monitor.cmd(module, code, ints);
+    }
+
+    /** adb probe (debug builds only):
+     *  am broadcast -a com.ramphoenix.camera.IPC_CMD --ei module 0 --ei code 56 --eia ints 0,400,240 */
+    public static final String ACTION_IPC_CMD = "com.ramphoenix.camera.IPC_CMD";
+    private final android.content.BroadcastReceiver debugRx = new android.content.BroadcastReceiver() {
+        @Override public void onReceive(android.content.Context c, Intent i) {
+            int module = i.getIntExtra("module", 0), code = i.getIntExtra("code", -1);
+            int[] ints = i.getIntArrayExtra("ints");
+            boolean ok = code >= 0 && ipcCmd(module, code, ints);
+            Log.i(TAG, "debug cmd module=" + module + " code=" + code + " ints=" + java.util.Arrays.toString(ints)
+                    + " -> " + (ok ? "sent" : "FAILED"));
+        }
+    };
 
     @Override public void onCreate() {
         super.onCreate();
+        sInstance = this;
         startForeground(FG_ID, buildOngoing());
         logLaunchCapability();
+        if (debuggable()) {
+            registerReceiver(debugRx, new android.content.IntentFilter(ACTION_IPC_CMD),
+                    android.content.Context.RECEIVER_EXPORTED);
+        }
         monitor = new ReverseMonitor(this, engaged -> {
             Log.i(TAG, "service reverse -> " + engaged);
             if (engaged) {
@@ -76,6 +102,10 @@ public class ReverseService extends Service {
 
     @Override public int onStartCommand(Intent intent, int flags, int startId) {
         return START_STICKY; // survive the SYU service churn
+    }
+
+    private boolean debuggable() {
+        return (getApplicationInfo().flags & android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE) != 0;
     }
 
     /** True when Android will let this app start an activity from the background. */
@@ -165,6 +195,8 @@ public class ReverseService extends Service {
 
     @Override public void onDestroy() {
         super.onDestroy();
+        sInstance = null;
+        if (debuggable()) { try { unregisterReceiver(debugRx); } catch (Exception ignored) {} }
         main.removeCallbacksAndMessages(null);
         if (monitor != null) monitor.stop();
     }

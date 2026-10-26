@@ -15,7 +15,7 @@ import java.util.Locale;
  * over the SYU ToolkitService IPC (docs/CANBUS-IPC.md, RAM 1500 profile):
  *
  *   read  : register MODULE_CANBUS update codes, keep the latest ints[0] per code
- *   write : cmd(MODULE_CANBUS, 0, {24, BUTTON}) on press, cmd(.., {24}) on release
+ *   write : cmd(MODULE_CANBUS, 6, {1, BUTTON}) on press (PA RAM profile, live 2026-10-25)
  *
  * Code 27 (driver temp) was confirmed live on 2026-10-21; the rest of the map is
  * from the decompile and is marked VERIFY in the doc. Until the IPC is connected
@@ -35,15 +35,19 @@ public class ClimateWidget {
             C_VENT_BODY, C_VENT_FOOT, C_FAN, C_TEMP_L, C_TEMP_R, C_SEAT_HEAT_L, C_SEAT_HEAT_R,
             C_SEAT_VENT_L, C_SEAT_VENT_R, C_TEMP_UNIT, C_AC_MAX, C_SYNC, C_FRONT_DEF, C_HEAT_WHEEL};
 
-    // ---- button ids (write), ConstAllAirDara for CAR_455_LZ_Dodge_RAM1500 ----
-    static final int B_TEMP_L_UP = 1, B_TEMP_L_DN = 2, B_TEMP_R_UP = 3, B_TEMP_R_DN = 4,
-            B_FAN_UP = 5, B_FAN_DN = 6, B_POWER = 7, B_SYNC = 8, B_AC_MAX = 9, B_AC = 10,
-            B_RECIRC = 11, B_AUTO = 12, B_FRONT_DEF = 13, B_REAR_DEF = 14,
-            B_MODE_FACE = 15, B_MODE_FACE_FEET = 16, B_MODE_FEET = 17, B_MODE_FEET_DEF = 18,
-            B_SEAT_HEAT_R = 20, B_SEAT_VENT_R = 21, B_SEAT_HEAT_L = 22, B_SEAT_VENT_L = 23,
-            B_HEAT_WHEEL = 24;
-    private static final int CMD_CONTROL = 0, CMD_BUTTON = 24;
-    private static final long RELEASE_MS = 80;
+    // ---- button ids (write) ----
+    // This truck's profile is a "PA" RAM box, not the LZ one the docs assumed: the
+    // stock panel the unit opens for it is com.syu.carinfo.xp.ziyouguang.
+    // PAJeepAirControlAct_SP, and pressing driver seat heat there was logged by
+    // com.syu.ms as `cmd cmdid = 6 [1, 17] from com.syu.canbus` (live 2026-10-25).
+    // Codes from that activity's onTouch: sent as cmd(CANBUS, 6, {1, code}) on
+    // ACTION_DOWN only, no release packet.
+    static final int B_AC = 1, B_AUTO = 2, B_RECIRC = 3, B_TEMP_L_UP = 4, B_TEMP_L_DN = 5,
+            B_FAN_UP = 6, B_FAN_DN = 7, B_MODE_FACE = 8, B_MODE_FACE_FEET = 9, B_MODE_FEET = 10,
+            B_MODE_FEET_DEF = 11, B_FRONT_DEF = 12, B_SYNC = 13, B_REAR_DEF = 14, B_AC_MAX = 15,
+            B_POWER = 16, B_SEAT_HEAT_L = 17, B_SEAT_HEAT_R = 18, B_TEMP_R_UP = 20, B_TEMP_R_DN = 21,
+            B_SEAT_VENT_L = 22, B_SEAT_VENT_R = 23, B_HEAT_WHEEL = 24;
+    private static final int CMD_AIR = 6, AIR_FRONT_ZONE = 1;
 
     private final Activity act;
     private final View card;
@@ -64,6 +68,7 @@ public class ClimateWidget {
         for (int code : CODES) {
             ipc.subscribe(SyuIpc.MODULE_CANBUS, code, (c, ints, flts, strs) -> {
                 if (ints != null && ints.length > 0) {
+                    if (state.get(c, Integer.MIN_VALUE) != ints[0]) Log.i(TAG, "climate update " + c + " -> " + ints[0]);
                     state.put(c, ints[0]);
                     ui.post(this::render);
                 }
@@ -111,12 +116,11 @@ public class ClimateWidget {
     public void onResume() { ipc.connect(); }
     public void onPause() { ipc.disconnect(); connected = false; render(); }
 
-    /** Press then release, the way the stock panel sends ACTION_DOWN / ACTION_UP. */
+    /** One packet per press, exactly what the stock PA panel sends. */
     private void press(final int button) {
         if (!connected) { Log.w(TAG, "climate press " + button + " ignored: no IPC"); return; }
-        boolean ok = ipc.cmd(SyuIpc.MODULE_CANBUS, CMD_CONTROL, new int[]{CMD_BUTTON, button});
+        boolean ok = ipc.cmd(SyuIpc.MODULE_CANBUS, CMD_AIR, new int[]{AIR_FRONT_ZONE, button});
         Log.i(TAG, "climate press " + button + (ok ? "" : " FAILED"));
-        ui.postDelayed(() -> ipc.cmd(SyuIpc.MODULE_CANBUS, CMD_CONTROL, new int[]{CMD_BUTTON}), RELEASE_MS);
     }
 
     // ---- rendering ----
@@ -141,15 +145,15 @@ public class ClimateWidget {
 
         tempL.setText(temp(v(C_TEMP_L)));
         tempR.setText(temp(v(C_TEMP_R)));
-        level(heatL, "HEAT", v(C_SEAT_HEAT_L));
-        level(heatR, "HEAT", v(C_SEAT_HEAT_R));
-        level(ventL, "VENT", v(C_SEAT_VENT_L));
-        level(ventR, "VENT", v(C_SEAT_VENT_R));
+        level(heatL, true, true, v(C_SEAT_HEAT_L));
+        level(heatR, false, true, v(C_SEAT_HEAT_R));
+        level(ventL, true, false, v(C_SEAT_VENT_L));
+        level(ventR, false, false, v(C_SEAT_VENT_R));
 
-        int f = v(C_FAN);
-        StringBuilder bars = new StringBuilder();
-        for (int i = 1; i <= 8; i++) bars.append(i <= f ? '█' : '░');
-        fan.setText(f < 0 ? Fmt.NONE : bars.toString());
+        int f = Math.max(0, Math.min(7, v(C_FAN)));   // factory bar graphic, 0..7
+        int fanRes = fan.getResources().getIdentifier("pa_fan" + f, "drawable", act.getPackageName());
+        fan.setText("");
+        fan.setCompoundDrawablesWithIntrinsicBounds(0, fanRes, 0, 0);
 
         boolean up = on(C_VENT_UP), body = on(C_VENT_BODY), foot = on(C_VENT_FOOT);
         toggle(modeFace, body && !foot && !up);
@@ -163,22 +167,25 @@ public class ClimateWidget {
         chip.setAlpha(on ? 1f : 0.7f);
     }
 
-    private static void level(TextView chip, String label, int lvl) {
-        if (lvl < 0) { chip.setText(label); chip.setSelected(false); chip.setAlpha(0.7f); return; }
-        StringBuilder s = new StringBuilder(label).append(' ');
-        for (int i = 1; i <= 3; i++) s.append(i <= lvl ? '●' : '○');
-        chip.setText(s);
-        chip.setSelected(lvl > 0);
-        chip.setAlpha(lvl > 0 ? 1f : 0.7f);
+    /** Seat chips: factory icon with the level bars baked in (0..3), no text. */
+    private static void level(TextView chip, boolean left, boolean heat, int lvl) {
+        int l = Math.max(0, Math.min(3, lvl));
+        String name = "pa_seat" + (heat ? "heat_" : "vent_") + (left ? "l" : "r") + l;
+        int res = chip.getResources().getIdentifier(name, "drawable", chip.getContext().getPackageName());
+        chip.setText("");
+        chip.setCompoundDrawablesWithIntrinsicBounds(0, res, 0, 0);
+        chip.setSelected(l > 0);
+        chip.setAlpha(l > 0 ? 1f : 0.75f);
     }
 
-    /** Raw temp encoding from the decompile: -1 none, -2 LO, -3 HI; else
-     *  °F = (v*9+320)/10 when code 37 says Fahrenheit, otherwise °C = v/2. */
+    /** Temp encoding as the stock PA panel renders it (PAJeepAirControlAct_SP.mUpdateAirTempLeft):
+     *  -1 none, -2 LO, -3 HI; valid raw 20..128; code 37 = 1 -> raw is °F as-is, else °C = raw/2. */
     private String temp(int raw) {
         if (raw == -1 || raw == Integer.MIN_VALUE) return Fmt.NONE;
         if (raw == -2) return "LO";
         if (raw == -3) return "HI";
-        if (v(C_TEMP_UNIT) == 1) return String.format(Locale.US, "%d°", (raw * 9 + 320) / 10);
+        if (raw < 20 || raw > 128) return Fmt.NONE;
+        if (v(C_TEMP_UNIT) == 1) return String.format(Locale.US, "%d°", raw);
         return String.format(Locale.US, "%.1f°", raw / 2f);
     }
 }

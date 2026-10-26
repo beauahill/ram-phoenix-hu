@@ -71,6 +71,29 @@ public class ReverseMonitor {
         ipc.subscribe(SyuIpc.MODULE_MAIN, SyuIpc.U_BACKCAR, (code, ints, flts, strs) -> {
             if (ints != null && ints.length > 0) onIpc(ints[0] == 1);
         });
+        // Diagnostic (live 2026-10-25): the parking-sensor strip is still a stub
+        // because the radar slot is unpinned. Log the raw radar / steer pushes so
+        // the slot and encoding can be read straight out of logcat while reversing
+        // toward an obstacle. Harmless to leave on; one line per push.
+        // Parking sensors (pinned live 2026-10-25 by sweeping MAIN/CANBUS 0..199):
+        // MAIN 14..17 front, 18..21 rear (live-corrected). See IpcRadarSource.
+        SyuIpc.UpdateListener radar = (code, ints, flts, strs) -> {
+            IpcRadarSource.onMainUpdate(code, ints);
+            Log.d(TAG, "radar " + code + " -> " + java.util.Arrays.toString(ints));
+        };
+        for (int c = 14; c < 22; c++) {
+            ipc.subscribe(SyuIpc.MODULE_MAIN, c, radar);
+        }
+        // Steering (live 2026-10-25): ints = {position, 168, 84}; 84 is centre, swept
+        // 23..119 lock to lock. Logged at debug until the guidelines consume it.
+        ipc.subscribe(SyuIpc.MODULE_MAIN, SyuIpc.U_STEER_ANGLE_INFO, (code, ints, flts, strs) ->
+                Log.d(TAG, "steer " + java.util.Arrays.toString(ints)));
+        // MAIN 77 pushes {down/up, x, y} for every touch on the panel, whichever app is
+        // in front (seen 2026-10-25 on the launcher too). The vendor layer therefore
+        // sees taps on the factory OSD buttons; what it sends the camera module for
+        // them is still the open question. Logged for correlation, not consumed.
+        ipc.subscribe(SyuIpc.MODULE_MAIN, 77, (code, ints, flts, strs) ->
+                Log.i(TAG, "MAIN 77 touch " + java.util.Arrays.toString(ints)));
         ipc.connect();
 
         thread = new HandlerThread("reverse-monitor");
@@ -90,6 +113,11 @@ public class ReverseMonitor {
 
     public boolean isEngaged() {
         return lastState;
+    }
+
+    /** Raw command on the shared IPC (touch forwarding, probes). False if not connected. */
+    public boolean cmd(int module, int code, int[] ints) {
+        return ipc != null && ipc.isConnected() && ipc.cmd(module, code, ints);
     }
 
     public boolean isIpcConnected() {
