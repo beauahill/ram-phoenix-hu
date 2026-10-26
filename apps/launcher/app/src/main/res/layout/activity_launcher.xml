@@ -93,12 +93,24 @@
                 android:scaleType="fitCenter" />
         </LinearLayout>
 
-        <!-- ===== dock (buttons built in code) ===== -->
+        <!-- ===== dock: hidden by default, the chevron reveals it (Beau, 2026-10-26) ===== -->
+        <ImageView
+            android:id="@+id/dock_toggle"
+            android:layout_width="64dp"
+            android:layout_height="22dp"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginTop="2dp"
+            android:scaleType="fitCenter"
+            android:alpha="0.7"
+            android:src="@drawable/ic_m_keyboard_arrow_down"
+            android:background="@drawable/glass_pill"
+            android:contentDescription="@string/apps" />
         <LinearLayout
             android:id="@+id/dock"
             android:layout_width="match_parent"
             android:layout_height="62dp"
-            android:layout_marginTop="12dp"
+            android:visibility="gone"
+            android:layout_marginTop="8dp"
             android:orientation="horizontal"
             android:gravity="center"
             android:paddingStart="8dp"
@@ -138,8 +150,7 @@
                 <FrameLayout
                     android:id="@+id/slot_full_climate"
                     android:layout_width="match_parent"
-                    android:layout_height="0dp"
-                    android:layout_weight="3.3"
+                    android:layout_height="wrap_content"
                     android:layout_marginTop="12dp" />
             </LinearLayout>
 

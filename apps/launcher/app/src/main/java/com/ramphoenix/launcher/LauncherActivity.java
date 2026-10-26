@@ -109,6 +109,16 @@ public class LauncherActivity extends Activity implements Pane.Host {
 
         dock = findViewById(R.id.dock);
         Dock.build(this, dock);
+        final ImageView dockToggle = findViewById(R.id.dock_toggle);
+        final boolean dockOpen = prefs.getBoolean("dock_open", false);
+        dock.setVisibility(dockOpen ? View.VISIBLE : View.GONE);
+        dockToggle.setImageResource(dockOpen ? R.drawable.ic_m_keyboard_arrow_up : R.drawable.ic_m_keyboard_arrow_down);
+        dockToggle.setOnClickListener(v -> {
+            boolean open = dock.getVisibility() != View.VISIBLE;
+            dock.setVisibility(open ? View.VISIBLE : View.GONE);
+            dockToggle.setImageResource(open ? R.drawable.ic_m_keyboard_arrow_up : R.drawable.ic_m_keyboard_arrow_down);
+            prefs.edit().putBoolean("dock_open", open).apply();
+        });
 
         // --- widgets ---
         ViewGroup content = findViewById(R.id.content);

@@ -103,7 +103,7 @@ public class ClimateWidget {
         button(R.id.cl_fan_dn, B_FAN_DN);
         button(R.id.cl_fan_up, B_FAN_UP);
         fan = card.findViewById(R.id.cl_fan);
-        fan.setOnSeekBarChangeListener(new android.widget.SeekBar.OnSeekBarChangeListener() {
+        if (fan != null) fan.setOnSeekBarChangeListener(new android.widget.SeekBar.OnSeekBarChangeListener() {
             @Override public void onProgressChanged(android.widget.SeekBar sb, int p, boolean fromUser) {}
             @Override public void onStartTrackingTouch(android.widget.SeekBar sb) { fanDragging = true; }
             @Override public void onStopTrackingTouch(android.widget.SeekBar sb) {
@@ -115,20 +115,48 @@ public class ClimateWidget {
         modeFaceFeet = button(R.id.cl_mode_facefeet, B_MODE_FACE_FEET);
         modeFeet = button(R.id.cl_mode_feet, B_MODE_FEET);
         modeFeetDef = button(R.id.cl_mode_feetdef, B_MODE_FEET_DEF);
+
+        expanded = card.findViewById(R.id.climate_expanded);
+        expandBtn = card.findViewById(R.id.climate_expand);
+        if (expandBtn != null) {
+            prefs = act.getSharedPreferences("launcher", android.content.Context.MODE_PRIVATE);
+            setExpanded(prefs.getBoolean("climate_open", false));
+            expandBtn.setOnClickListener(v -> {
+                boolean open = expanded.getVisibility() != View.VISIBLE;
+                prefs.edit().putBoolean("climate_open", open).apply();
+                setExpanded(open);
+            });
+        }
+        View full = card.findViewById(R.id.climate_full);
+        if (full != null) full.setOnClickListener(v ->
+                act.startActivity(new android.content.Intent(act, ClimateActivity.class)));
         render();
+    }
+
+    private View expanded;
+    private android.widget.ImageView expandBtn;
+    private android.content.SharedPreferences prefs;
+
+    private void setExpanded(boolean open) {
+        if (expanded == null) return;
+        expanded.setVisibility(open ? View.VISIBLE : View.GONE);
+        expandBtn.setImageResource(open ? R.drawable.ic_m_keyboard_arrow_down : R.drawable.ic_m_keyboard_arrow_up);
     }
 
     private TextView chip(int id, final int button) {
         TextView v = card.findViewById(id);
-        v.setOnClickListener(x -> press(button));
+        if (v != null) v.setOnClickListener(x -> press(button));
         return v;
     }
 
     private View button(int id, final int button) {
         View v = card.findViewById(id);
-        v.setOnClickListener(x -> press(button));
+        if (v != null) v.setOnClickListener(x -> press(button));
         return v;
     }
+
+    private static void sel(View v, boolean on) { if (v != null) v.setSelected(on); }
+    private static void txt(TextView v, CharSequence t) { if (v != null) v.setText(t); }
 
     /** The bus only has fan +/- buttons: walk from the current level to the target. */
     private void stepFan(int target) {
@@ -151,6 +179,10 @@ public class ClimateWidget {
         Log.i(TAG, "climate press " + button + (ok ? "" : " FAILED"));
     }
 
+    /** Raw state for other views (the full-screen climate page draws its own temp bars). */
+    public int raw(int code) { return v(code); }
+    public boolean isConnected() { return connected; }
+
     // ---- rendering ----
 
     private int v(int code) { return state.get(code, -1); }
@@ -159,43 +191,47 @@ public class ClimateWidget {
     private void render() {
         card.setAlpha(connected ? 1f : 0.55f);
         boolean power = on(C_POWER);
-        status.setText(!connected ? "NO CAN BUS" : (power ? "" : "OFF"));
+        txt(status, !connected ? "NO CAN BUS" : (power ? "" : "OFF"));
 
-        this.power.setSelected(power);
+        sel(this.power, power);
         toggle(auto, on(C_AUTO));
         toggle(sync, on(C_SYNC));
         toggle(ac, on(C_AC));
         toggle(acMax, on(C_AC_MAX));
-        frontDef.setSelected(on(C_FRONT_DEF));
-        rearDef.setSelected(on(C_REAR_DEF));
-        recirc.setSelected(on(C_RECIRC));
-        wheel.setSelected(on(C_HEAT_WHEEL));
+        sel(frontDef, on(C_FRONT_DEF));
+        sel(rearDef, on(C_REAR_DEF));
+        sel(recirc, on(C_RECIRC));
+        sel(wheel, on(C_HEAT_WHEEL));
 
-        tempL.setText(temp(v(C_TEMP_L)));
-        tempR.setText(temp(v(C_TEMP_R)));
+        txt(tempL, temp(v(C_TEMP_L)));
+        txt(tempR, temp(v(C_TEMP_R)));
         level(heatL, true, true, v(C_SEAT_HEAT_L));
         level(heatR, false, true, v(C_SEAT_HEAT_R));
         level(ventL, true, false, v(C_SEAT_VENT_L));
         level(ventR, false, false, v(C_SEAT_VENT_R));
 
         int f = v(C_FAN);
-        if (!fanDragging) fan.setProgress(Math.max(0, Math.min(7, f)));
-        fan.setEnabled(f >= 0);
+        if (fan != null) {
+            if (!fanDragging) fan.setProgress(Math.max(0, Math.min(7, f)));
+            fan.setEnabled(f >= 0);
+        }
 
         boolean up = on(C_VENT_UP), body = on(C_VENT_BODY), foot = on(C_VENT_FOOT);
-        modeFace.setSelected(body && !foot && !up);
-        modeFaceFeet.setSelected(body && foot);
-        modeFeet.setSelected(foot && !body && !up);
-        modeFeetDef.setSelected(foot && up);
+        sel(modeFace, body && !foot && !up);
+        sel(modeFaceFeet, body && foot);
+        sel(modeFeet, foot && !body && !up);
+        sel(modeFeetDef, foot && up);
     }
 
     private static void toggle(TextView chip, boolean on) {
+        if (chip == null) return;
         chip.setSelected(on);
         chip.setAlpha(1f);
     }
 
     /** Seat chips: white line icon with three level dots under it. */
     private static void level(TextView chip, boolean left, boolean heat, int lvl) {
+        if (chip == null) return;
         int l = Math.max(0, Math.min(3, lvl));
         StringBuilder d = new StringBuilder();
         for (int i = 1; i <= 3; i++) d.append(i <= l ? '\u25CF' : '\u25CB');

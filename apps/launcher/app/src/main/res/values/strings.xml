@@ -60,6 +60,7 @@
     <string name="open">Open</string>
     <string name="freeform_hint">App opened full-screen: enable freeform windows for half-screen apps (see docs)</string>
     <string name="climate">CLIMATE</string>
+    <string name="climate_app">Phoenix Climate</string>
     <string name="pane_climate">Climate</string>
     <string name="cl_power">POWER</string>
     <string name="cl_auto">AUTO</string>
