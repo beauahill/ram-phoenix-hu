@@ -49,7 +49,7 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1.35"
+        android:layout_weight="1.5"
         android:layout_marginTop="8dp"
         android:orientation="horizontal">
         <TextView style="@style/ClimateTile" android:id="@+id/cl_auto"          android:drawableTop="@drawable/ic_v_auto"     android:text="@string/cl_auto" />
@@ -95,7 +95,7 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1.7"
+        android:layout_weight="1.5"
         android:layout_marginTop="6dp"
         android:orientation="horizontal"
         android:gravity="center_vertical">
@@ -103,7 +103,7 @@
         <TextView style="@style/ClimateTile" android:id="@+id/cl_vent_l" android:background="@null" android:drawableTop="@drawable/ic_v_seat_vent" android:textSize="8sp" android:letterSpacing="0.2" />
         <View android:layout_width="1dp" android:layout_height="match_parent" android:layout_marginTop="8dp" android:layout_marginBottom="8dp" android:background="#22FFFFFF" />
         <TextView style="@style/ClimateStepper" android:id="@+id/cl_tl_dn" android:layout_marginStart="8dp" android:text="@string/minus" />
-        <LinearLayout style="@style/ClimateValueBox" android:layout_weight="1.4">
+        <LinearLayout style="@style/ClimateValueBox" android:layout_weight="1.9">
             <TextView android:id="@+id/cl_temp_l" style="@style/ClimateValueText" android:textSize="24sp" android:text="@string/no_data" />
             <TextView style="@style/ClimateValueLabel" android:text="@string/cl_driver" />
         </LinearLayout>
@@ -112,10 +112,10 @@
             android:id="@+id/cl_sync"
             android:layout_width="wrap_content"
             android:layout_height="36dp"
-            android:layout_marginStart="10dp"
-            android:layout_marginEnd="10dp"
-            android:paddingStart="14dp"
-            android:paddingEnd="14dp"
+            android:layout_marginStart="6dp"
+            android:layout_marginEnd="6dp"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp"
             android:gravity="center"
             android:background="@drawable/glass_tile_selector"
             android:text="@string/cl_dual"
@@ -124,7 +124,7 @@
             android:letterSpacing="0.1"
             android:fontFamily="sans-serif-medium" />
         <TextView style="@style/ClimateStepper" android:id="@+id/cl_tr_dn" android:text="@string/minus" />
-        <LinearLayout style="@style/ClimateValueBox" android:layout_weight="1.4">
+        <LinearLayout style="@style/ClimateValueBox" android:layout_weight="1.9">
             <TextView android:id="@+id/cl_temp_r" style="@style/ClimateValueText" android:textSize="24sp" android:text="@string/no_data" />
             <TextView style="@style/ClimateValueLabel" android:text="@string/cl_passenger" />
         </LinearLayout>
