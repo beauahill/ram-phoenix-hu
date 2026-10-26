@@ -66,18 +66,31 @@ public class ObdClient {
     public Float oilPsi() { return oilPsi; }
     public Float volts() { return volts; }
 
-    public void start() {
-        if (running) return;
+    /**
+     * One worker at a time. The old code set running=false then immediately true in
+     * stop()/start() on every pause/resume, so the previous worker never exited and
+     * two threads fought over the single RFCOMM link (live 2026-10-26: that was every
+     * "connects then drops"). Each worker now owns a generation number and bows out
+     * when it is no longer the current one.
+     */
+    private volatile int generation;
+
+    public synchronized void start() {
+        if (worker != null && worker.isAlive()) return;     // already running, keep the link
         running = true;
-        worker = new Thread(this::loop, "obd");
+        final int gen = ++generation;
+        worker = new Thread(() -> loop(gen), "obd-" + gen);
         worker.start();
     }
 
-    public void stop() {
+    public synchronized void stop() {
         running = false;
+        generation++;                                        // retires the current worker
         if (worker != null) worker.interrupt();
         worker = null;
     }
+
+    private boolean alive(int gen) { return running && gen == generation; }
 
     private void set(String st) { status = st; Log.i(TAG, st); ui.post(listener::onObdChanged); }
 
@@ -99,8 +112,8 @@ public class ObdClient {
     }
 
     @SuppressLint("MissingPermission")
-    private void loop() {
-        while (running) {
+    private void loop(final int gen) {
+        while (alive(gen)) {
             BluetoothSocket sock = null;
             try {
                 BluetoothDevice dev = findAdapter();
@@ -134,7 +147,7 @@ public class ObdClient {
                 // One-shot DID scan for finding the Cummins/68RFE identifiers that are not
                 // published anywhere: setprop persist.phoenix.obd.scan "7E1:B000-B0FF"
                 // then watch `logcat -s PhoenixObd` for "scan HIT". Cleared after it runs.
-                while (running) {
+                while (alive(gen)) {
                     String scan = prop("persist.phoenix.obd.scan", "");
                     if (!scan.isEmpty()) { setProp("persist.phoenix.obd.scan", ""); scanDids(in, out, scan); }
                     // live watch for identification: persist.phoenix.obd.watch = "7E0:A0CA,A0CB,...;7E1:A034"
@@ -173,7 +186,7 @@ public class ObdClient {
             } catch (Exception e) {
                 set("OBD: " + e.getMessage());
             } finally {
-                connected = false;
+                if (gen == generation) connected = false;
                 coolantC = oilTempC = transC = oilPsi = volts = null;
                 custom.clear();
                 try { if (sock != null) sock.close(); } catch (Exception ignored) {}
