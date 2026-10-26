@@ -117,13 +117,14 @@ public class ObdClient {
                 // header (ramforum / promasterforum, 2026-10-25 search): trans temp 22 B010
                 // = ((A*256)+B)/64 °F (converted to °C here), oil pressure 22 022A (scale
                 // unverified, raw A shown as psi). Override live with the setprops below.
-                // Live 2026-10-26: mode 22 on the broadcast header (7DF) got NO DATA; Chrysler
-                // modules answer these only when addressed directly, so a request may carry
-                // its header as "7E0:22B010". Oil temp via 01 5C is unsupported on this ECU;
-                // the Chrysler 22 0121 is tried instead (formula unverified).
-                String transCfg = prop("persist.phoenix.obd.trans", "7E1:22B010,((A*256+B)/64-32)*5/9");
-                String oilCfg = prop("persist.phoenix.obd.oilpsi", "7E0:22022A,A");
-                String oilTCfg = prop("persist.phoenix.obd.oiltemp", "7E0:220121,A-40");
+                // Pinned live against the cluster, 2026-10-26 (scan + diff, see docs):
+                //   trans temp   7E0 22 A0A3  = °C x 128      (cluster 93 °F ↔ 36 °C)
+                //   oil pressure 7E0 22 A0E1  = kPa           (cluster 37 psi ↔ 264 kPa)
+                //   coolant      7E0 22 A047  = °C x 128      (same as 01 05)
+                //   oil temp     not found yet (not in A0xx / 90xx / 01xx); 01 5C unsupported.
+                String transCfg = prop("persist.phoenix.obd.trans", "7E0:22A0A3,(A*256+B)/128");
+                String oilCfg = prop("persist.phoenix.obd.oilpsi", "7E0:22A0E1,(A*256+B)*0.145038");
+                String oilTCfg = prop("persist.phoenix.obd.oiltemp", "");
                 java.util.List<String[]> extras = new java.util.ArrayList<>();
                 for (int i = 1; i <= 4; i++) {
                     String c = prop("persist.phoenix.obd.custom" + i, "");
