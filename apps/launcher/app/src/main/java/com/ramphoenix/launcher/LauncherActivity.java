@@ -61,8 +61,12 @@ public class LauncherActivity extends Activity implements Pane.Host {
     private LinearLayout dock;
 
     // containers
-    private View fullContainer, splitContainer;
-    private FrameLayout slotFullMap, slotFullMedia, slotFullDrive, slotFullClimate;
+    private LinearLayout fullContainer;
+    private View splitContainer;
+    private View phoneCard, obdCard, appsCard;
+    private PhoneWidget phone;
+    private ObdWidget obdWidget;
+    private AppsWidget appsWidget;
     private Pane paneA, paneB;
 
     private CanbusVehicleData vehicle;
@@ -127,6 +131,9 @@ public class LauncherActivity extends Activity implements Pane.Host {
         mediaCard = li.inflate(R.layout.widget_media, content, false);
         driveRow = li.inflate(R.layout.widget_drive, content, false);
         climateCard = li.inflate(R.layout.widget_climate, content, false);
+        phoneCard = li.inflate(R.layout.widget_phone, content, false);
+        obdCard = li.inflate(R.layout.widget_obd, content, false);
+        appsCard = li.inflate(R.layout.widget_apps, content, false);
 
         map = new MapWidget(this, mapCard.findViewById(R.id.map_container));
         final View btnNav = mapCard.findViewById(R.id.btn_nav);
@@ -164,14 +171,14 @@ public class LauncherActivity extends Activity implements Pane.Host {
         vehicleCard.setOnClickListener(v -> startActivity(new android.content.Intent(this, MaintenanceActivity.class)));
         obd = new ObdClient(this, this::updateVehicle);
         vehicle.setObd(obd);
+        phone = new PhoneWidget(this, phoneCard);
+        obdWidget = new ObdWidget(this, obdCard, obd);
+        appsWidget = new AppsWidget(this, appsCard);
+        btnLayout.setOnLongClickListener(v -> { CardsConfig.showDialog(this, this::applyMode); return true; });
 
         // --- containers ---
         fullContainer = findViewById(R.id.full_container);
         splitContainer = findViewById(R.id.split_container);
-        slotFullMap = findViewById(R.id.slot_full_map);
-        slotFullMedia = findViewById(R.id.slot_full_media);
-        slotFullDrive = findViewById(R.id.slot_full_drive);
-        slotFullClimate = findViewById(R.id.slot_full_climate);
         paneA = new Pane(this, findViewById(R.id.pane_a), "pane_a", prefs, Pane.Content.MAP);
         paneB = new Pane(this, findViewById(R.id.pane_b), "pane_b", prefs, Pane.Content.MEDIA);
 
@@ -193,10 +200,7 @@ public class LauncherActivity extends Activity implements Pane.Host {
         boolean split = MODE_SPLIT.equals(mode);
         btnLayout.setImageResource(split ? R.drawable.ic_layout_full : R.drawable.ic_layout_split);
         if (split) {
-            slotFullMap.removeAllViews();
-            slotFullMedia.removeAllViews();
-            slotFullDrive.removeAllViews();
-            slotFullClimate.removeAllViews();
+            clearFull();
             fullContainer.setVisibility(View.GONE);
             splitContainer.setVisibility(View.VISIBLE);
             Pane.Content a = paneA.content(), b = paneB.content();
@@ -209,11 +213,42 @@ public class LauncherActivity extends Activity implements Pane.Host {
             paneB.clear();
             splitContainer.setVisibility(View.GONE);
             fullContainer.setVisibility(View.VISIBLE);
-            place(mapCard, slotFullMap);
-            place(mediaCard, slotFullMedia);
-            place(driveRow, slotFullDrive);
-            place(climateCard, slotFullClimate);
+            clearFull();
+            float d = getResources().getDisplayMetrics().density;
+            boolean first = true;
+            for (String key : CardsConfig.enabled(this)) {
+                View v = cardFor(key);
+                if (v == null) continue;
+                Pane.detach(v);
+                float w = CardsConfig.weight(key);
+                LinearLayout.LayoutParams lp = w > 0
+                        ? new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, w)
+                        : new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+                lp.topMargin = first ? 0 : Math.round(12 * d);
+                first = false;
+                fullContainer.addView(v, lp);
+            }
             media.setLarge(false);
+        }
+    }
+
+    private void clearFull() {
+        for (int i = fullContainer.getChildCount() - 1; i >= 0; i--) {
+            View v = fullContainer.getChildAt(i);
+            fullContainer.removeViewAt(i);
+        }
+    }
+
+    private View cardFor(String key) {
+        switch (key) {
+            case CardsConfig.MAP: return mapCard;
+            case CardsConfig.MEDIA: return mediaCard;
+            case CardsConfig.VEHICLE: return driveRow;
+            case CardsConfig.CLIMATE: return climateCard;
+            case CardsConfig.PHONE: return phoneCard;
+            case CardsConfig.OBD: return obdCard;
+            case CardsConfig.APPS: return appsCard;
+            default: return null;
         }
     }
 
@@ -259,6 +294,7 @@ public class LauncherActivity extends Activity implements Pane.Host {
         map.onResume();
         media.onResume();
         climate.onResume();
+        phone.onResume();
         vehicle.connect();
         obd.start();
         IntentFilter f = new IntentFilter();
@@ -281,6 +317,7 @@ public class LauncherActivity extends Activity implements Pane.Host {
         ui.removeCallbacks(vehicleTick);
         try { unregisterReceiver(packageChanges); } catch (IllegalArgumentException ignored) {}
         climate.onPause();
+        phone.onPause();
         vehicle.disconnect();
         obd.stop();
         media.onPause();
@@ -313,6 +350,7 @@ public class LauncherActivity extends Activity implements Pane.Host {
     }
 
     private void updateVehicle() {
+        if (obdWidget != null) obdWidget.render();
         vehicleCard.setData(vehicle);
         vehicleCard.setServiceText(new MaintenanceStore(this).nextDueText());
         tvOutside.setText(Fmt.tempF(vehicle.outsideC()));

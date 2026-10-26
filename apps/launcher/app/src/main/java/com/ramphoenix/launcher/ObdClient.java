@@ -52,6 +52,9 @@ public class ObdClient {
     private volatile String status = "OBD: idle";
 
     private volatile Float coolantC, oilTempC, transC, oilPsi, volts;
+    /** Extra readings for the OBD card: label -> value (unit kept in {@link #customUnit}). */
+    public final java.util.Map<String, Float> custom = new java.util.concurrent.ConcurrentHashMap<>();
+    public final java.util.Map<String, String> customUnit = new java.util.concurrent.ConcurrentHashMap<>();
 
     public ObdClient(Context ctx, Listener l) { this.ctx = ctx.getApplicationContext(); listener = l; }
 
@@ -115,12 +118,23 @@ public class ObdClient {
                 // unverified, raw A shown as psi). Override live with the setprops below.
                 String transCfg = prop("persist.phoenix.obd.trans", "22B010,((A*256+B)/64-32)*5/9");
                 String oilCfg = prop("persist.phoenix.obd.oilpsi", "22022A,A");
+                java.util.List<String[]> extras = new java.util.ArrayList<>();
+                for (int i = 1; i <= 4; i++) {
+                    String c = prop("persist.phoenix.obd.custom" + i, "");
+                    String[] parts = c.split(",");
+                    if (parts.length >= 3) extras.add(parts);      // LABEL,req,formula[,unit]
+                }
                 while (running) {
                     coolantC = pidA(in, out, "0105", 0x05, a -> a - 40f);
                     oilTempC = pidA(in, out, "015C", 0x5C, a -> a - 40f);
                     volts = parseVolts(cmd(in, out, "ATRV"));
                     if (!transCfg.isEmpty()) transC = custom(in, out, transCfg);
                     if (!oilCfg.isEmpty()) oilPsi = custom(in, out, oilCfg);
+                    for (String[] x : extras) {
+                        Float v = custom(in, out, x[1].trim() + "," + x[2].trim());
+                        if (v != null) custom.put(x[0].trim(), v); else custom.remove(x[0].trim());
+                        customUnit.put(x[0].trim(), x.length > 3 ? x[3].trim() : "");
+                    }
                     ui.post(listener::onObdChanged);
                     sleep(POLL_MS);
                 }
@@ -131,6 +145,7 @@ public class ObdClient {
             } finally {
                 connected = false;
                 coolantC = oilTempC = transC = oilPsi = volts = null;
+                custom.clear();
                 try { if (sock != null) sock.close(); } catch (Exception ignored) {}
                 ui.post(listener::onObdChanged);
             }

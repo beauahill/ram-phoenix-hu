@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- OBD data card: a row of value tiles, filled in code (ObdWidget). -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/obd_card"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="12dp"
+    android:background="@drawable/glass_card"
+    android:clipToOutline="true">
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:paddingStart="6dp" android:paddingEnd="6dp">
+        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="@string/obd_title" android:textColor="@color/text_secondary" android:textSize="11sp" android:letterSpacing="0.16" android:fontFamily="sans-serif-medium" />
+        <TextView android:id="@+id/obd_status" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textColor="@color/text_tertiary" android:textSize="11sp" android:letterSpacing="0.12" />
+    </LinearLayout>
+    <LinearLayout android:id="@+id/obd_tiles" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:layout_marginTop="6dp" android:orientation="horizontal" />
+</LinearLayout>

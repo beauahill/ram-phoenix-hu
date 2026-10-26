@@ -103,22 +103,13 @@ public final class Dock {
 
     /** Long-press on a dock slot: choose any launchable app for it, or reset to the default. */
     private static void pickApp(final Activity act, final LinearLayout dock, final int slot) {
-        new Thread(() -> {
-            final List<AppInfo> apps = AppRepository.loadLaunchable(act);
-            final String[] names = new String[apps.size() + 1];
-            names[0] = act.getString(R.string.dock_default);
-            for (int i = 0; i < apps.size(); i++) names[i + 1] = apps.get(i).label;
-            act.runOnUiThread(() -> new android.app.AlertDialog.Builder(act, android.R.style.Theme_DeviceDefault_Dialog_Alert)
-                    .setTitle(act.getString(R.string.dock_pick, act.getString(ITEMS[slot].label)))
-                    .setItems(names, (dlg, which) -> {
-                        android.content.SharedPreferences.Editor e = act.getSharedPreferences("dock", Context.MODE_PRIVATE).edit();
-                        if (which == 0) e.remove("slot" + slot);
-                        else e.putString("slot" + slot, apps.get(which - 1).component.flattenToString());
-                        e.apply();
-                        build(act, dock);
-                    })
-                    .show());
-        }, "dock-pick").start();
+        AppPicker.pick(act, act.getString(R.string.dock_pick, act.getString(ITEMS[slot].label)),
+                act.getString(R.string.dock_default), cn -> {
+                    android.content.SharedPreferences.Editor e = act.getSharedPreferences("dock", Context.MODE_PRIVATE).edit();
+                    if (cn == null) e.remove("slot" + slot); else e.putString("slot" + slot, cn.flattenToString());
+                    e.apply();
+                    build(act, dock);
+                });
     }
 
     private static void set(ImageView b, Intent i) {

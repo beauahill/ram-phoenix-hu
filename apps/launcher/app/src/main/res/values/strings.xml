@@ -104,4 +104,15 @@
     <string name="delete">Delete</string>
     <string name="maint_export">Export JSON</string>
     <string name="maint_exported">Exported to %1$s</string>
+    <string name="apps_pick">Choose an app for this tile</string>
+    <string name="apps_clear">Clear tile</string>
+    <string name="obd_title">OBD</string>
+    <string name="cards_title">Dashboard cards</string>
+    <string name="card_map">Map</string>
+    <string name="card_media">Now playing</string>
+    <string name="card_vehicle">Vehicle</string>
+    <string name="card_climate">Climate</string>
+    <string name="card_phone">Phone</string>
+    <string name="card_obd">OBD data</string>
+    <string name="card_apps">App shortcuts</string>
 </resources>
