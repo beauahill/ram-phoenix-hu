@@ -64,6 +64,7 @@
     <string name="cl_dual">SYNC</string>
     <string name="cl_ac">A/C</string>
     <string name="cl_acmax">MAX A/C</string>
+    <string name="cl_acmax_2line">MAX\nA/C</string>
     <string name="cl_fdef">DEFROST</string>
     <string name="cl_rdef">REAR DEF</string>
     <string name="cl_recirc">RECIRC</string>

@@ -56,9 +56,12 @@ public class ClimateWidget {
     private final SparseIntArray state = new SparseIntArray();
     private boolean connected;
 
-    private final TextView status, tempL, tempR, fan, heatL, heatR, ventL, ventR;
-    private final TextView power, auto, sync, ac, acMax, frontDef, rearDef, recirc, wheel;
+    private final TextView status, tempL, tempR, heatL, heatR, ventL, ventR;
+    private final View power, rearDef, wheel;
+    private final TextView auto, sync, ac, acMax, frontDef, recirc;
     private final TextView modeFace, modeFaceFeet, modeFeet, modeFeetDef;
+    private final android.widget.SeekBar fan;
+    private boolean fanDragging;
 
     public ClimateWidget(Activity act, View card) {
         this.act = act;
@@ -76,15 +79,15 @@ public class ClimateWidget {
         }
 
         status = card.findViewById(R.id.climate_status);
-        power = chip(R.id.cl_power, B_POWER);
+        power = button(R.id.cl_power, B_POWER);
         auto = chip(R.id.cl_auto, B_AUTO);
         sync = chip(R.id.cl_sync, B_SYNC);
         ac = chip(R.id.cl_ac, B_AC);
         acMax = chip(R.id.cl_acmax, B_AC_MAX);
         frontDef = chip(R.id.cl_fdef, B_FRONT_DEF);
-        rearDef = chip(R.id.cl_rdef, B_REAR_DEF);
+        rearDef = button(R.id.cl_rdef, B_REAR_DEF);
         recirc = chip(R.id.cl_recirc, B_RECIRC);
-        wheel = chip(R.id.cl_wheel, B_HEAT_WHEEL);
+        wheel = button(R.id.cl_wheel, B_HEAT_WHEEL);
 
         heatL = chip(R.id.cl_heat_l, B_SEAT_HEAT_L);
         ventL = chip(R.id.cl_vent_l, B_SEAT_VENT_L);
@@ -97,9 +100,17 @@ public class ClimateWidget {
         ventR = chip(R.id.cl_vent_r, B_SEAT_VENT_R);
         heatR = chip(R.id.cl_heat_r, B_SEAT_HEAT_R);
 
-        chip(R.id.cl_fan_dn, B_FAN_DN);
+        button(R.id.cl_fan_dn, B_FAN_DN);
+        button(R.id.cl_fan_up, B_FAN_UP);
         fan = card.findViewById(R.id.cl_fan);
-        chip(R.id.cl_fan_up, B_FAN_UP);
+        fan.setOnSeekBarChangeListener(new android.widget.SeekBar.OnSeekBarChangeListener() {
+            @Override public void onProgressChanged(android.widget.SeekBar sb, int p, boolean fromUser) {}
+            @Override public void onStartTrackingTouch(android.widget.SeekBar sb) { fanDragging = true; }
+            @Override public void onStopTrackingTouch(android.widget.SeekBar sb) {
+                fanDragging = false;
+                stepFan(sb.getProgress());
+            }
+        });
         modeFace = chip(R.id.cl_mode_face, B_MODE_FACE);
         modeFaceFeet = chip(R.id.cl_mode_facefeet, B_MODE_FACE_FEET);
         modeFeet = chip(R.id.cl_mode_feet, B_MODE_FEET);
@@ -111,6 +122,23 @@ public class ClimateWidget {
         TextView v = card.findViewById(id);
         v.setOnClickListener(x -> press(button));
         return v;
+    }
+
+    private View button(int id, final int button) {
+        View v = card.findViewById(id);
+        v.setOnClickListener(x -> press(button));
+        return v;
+    }
+
+    /** The bus only has fan +/- buttons: walk from the current level to the target. */
+    private void stepFan(int target) {
+        int cur = v(C_FAN);
+        if (cur < 0) return;
+        int delta = target - cur;
+        int btn = delta > 0 ? B_FAN_UP : B_FAN_DN;
+        for (int i = 0; i < Math.abs(delta); i++) {
+            ui.postDelayed(() -> press(btn), i * 180L);
+        }
     }
 
     public void onResume() { ipc.connect(); }
@@ -133,15 +161,15 @@ public class ClimateWidget {
         boolean power = on(C_POWER);
         status.setText(!connected ? "NO CAN BUS" : (power ? "" : "OFF"));
 
-        toggle(this.power, power);
+        this.power.setSelected(power);
         toggle(auto, on(C_AUTO));
         toggle(sync, on(C_SYNC));
         toggle(ac, on(C_AC));
         toggle(acMax, on(C_AC_MAX));
         toggle(frontDef, on(C_FRONT_DEF));
-        toggle(rearDef, on(C_REAR_DEF));
-        toggle(recirc, on(C_RECIRC));
-        toggle(wheel, on(C_HEAT_WHEEL));
+        rearDef.setSelected(on(C_REAR_DEF));
+        recirc.setSelected(on(C_RECIRC));
+        wheel.setSelected(on(C_HEAT_WHEEL));
 
         tempL.setText(temp(v(C_TEMP_L)));
         tempR.setText(temp(v(C_TEMP_R)));
@@ -150,10 +178,9 @@ public class ClimateWidget {
         level(ventL, true, false, v(C_SEAT_VENT_L));
         level(ventR, false, false, v(C_SEAT_VENT_R));
 
-        int f = Math.max(0, Math.min(7, v(C_FAN)));   // factory bar graphic, 0..7
-        int fanRes = fan.getResources().getIdentifier("pa_fan" + f, "drawable", act.getPackageName());
-        fan.setText("");
-        fan.setCompoundDrawablesWithIntrinsicBounds(0, fanRes, 0, 0);
+        int f = v(C_FAN);
+        if (!fanDragging) fan.setProgress(Math.max(0, Math.min(7, f)));
+        fan.setEnabled(f >= 0);
 
         boolean up = on(C_VENT_UP), body = on(C_VENT_BODY), foot = on(C_VENT_FOOT);
         toggle(modeFace, body && !foot && !up);
@@ -164,18 +191,17 @@ public class ClimateWidget {
 
     private static void toggle(TextView chip, boolean on) {
         chip.setSelected(on);
-        chip.setAlpha(on ? 1f : 0.85f);
+        chip.setAlpha(1f);
     }
 
-    /** Seat chips: factory icon with the level bars baked in (0..3), no text. */
+    /** Seat chips: white line icon with three level dots under it. */
     private static void level(TextView chip, boolean left, boolean heat, int lvl) {
         int l = Math.max(0, Math.min(3, lvl));
-        String name = "pa_seat" + (heat ? "heat_" : "vent_") + (left ? "l" : "r") + l;
-        int res = chip.getResources().getIdentifier(name, "drawable", chip.getContext().getPackageName());
-        chip.setText("");
-        chip.setCompoundDrawablesWithIntrinsicBounds(0, res, 0, 0);
+        StringBuilder d = new StringBuilder();
+        for (int i = 1; i <= 3; i++) d.append(i <= l ? '\u25CF' : '\u25CB');
+        chip.setText(d);
         chip.setSelected(l > 0);
-        chip.setAlpha(l > 0 ? 1f : 0.85f);
+        chip.setAlpha(l > 0 ? 1f : 0.8f);
     }
 
     /** Temp encoding as the stock PA panel renders it (PAJeepAirControlAct_SP.mUpdateAirTempLeft):
