@@ -128,10 +128,11 @@ public class VehicleCardView extends View {
         // Beau, 2026-10-25: truck on the left, two big dual gauges right beside it,
         // a data column on the right (maintenance will stack in there later).
         final float truckH = H * 0.92f, truckW = truckH * (TruckOutline.WIDTH / TruckOutline.LENGTH);
-        final float tx = W * 0.11f, ty = H * 0.04f;
-        final float r = Math.min(H * 0.36f, W * 0.135f);
+        final float readout = H * 0.92f * 0.17f * 2.1f;      // width of a "65" readout plus its gap
+        final float tx = W * 0.02f + readout, ty = H * 0.04f;
+        final float r = Math.min(H * 0.36f, W * 0.125f);
         final float gy = H * 0.40f;
-        final float g1 = tx + truckW + W * 0.03f + r * 1.05f, g2 = g1 + r * 2.35f;
+        final float g1 = tx + truckW + readout + r * 1.0f, g2 = g1 + r * 2.3f;
 
         drawDual(c, g1, gy, r,
                 fOf(data.coolantC()), COOL_MIN_F, COOL_MAX_F, "COOLANT", Fmt.tempF(data.coolantC()),
