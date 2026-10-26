@@ -111,13 +111,19 @@ public class ObdClient {
                 OutputStream out = sock.getOutputStream();
                 init(in, out);
                 connected = true;
+                curHeader = "";
                 set("OBD: connected " + dev.getName());
                 // Defaults are community-reported Chrysler/RAM mode-22 PIDs on the engine
                 // header (ramforum / promasterforum, 2026-10-25 search): trans temp 22 B010
                 // = ((A*256)+B)/64 °F (converted to °C here), oil pressure 22 022A (scale
                 // unverified, raw A shown as psi). Override live with the setprops below.
-                String transCfg = prop("persist.phoenix.obd.trans", "22B010,((A*256+B)/64-32)*5/9");
-                String oilCfg = prop("persist.phoenix.obd.oilpsi", "22022A,A");
+                // Live 2026-10-26: mode 22 on the broadcast header (7DF) got NO DATA; Chrysler
+                // modules answer these only when addressed directly, so a request may carry
+                // its header as "7E0:22B010". Oil temp via 01 5C is unsupported on this ECU;
+                // the Chrysler 22 0121 is tried instead (formula unverified).
+                String transCfg = prop("persist.phoenix.obd.trans", "7E1:22B010,((A*256+B)/64-32)*5/9");
+                String oilCfg = prop("persist.phoenix.obd.oilpsi", "7E0:22022A,A");
+                String oilTCfg = prop("persist.phoenix.obd.oiltemp", "7E0:220121,A-40");
                 java.util.List<String[]> extras = new java.util.ArrayList<>();
                 for (int i = 1; i <= 4; i++) {
                     String c = prop("persist.phoenix.obd.custom" + i, "");
@@ -125,8 +131,11 @@ public class ObdClient {
                     if (parts.length >= 3) extras.add(parts);      // LABEL,req,formula[,unit]
                 }
                 while (running) {
+                    header(in, out, "7DF");
                     coolantC = pidA(in, out, "0105", 0x05, a -> a - 40f);
-                    oilTempC = pidA(in, out, "015C", 0x5C, a -> a - 40f);
+                    Float ot = pidA(in, out, "015C", 0x5C, a -> a - 40f);
+                    if (ot == null && !oilTCfg.isEmpty()) ot = custom(in, out, oilTCfg);
+                    oilTempC = ot;
                     volts = parseVolts(cmd(in, out, "ATRV"));
                     if (!transCfg.isEmpty()) transC = custom(in, out, transCfg);
                     if (!oilCfg.isEmpty()) oilPsi = custom(in, out, oilCfg);
@@ -188,12 +197,15 @@ public class ObdClient {
     }
 
     private void init(InputStream in, OutputStream out) throws Exception {
-        cmd(in, out, "ATZ"); sleep(600);
+        cmd(in, out, "ATZ"); sleep(1500);
+        // drain anything the reset banner left behind
+        while (in.available() > 0) in.read();
         cmd(in, out, "ATE0");     // echo off
         cmd(in, out, "ATL0");     // no linefeeds
         cmd(in, out, "ATS0");     // no spaces
         cmd(in, out, "ATH0");     // no headers
-        cmd(in, out, "ATSP0");    // auto protocol
+        cmd(in, out, "ATSP6");    // ISO 15765-4 CAN 11-bit 500k: what the RAM uses; no bus search
+        cmd(in, out, "ATAT1");    // adaptive timing
         cmd(in, out, "0100");     // wakes the bus / settles the protocol
     }
 
@@ -208,10 +220,26 @@ public class ObdClient {
     }
 
     /** "<request>,<formula with A and B>" e.g. "221E1C,A-40" or "2206C1,(A*256+B)/4". */
+    private String curHeader = "";
+
+    /** Set the request header (ATSH) only when it changes; the reply filter follows it. */
+    private void header(InputStream in, OutputStream out, String h) throws Exception {
+        if (h.equalsIgnoreCase(curHeader)) return;
+        cmd(in, out, "ATSH" + h);
+        if (h.equalsIgnoreCase("7DF")) cmd(in, out, "ATCRA"); else {
+            // 7E0 -> replies from 7E8, 7E1 -> 7E9
+            try { int rx = Integer.parseInt(h, 16) + 8; cmd(in, out, "ATCRA" + String.format("%03X", rx)); } catch (Exception ignored) {}
+        }
+        curHeader = h;
+    }
+
     private Float custom(InputStream in, OutputStream out, String cfg) throws Exception {
         int c = cfg.indexOf(',');
         if (c < 0) return null;
         String req = cfg.substring(0, c).trim(), formula = cfg.substring(c + 1).trim();
+        int colon = req.indexOf(':');
+        if (colon > 0) { header(in, out, req.substring(0, colon)); req = req.substring(colon + 1); }
+        else header(in, out, "7DF");
         String r = cmd(in, out, req);
         String reply = String.format("%02X", Integer.parseInt(req.substring(0, 2), 16) + 0x40) + req.substring(2);
         int i = r.indexOf(reply);
@@ -235,21 +263,32 @@ public class ObdClient {
         out.write((c + "\r").getBytes());
         out.flush();
         StringBuilder sb = new StringBuilder();
-        long deadline = System.currentTimeMillis() + 2500;
+        long deadline = System.currentTimeMillis() + 4000;
+        boolean prompt = false;
         while (System.currentTimeMillis() < deadline) {
             if (in.available() == 0) { Thread.sleep(20); continue; }
             int ch = in.read();
             if (ch < 0) throw new Exception("socket closed");
-            if (ch == '>') break;
+            if (ch == '>') { prompt = true; break; }
             if (ch != '\r' && ch != '\n' && ch != ' ' && ch != 0) sb.append((char) ch);
+            // a protocol search can take a while: never cut it off, never resend into it
+            if (sb.indexOf("SEARCHING") >= 0) deadline = Math.max(deadline, System.currentTimeMillis() + 12000);
         }
         String r = sb.toString();
         if (r.startsWith(c)) r = r.substring(c.length());
-        if (r.contains("UNABLETOCONNECT") || r.contains("NODATA") || r.contains("STOPPED")) {
+        Log.d(TAG, c + " -> " + r + (prompt ? "" : " (no prompt)"));
+        if (r.contains("UNABLETOCONNECT") || r.contains("CANERROR") || r.contains("BUSINIT")) {
             throw new Exception(r);
         }
+        if (r.contains("STOPPED") && !retrying) {
+            retrying = true;
+            try { Thread.sleep(600); return cmd(in, out, c); } finally { retrying = false; }
+        }
+        if (r.contains("NODATA") || r.contains("?") || r.contains("SEARCHING")) return "";
         return r;
     }
+
+    private boolean retrying;
 
     private static void sleep(long ms) throws InterruptedException { Thread.sleep(ms); }
 

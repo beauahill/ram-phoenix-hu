@@ -42,9 +42,9 @@ public final class CardsConfig {
     /** Weight of a card in the FULL column; 0 = wrap its content. */
     public static float weight(String key) {
         switch (key) {
-            case MAP: return 2.5f;
-            case MEDIA: return 2.6f;
-            case VEHICLE: return 2.0f;
+            case MAP: return 3.0f;
+            case MEDIA: return 1.9f;
+            case VEHICLE: return 2.1f;
             case PHONE: return 1.1f;
             case OBD: return 1.5f;
             case APPS: return 2.0f;

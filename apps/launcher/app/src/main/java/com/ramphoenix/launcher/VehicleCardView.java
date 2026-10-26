@@ -129,13 +129,14 @@ public class VehicleCardView extends View {
 
         // Beau, 2026-10-25: truck on the left, two big dual gauges right beside it,
         // a data column on the right (maintenance will stack in there later).
-        final float truckH = H * 0.92f, truckW = truckH * (TruckOutline.WIDTH / TruckOutline.LENGTH);
-        final float readout = H * 0.92f * 0.17f * 2.1f;      // width of a "65" readout plus its gap
-        final float tx = W * 0.02f + readout, ty = H * 0.04f;
-        final float r = Math.min(H * 0.36f, W * 0.125f);
-        final float gy = H * 0.40f;
-        final float g1 = tx + truckW + readout + r * 1.0f, g2 = g1 + r * 2.3f;
-
+        // Everything is placed by width fractions so a taller card cannot push the
+        // data column off the right edge (it did, 2026-10-26).
+        final float truckW = W * 0.135f;
+        final float truckH = Math.min(H * 0.92f, truckW * (TruckOutline.LENGTH / TruckOutline.WIDTH));
+        final float tx = W * 0.145f, ty = (H - truckH) / 2f;
+        final float r = Math.min(H * 0.36f, W * 0.095f);
+        final float gy = H * 0.42f;
+        final float g1 = W * 0.405f, g2 = W * 0.625f;
         drawDual(c, g1, gy, r,
                 fOf(data.coolantC()), COOL_MIN_F, COOL_MAX_F, "COOLANT", Fmt.tempF(data.coolantC()),
                 fOf(data.transC()), TRANS_MIN_F, TRANS_MAX_F, "TRANS", Fmt.tempF(data.transC()));
@@ -145,7 +146,7 @@ public class VehicleCardView extends View {
         drawTruck(c, tx, ty, truckW, truckH);
 
         // data column
-        final float colX = g2 + r * 1.25f, colW = W - colX - W * 0.03f;
+        final float colX = W * 0.745f, colW = W - colX - W * 0.03f;
         if (colW > r) {
             float rowH = H / 6.2f, y = H * 0.17f;
             textLabel.setTextSize(r * 0.17f); textLabel.setTextAlign(Paint.Align.LEFT);
@@ -303,8 +304,8 @@ public class VehicleCardView extends View {
 
         // tire pressure beside each wheel: big enough to read at a glance, red
         // below PSI_LOW (Beau, 2026-10-25: 30 psi), amber above PSI_HIGH.
-        textBig.setTextSize(h * 0.17f);
-        textLabel.setTextSize(h * 0.075f);
+        textBig.setTextSize(Math.min(h * 0.17f, getWidth() * 0.034f));
+        textLabel.setTextSize(Math.min(h * 0.075f, getWidth() * 0.015f));
         for (int i = 0; i < 4; i++) {
             Float psi = data.tirePsi(i);
             float[] u = TruckOutline.WHEELS[i];
