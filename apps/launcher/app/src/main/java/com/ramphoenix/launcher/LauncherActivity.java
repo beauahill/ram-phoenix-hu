@@ -353,6 +353,7 @@ public class LauncherActivity extends Activity implements Pane.Host {
         if (obdWidget != null) obdWidget.render();
         vehicleCard.setData(vehicle);
         vehicleCard.setServiceText(new MaintenanceStore(this).nextDueText());
+        if (obd != null) vehicleCard.setObdStatus(obd.connected() ? null : obd.status().replace("OBD: ", "OBD ").toUpperCase(java.util.Locale.US));
         tvOutside.setText(Fmt.tempF(vehicle.outsideC()));
     }
 

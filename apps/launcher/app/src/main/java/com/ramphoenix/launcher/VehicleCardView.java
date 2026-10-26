@@ -75,8 +75,10 @@ public class VehicleCardView extends View {
     private final int colorTeal, colorAmber, colorGreen, colorRed, colorPrimary, colorSecondary, colorTertiary, colorStroke;
 
     private VehicleData data = VehicleData.STUB;
-    private String serviceText;
+    private String serviceText, obdStatus;
     public void setServiceText(String t) { serviceText = t; invalidate(); }
+    /** Short OBD link state shown on the source line while the dongle is not delivering. */
+    public void setObdStatus(String t) { obdStatus = t; invalidate(); }
 
     public VehicleCardView(Context c) { this(c, null); }
     public VehicleCardView(Context c, AttributeSet a) {
@@ -171,6 +173,7 @@ public class VehicleCardView extends View {
         textLabel.setTextSize(r * 0.15f);
         textLabel.setTextAlign(Paint.Align.RIGHT);
         String src = data.available() ? (data.coolantC() != null ? "CAN BUS + OBD" : "CAN BUS") : "NO VEHICLE DATA";
+        if (data.coolantC() == null && obdStatus != null) src = src + "  ·  " + obdStatus;
         c.drawText(src, W - W * 0.03f, H * 0.95f, textLabel);
         textLabel.setTextAlign(Paint.Align.CENTER);
     }
