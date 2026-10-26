@@ -162,9 +162,12 @@ public class VehicleCardView extends View {
             textSmall.setTextAlign(Paint.Align.CENTER);
         }
 
-        textLabel.setTextSize(r * 0.16f);
+        // source line, bottom of the data column (was under the truck, where it hit the tailgate)
+        textLabel.setTextSize(r * 0.15f);
+        textLabel.setTextAlign(Paint.Align.RIGHT);
+        String src = data.available() ? (data.coolantC() != null ? "CAN BUS + OBD" : "CAN BUS") : "NO VEHICLE DATA";
+        c.drawText(src, W - W * 0.03f, H * 0.95f, textLabel);
         textLabel.setTextAlign(Paint.Align.CENTER);
-        c.drawText(data.available() ? "CAN BUS" : "NO VEHICLE DATA", tx + truckW / 2f, H * 0.985f, textLabel);
     }
 
     private static Float fOf(Float celsius) { return celsius == null ? null : celsius * 9f / 5f + 32f; }
