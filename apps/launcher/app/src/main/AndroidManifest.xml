@@ -58,6 +58,20 @@
             </intent-filter>
         </activity>
 
+        <!-- Maintenance tracker, from the vehicle card SERVICE line or the app drawer -->
+        <activity
+            android:name=".MaintenanceActivity"
+            android:exported="true"
+            android:label="@string/maint_app"
+            android:launchMode="singleTop"
+            android:screenOrientation="portrait"
+            android:excludeFromRecents="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
         <!-- All-apps grid, opened from the dock -->
         <activity
             android:name=".AppDrawerActivity"

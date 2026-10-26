@@ -85,4 +85,23 @@
     <string name="cl_feetdef">FEET/DEF</string>
     <string name="minus">−</string>
     <string name="plus">+</string>
+    <string name="maint_title">MAINTENANCE</string>
+    <string name="maint_app">Phoenix Maintenance</string>
+    <string name="maint_odometer">ODOMETER</string>
+    <string name="maint_set_odo">tap to set</string>
+    <string name="maint_never">Never recorded</string>
+    <string name="maint_last">Last: %1$s</string>
+    <string name="maint_done">Mark done</string>
+    <string name="maint_done_at">%1$s done at odometer…</string>
+    <string name="maint_add">Add item</string>
+    <string name="maint_edit">Edit item</string>
+    <string name="maint_name">Name</string>
+    <string name="maint_interval_miles">Interval (miles, 0 = none)</string>
+    <string name="maint_interval_months">Interval (months, 0 = none)</string>
+    <string name="maint_last_miles">Last done at (miles)</string>
+    <string name="maint_notes">Notes</string>
+    <string name="maint_delete">Delete %1$s?</string>
+    <string name="delete">Delete</string>
+    <string name="maint_export">Export JSON</string>
+    <string name="maint_exported">Exported to %1$s</string>
 </resources>

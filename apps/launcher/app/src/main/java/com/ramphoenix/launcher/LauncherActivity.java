@@ -161,6 +161,7 @@ public class LauncherActivity extends Activity implements Pane.Host {
         vehicleCard = driveRow.findViewById(R.id.vehicle_card);
         climate = new ClimateWidget(this, climateCard);
         vehicle = new CanbusVehicleData(this, this::updateVehicle);
+        vehicleCard.setOnClickListener(v -> startActivity(new android.content.Intent(this, MaintenanceActivity.class)));
         obd = new ObdClient(this, this::updateVehicle);
         vehicle.setObd(obd);
 
@@ -313,6 +314,7 @@ public class LauncherActivity extends Activity implements Pane.Host {
 
     private void updateVehicle() {
         vehicleCard.setData(vehicle);
+        vehicleCard.setServiceText(new MaintenanceStore(this).nextDueText());
         tvOutside.setText(Fmt.tempF(vehicle.outsideC()));
     }
 

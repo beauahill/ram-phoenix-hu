@@ -75,6 +75,8 @@ public class VehicleCardView extends View {
     private final int colorTeal, colorAmber, colorGreen, colorRed, colorPrimary, colorSecondary, colorTertiary, colorStroke;
 
     private VehicleData data = VehicleData.STUB;
+    private String serviceText;
+    public void setServiceText(String t) { serviceText = t; invalidate(); }
 
     public VehicleCardView(Context c) { this(c, null); }
     public VehicleCardView(Context c, AttributeSet a) {
@@ -153,7 +155,7 @@ public class VehicleCardView extends View {
                 {"BATTERY", Fmt.volts(data.batteryVolts())},
                 {"SPEED", data.speedKph() == null ? Fmt.NONE : String.format(java.util.Locale.US, "%.0f", data.speedKph() * 0.621371f)},
                 {"DOORS", data.doorsOpen() < 0 ? Fmt.NONE : data.doorsOpen() == 0 ? "CLOSED" : data.doorsOpen() + " OPEN"},
-                {"SERVICE", Fmt.NONE},
+                {"SERVICE", serviceText != null ? serviceText : Fmt.NONE},
             };
             for (String[] row : rows) {
                 c.drawText(row[0], colX, y, textLabel);
