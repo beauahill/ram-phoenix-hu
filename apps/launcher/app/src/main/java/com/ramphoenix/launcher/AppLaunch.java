@@ -28,11 +28,22 @@ final class AppLaunch {
         return Settings.Global.getInt(ctx.getContentResolver(), "enable_freeform_support", 0) == 1;
     }
 
+    /** WindowConfiguration.WINDOWING_MODE_FREEFORM (hidden constant). */
+    private static final int WINDOWING_MODE_FREEFORM = 5;
+
     static void inBounds(Activity act, Intent intent, Rect boundsPx) {
         Intent i = new Intent(intent);
-        i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        // A task that already exists full-screen keeps its mode, so ask for a fresh
+        // task in a fresh window (live 2026-10-26: bounds alone were ignored).
+        i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_MULTIPLE_TASK);
         ActivityOptions o = ActivityOptions.makeBasic();
         o.setLaunchBounds(boundsPx);
+        try {
+            ActivityOptions.class.getMethod("setLaunchWindowingMode", int.class).invoke(o, WINDOWING_MODE_FREEFORM);
+        } catch (Throwable t) {
+            android.util.Log.w("PhoenixLauncher", "setLaunchWindowingMode unavailable: " + t);
+        }
+        android.util.Log.i("PhoenixLauncher", "launch in bounds " + boundsPx.toShortString() + " " + i.getComponent());
         act.startActivity(i, o.toBundle());
     }
 }
