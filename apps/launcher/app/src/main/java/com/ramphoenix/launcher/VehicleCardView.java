@@ -34,6 +34,7 @@ public class VehicleCardView extends View {
     private static final float BATT_MIN = 10f, BATT_MAX = 16f;
     private static final float TRANS_MIN_F = 100f, TRANS_MAX_F = 260f;
     private static final float OIL_MIN = 0f, OIL_MAX = 80f;
+    private static final float OIL_T_MIN_F = 100f, OIL_T_MAX_F = 280f;
     private static final float OUT_MIN_F = -20f, OUT_MAX_F = 120f;
     private static final float PSI_LOW = 30f, PSI_HIGH = 85f;
 
@@ -137,7 +138,7 @@ public class VehicleCardView extends View {
                 fOf(data.transC()), TRANS_MIN_F, TRANS_MAX_F, "TRANS", Fmt.tempF(data.transC()));
         drawDual(c, g2, gy, r,
                 data.oilPsi(), OIL_MIN, OIL_MAX, "OIL PSI", data.oilPsi() == null ? Fmt.NONE : String.format(java.util.Locale.US, "%.0f", data.oilPsi()),
-                data.batteryVolts(), BATT_MIN, BATT_MAX, "BATT", Fmt.volts(data.batteryVolts()));
+                fOf(data.oilTempC()), OIL_T_MIN_F, OIL_T_MAX_F, "OIL TEMP", Fmt.tempF(data.oilTempC()));
         drawTruck(c, tx, ty, truckW, truckH);
 
         // data column
@@ -148,7 +149,7 @@ public class VehicleCardView extends View {
             textSmall.setTextSize(r * 0.27f); textSmall.setTextAlign(Paint.Align.RIGHT); textSmall.setColor(colorPrimary);
             String[][] rows = {
                 {"OUTSIDE", Fmt.tempF(data.outsideC())},
-                {"OIL TEMP", Fmt.tempF(data.oilTempC())},
+                {"BATTERY", Fmt.volts(data.batteryVolts())},
                 {"SPEED", data.speedKph() == null ? Fmt.NONE : String.format(java.util.Locale.US, "%.0f", data.speedKph() * 0.621371f)},
                 {"DOORS", data.doorsOpen() < 0 ? Fmt.NONE : data.doorsOpen() == 0 ? "CLOSED" : data.doorsOpen() + " OPEN"},
                 {"SERVICE", Fmt.NONE},
