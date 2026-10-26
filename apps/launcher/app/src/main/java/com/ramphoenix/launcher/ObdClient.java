@@ -110,7 +110,12 @@ public class ObdClient {
                 init(in, out);
                 connected = true;
                 set("OBD: connected " + dev.getName());
-                String transCfg = prop("persist.phoenix.obd.trans", ""), oilCfg = prop("persist.phoenix.obd.oilpsi", "");
+                // Defaults are community-reported Chrysler/RAM mode-22 PIDs on the engine
+                // header (ramforum / promasterforum, 2026-10-25 search): trans temp 22 B010
+                // = ((A*256)+B)/64 °F (converted to °C here), oil pressure 22 022A (scale
+                // unverified, raw A shown as psi). Override live with the setprops below.
+                String transCfg = prop("persist.phoenix.obd.trans", "22B010,((A*256+B)/64-32)*5/9");
+                String oilCfg = prop("persist.phoenix.obd.oilpsi", "22022A,A");
                 while (running) {
                     coolantC = pidA(in, out, "0105", 0x05, a -> a - 40f);
                     oilTempC = pidA(in, out, "015C", 0x5C, a -> a - 40f);
