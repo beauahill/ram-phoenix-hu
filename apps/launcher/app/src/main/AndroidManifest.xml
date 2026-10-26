@@ -6,6 +6,8 @@
         tools:ignore="QueryAllPackagesPermission" />
     <!-- Google Maps tiles -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <!-- GPS: map follow + speed widget (until canbus speed is pinned) -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />

@@ -20,6 +20,9 @@ import android.util.Log;
  */
 public class CanbusVehicleData implements VehicleData {
 
+    private ObdClient obd;
+    public void setObd(ObdClient o) { obd = o; }
+
     private static final String TAG = "PhoenixLauncher";
     private static final int U_TEMP_OUT = 40, U_CUR_SPEED = 1031, U_RAW_FRAME = 1052;
 
@@ -80,12 +83,12 @@ public class CanbusVehicleData implements VehicleData {
 
     @Override public Float tirePsi(int corner) { return null; }
     @Override public Float fuelPercent() { return null; }
-    @Override public Float coolantC() { return null; }
-    @Override public Float batteryVolts() { return null; }
-    @Override public Float transC() { return null; }
-    @Override public Float oilPsi() { return null; }
+    @Override public Float coolantC() { return obd != null ? obd.coolantC() : null; }
+    @Override public Float batteryVolts() { return obd != null ? obd.volts() : null; }
+    @Override public Float transC() { return obd != null ? obd.transC() : null; }
+    @Override public Float oilPsi() { return obd != null ? obd.oilPsi() : null; }
     @Override public Float outsideC() { return outsideC; }
     @Override public Float speedKph() { return speedKph; }
     @Override public Float rpm() { return null; }
-    @Override public boolean available() { return connected && outsideC != null; }
+    @Override public boolean available() { return (connected && outsideC != null) || (obd != null && obd.connected()); }
 }

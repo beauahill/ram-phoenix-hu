@@ -206,7 +206,12 @@ public class MediaWidget {
 
     /** SPLIT pane (large) vs FULL-mode card (small): scale the text and controls. */
     public void setLarge(boolean large) {
-        title.setTextSize(TypedValue.COMPLEX_UNIT_SP, large ? 34 : 22);
+        // SPLIT pane: cap the art so the text and controls keep most of the width
+        // (Beau, 2026-10-25: the BT glyph filled the whole pane).
+        ViewGroup.LayoutParams ap = art.getLayoutParams();
+        ap.height = large ? dp(150) : ViewGroup.LayoutParams.MATCH_PARENT;
+        art.setLayoutParams(ap);
+        title.setTextSize(TypedValue.COMPLEX_UNIT_SP, large ? 30 : 22);
         artist.setTextSize(TypedValue.COMPLEX_UNIT_SP, large ? 20 : 14);
         srcName.setTextSize(TypedValue.COMPLEX_UNIT_SP, large ? 16 : 13);
         int play = dp(large ? 72 : 46), side = dp(large ? 44 : 30);
@@ -224,7 +229,7 @@ public class MediaWidget {
         ViewGroup.MarginLayoutParams cp = (ViewGroup.MarginLayoutParams) controls.getLayoutParams();
         cp.topMargin = dp(large ? 22 : 10); controls.setLayoutParams(cp);
         ViewGroup.MarginLayoutParams ip = (ViewGroup.MarginLayoutParams) card.findViewById(R.id.media_info).getLayoutParams();
-        ip.leftMargin = dp(large ? 28 : 17); ip.rightMargin = dp(large ? 56 : 6);
+        ip.leftMargin = dp(large ? 24 : 17); ip.rightMargin = dp(large ? 64 : 6);
         card.findViewById(R.id.media_info).setLayoutParams(ip);
         int cpad = dp(large ? 24 : 14);
         card.setPadding(cpad, cpad, cpad, cpad);

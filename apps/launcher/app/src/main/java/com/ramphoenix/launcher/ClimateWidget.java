@@ -164,7 +164,7 @@ public class ClimateWidget {
 
     private static void toggle(TextView chip, boolean on) {
         chip.setSelected(on);
-        chip.setAlpha(on ? 1f : 0.7f);
+        chip.setAlpha(on ? 1f : 0.85f);
     }
 
     /** Seat chips: factory icon with the level bars baked in (0..3), no text. */
@@ -175,7 +175,7 @@ public class ClimateWidget {
         chip.setText("");
         chip.setCompoundDrawablesWithIntrinsicBounds(0, res, 0, 0);
         chip.setSelected(l > 0);
-        chip.setAlpha(l > 0 ? 1f : 0.75f);
+        chip.setAlpha(l > 0 ? 1f : 0.85f);
     }
 
     /** Temp encoding as the stock PA panel renders it (PAJeepAirControlAct_SP.mUpdateAirTempLeft):

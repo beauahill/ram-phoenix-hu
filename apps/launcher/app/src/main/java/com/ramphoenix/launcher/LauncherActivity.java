@@ -66,6 +66,7 @@ public class LauncherActivity extends Activity implements Pane.Host {
     private Pane paneA, paneB;
 
     private CanbusVehicleData vehicle;
+    private ObdClient obd;
 
     private final Handler ui = new Handler(Looper.getMainLooper());
     private final SimpleDateFormat timeFmt = new SimpleDateFormat("h:mm a", Locale.US);
@@ -150,6 +151,8 @@ public class LauncherActivity extends Activity implements Pane.Host {
         vehicleCard = driveRow.findViewById(R.id.vehicle_card);
         climate = new ClimateWidget(this, climateCard);
         vehicle = new CanbusVehicleData(this, this::updateVehicle);
+        obd = new ObdClient(this, this::updateVehicle);
+        vehicle.setObd(obd);
 
         // --- containers ---
         fullContainer = findViewById(R.id.full_container);
@@ -246,6 +249,7 @@ public class LauncherActivity extends Activity implements Pane.Host {
         media.onResume();
         climate.onResume();
         vehicle.connect();
+        obd.start();
         IntentFilter f = new IntentFilter();
         f.addAction(Intent.ACTION_PACKAGE_ADDED);
         f.addAction(Intent.ACTION_PACKAGE_REMOVED);
@@ -267,6 +271,7 @@ public class LauncherActivity extends Activity implements Pane.Host {
         try { unregisterReceiver(packageChanges); } catch (IllegalArgumentException ignored) {}
         climate.onPause();
         vehicle.disconnect();
+        obd.stop();
         media.onPause();
         map.onPause();
     }
