@@ -29,6 +29,8 @@
     <color name="pill_fill">#D0172432</color>
     <color name="surface_card">#C313202D</color>
     <color name="control_cool">#FF8DBEF1</color>
+    <color name="seat_heat">#FFFF625C</color>
+    <color name="seat_cool">#FF4CA9FF</color>
     <color name="scrim">#33000000</color>
 
     <!-- Dock icon tiles -->

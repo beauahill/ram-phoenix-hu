@@ -1,6 +1,6 @@
 # Parked HU checks — 2026-10-27
 
-Installed launcher **0.5.20 / code 27**, camera **0.3.6 / code 9**. All **92 launcher
+Installed launcher **0.5.21 / code 28**, camera **0.3.6 / code 9**. All **92 launcher
 + 9 camera unit tests** passed. No GitHub push. Current appearance changes and
 wallpaper checks are recorded in [GLASS-WALLPAPER-2026-10-27.md](GLASS-WALLPAPER-2026-10-27.md).
 Camera recovery details are in [CAMERA-WAKE-2026-10-27.md](CAMERA-WAKE-2026-10-27.md);
@@ -8,6 +8,11 @@ preset-editor results are in [WIRELESSONE-2026-10-27.md](WIRELESSONE-2026-10-27.
 
 ## Verified
 
+- Adaptive map toolbar: all five controls fit through dock/climate expansion and
+  FULL/SPLIT mode changes. Seat heat now renders red, cooling blue, with active
+  level bars. Both seats' heat/cooling 3→2→1→Off readbacks verified. Earlier
+  temporary command nonresponse recovered during factory comparison; its cause
+  remains unproven. See [MAP-SEAT-FEEDBACK-2026-10-27.md](MAP-SEAT-FEEDBACK-2026-10-27.md).
 - Compact Air Lift pressure in the vehicle table replaces the wide bottom bar.
   Small icon opens full controls; actual measured 6 psi and return to Home verified
   on 0.5.20. No pressure command sent; preset definitions are unchanged.

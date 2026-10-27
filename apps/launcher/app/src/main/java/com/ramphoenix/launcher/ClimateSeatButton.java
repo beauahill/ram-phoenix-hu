@@ -15,12 +15,12 @@ public final class ClimateSeatButton extends ImageView {
 
     public ClimateSeatButton(Context context,AttributeSet attributes) {
         super(context,attributes);
-        activeColor=context.getColor(R.color.accent);
+        activeColor=context.getColor(R.color.seat_heat);
     }
 
     void setClimateLevel(int reported,boolean heat) {
         level=reported<0?-1:Math.min(3,reported);
-        activeColor=getContext().getColor(heat?R.color.accent:R.color.control_cool);
+        activeColor=getContext().getColor(heat?R.color.seat_heat:R.color.seat_cool);
         setImageTintList(ColorStateList.valueOf(level>0?activeColor:getContext().getColor(R.color.text_secondary)));
         setSelected(level>0);
         invalidate();

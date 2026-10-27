@@ -19,6 +19,14 @@ tested reliability, TPMS and camera-alignment branches. Main is unchanged.
 
 ## Current refinement pass
 
+- [x] Launcher 0.5.21: map toolbar adapts to available height; all five controls
+  fit with the dock/climate expanded and in FULL/SPLIT. Heat icons/bars red,
+  cooling blue. Live level cycling verified for all four seat controls; settings
+  restored to Off. See [MAP-SEAT-FEEDBACK-2026-10-27.md](MAP-SEAT-FEEDBACK-2026-10-27.md).
+- [ ] Establish the cause of temporary seat-command/feedback nonresponse if it
+  recurs. Commands/readback recovered during factory comparison and passed later
+  live checks; no permanent cause-specific repair has been established.
+
 - [x] Install subtle glass surfaces and a persistent wallpaper picker across
   Phoenix screens (launcher 0.5.19 / camera 0.3.6). Actual system picker, image
   import, dimming/softness, restart persistence and reset verified on the HU;
