@@ -5,8 +5,10 @@ All **104 launcher + 9 camera tests** pass locally and on GitHub. Day/night mode
 map toolbar, connected OBD, native YouTube task persistence and background camera
 monitor recovery checked on the HU. Records and suspension presets preserved.
 0.5.22 exposed a connected-OBD getter crash and is withdrawn; installed 0.5.23
-corrects it with new regression coverage. User physical reverse/button/climate
-confirmation, cold boot and ACC sleep/wake are pending. See
+corrects it with new regression coverage. Beau confirmed the requested physical
+Reverse → Park picture/dismissal, dedicated camera button and climate
+temperature/seat-control response: “All good.” Cold boot and ACC sleep/wake remain
+pending. See
 [current deployment details](OEM-POLISH-RELIABILITY-2026-10-27.md).
 
 The prior user-verified baseline was launcher **0.5.21 / code 28**, camera

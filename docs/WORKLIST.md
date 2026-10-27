@@ -3,7 +3,7 @@
 Updated 2026-10-27. Candidate development line:
 `codex/oem-polish-reliability-2026-10-27`, based on synced main `2437334`.
 Installed: launcher 0.5.23 / camera 0.3.7. See the current README and live checks
-for verified scope; post-update physical checks remain pending.
+for verified scope; Beau confirmed the post-update physical camera/climate checks.
 
 ## Completed and previously verified
 
@@ -31,13 +31,14 @@ for verified scope; post-update physical checks remain pending.
   exposed an OBD getter recursion, fixed and regression-tested in 0.5.23. Live OBD,
   day/night profiles, map toolbar, native app persistence and monitor fault
   recovery checked on the HU; presets/records preserved.
-- [ ] Complete the dated parked acceptance checklist: user physical camera and
-  climate confirmation, exact cluster comparison, real cold boot and ACC wake.
+- [x] Beau confirmed the installed 0.5.23 / 0.3.7 physical checks: Reverse → Park
+  picture/dismissal, dedicated camera button and climate temperature/seat-control
+  response. Exact cluster comparison, real cold boot and ACC wake remain open.
 - [x] Both candidate builds passed the
   [GitHub-hosted workflow](https://github.com/beauahill/ram-phoenix-hu/actions/runs/40580727733).
 - [x] Isolated Android emulator: appearance profiles/dimming, background camera
   service recovery and BOOT_COMPLETED startup checked. Actual HU hardware tests
-  remain separate and pending.
+  cold boot and ACC wake remain separate and pending.
 
 - [x] Launcher 0.5.21: map toolbar adapts to available height; all five controls
   fit with the dock/climate expanded and in FULL/SPLIT. Heat icons/bars red,

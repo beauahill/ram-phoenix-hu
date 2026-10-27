@@ -4,7 +4,8 @@ Installed: launcher **0.5.23 / code 30**, camera **0.3.7 / code 10**.
 Based on the user-tested 0.5.21 / 0.3.6 baseline. The initial 0.5.22 launcher
 exposed a connected-OBD crash described below. After the network recovered,
 0.5.23 installed successfully and remained running through live diagnostic
-updates. Post-update physical camera/climate confirmation is pending.
+updates. Beau subsequently confirmed physical Reverse → Park picture/dismissal,
+the dedicated camera button and climate temperature/seat-control response.
 
 ## Appearance
 
@@ -98,8 +99,10 @@ hardware behavior still require the actual head unit.
 - No suspension pressure commands sent during this pass.
 - Corrected launcher installation, live source diagnostics, day/night profiles,
   map toolbar and background monitor recovery checked on the HU, as detailed below.
-- User physical reverse/button/climate confirmation, exact fresh-source cluster
-  comparison, real cold boot and vendor sleep/wake remain separate pending checks.
+- Beau confirmed the requested physical reverse/button/climate check on the
+  installed 0.5.23 / 0.3.7 update: “All good.”
+- Exact fresh-source cluster comparison, real cold boot and vendor sleep/wake
+  remain separate pending checks.
 - [GitHub-hosted checks passed for both corrected apps](https://github.com/beauahill/ram-phoenix-hu/actions/runs/40580727733)
   at source commit `5caee034fac4245158dbe83507ab587612211404`. The runner is
   pinned to Ubuntu 24.04 and resolves SDK tools explicitly rather than assuming
@@ -160,7 +163,7 @@ Corrected launcher APK SHA-256:
 - FYT reports app bounds ending at y=1693 to accessibility even though the actual
   window/surface spans y=1920. Thus UIAutomator reports zero seat-control bounds
   at the bottom; this is not used as proof of a touch failure or a passing seat
-  test. Physical lower-control confirmation remains pending.
+  test. Beau's subsequent physical temperature/seat-control response check passed.
 
 Private Crimson evidence: `hu-polish-source-details.*`, `hu-polish-profile-*`,
 `hu-polish-expanded.*`, `hu-polish-native-pane-check.txt`,

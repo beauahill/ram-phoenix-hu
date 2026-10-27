@@ -9,9 +9,9 @@ abstraction layer.
 
 > **Installed (2026-10-27): launcher 0.5.23 / camera 0.3.7.**
 > Phoenix is the default HOME. All **104 launcher + 9 camera tests** pass on
-> Crimson and GitHub. Live layouts, native windows and monitor recovery checked;
-> post-update physical reverse/button/climate confirmation is pending. Beau's
-> previous physical map/seat/camera confirmation was on 0.5.21 / 0.3.6.
+> Crimson and GitHub. Live layouts, native windows and monitor recovery checked.
+> Beau confirmed physical Reverse → Park picture/dismissal, the camera button
+> and climate temperature/seat-control response on this installed update.
 > See [live checks](docs/LIVE-CHECKS-2026-10-27.md) and
 > the [active worklist](docs/WORKLIST.md) for verified results and remaining work.
 >
@@ -36,7 +36,7 @@ quieter dock icons, compact idle media, vehicle source details, stale-reading
 guards and background camera-monitor recovery. **104 launcher + 9 camera tests
 pass on Crimson and GitHub.** Initial launcher 0.5.22 exposed a connected-OBD
 getter crash and is withdrawn; the installed 0.5.23 fixes it. Real HU cold boot,
-ACC sleep/wake and post-update physical camera/climate confirmation remain pending;
+ACC sleep/wake remain pending;
 see [candidate notes and acceptance checklist](docs/OEM-POLISH-RELIABILITY-2026-10-27.md).
 
 ---
@@ -126,8 +126,8 @@ every stock app binds to. Re-doing that is months of work for zero visible payof
 
 | Path | What |
 |---|---|
-| `apps/camera/` | `com.ramphoenix.camera` v0.3.6 — calibrated camera viewport, factory view-button mapping, capture-health watchdog, reverse-session isolation, parking sensors and shared wallpaper/glass. The launcher restores the reverse monitor after vendor cleanup; another sleep/wake and cold-boot check remain pending. |
-| `apps/launcher/` | `com.ramphoenix.launcher` v0.5.21 — default portrait HOME, expandable dock, adaptive map toolbar, media, CAN/OBD vehicle data, climate, maintenance/history and editable Air Lift presets. FULL/SPLIT layouts use persistent native app tasks managed by an authenticated, app-owned local ADB helper. |
+| `apps/camera/` | `com.ramphoenix.camera` v0.3.7 — calibrated camera viewport, factory view-button mapping, capture-health watchdog, reverse-session isolation, parking sensors and shared wallpaper/glass. The launcher restores the reverse monitor after vendor cleanup; another sleep/wake and cold-boot check remain pending. |
+| `apps/launcher/` | `com.ramphoenix.launcher` v0.5.23 — default portrait HOME, expandable dock, adaptive map toolbar, media, CAN/OBD vehicle data, climate, maintenance/history and editable Air Lift presets. FULL/SPLIT layouts use persistent native app tasks managed by an authenticated, app-owned local ADB helper. |
 | `apps/appearance/shared/` | Shared wallpaper rendering. Image import stays private; the camera reads appearance through a signature-protected provider. |
 | `SyuIpc.java` (in both apps) | Hand-written Binder client for the SYU ToolkitService (no AIDL, no SYU jars). Two identical copies; keep them in sync. |
 | `tools/gen_truck.py` | Traces the truck outline for the cluster from a locally held blueprint (the blueprint is licensed and **not** in the repo). Writes `TruckOutline.java`; never hand-edit the output. |
