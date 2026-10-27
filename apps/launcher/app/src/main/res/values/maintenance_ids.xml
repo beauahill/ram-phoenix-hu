@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <item name="maint_odo_row" type="id"/><item name="maint_odo" type="id"/>
+    <item name="maint_list" type="id"/><item name="maint_add" type="id"/>
+    <item name="maint_back" type="id"/><item name="maint_export" type="id"/>
+    <item name="maint_save" type="id"/><item name="maint_cancel" type="id"/>
+    <item name="maint_form_error" type="id"/><item name="maint_field_name" type="id"/>
+    <item name="maint_field_interval" type="id"/><item name="maint_field_months" type="id"/>
+    <item name="maint_field_notes" type="id"/><item name="maint_field_miles" type="id"/>
+    <item name="maint_field_date" type="id"/><item name="maint_field_manual" type="id"/>
+    <item name="maint_auto_source" type="id"/><item name="maint_manual_source" type="id"/>
+    <item name="maint_confirm_mileage" type="id"/>
+</resources>

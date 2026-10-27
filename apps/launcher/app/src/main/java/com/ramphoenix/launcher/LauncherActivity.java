@@ -70,6 +70,7 @@ public class LauncherActivity extends Activity implements Pane.Host {
     private CanbusVehicleData vehicle;
     private ObdClient obd;
     private SyuIpc windowGuard;
+    private MaintenanceStore maintenance;
 
     private final Handler ui = new Handler(Looper.getMainLooper());
     private final SimpleDateFormat timeFmt = new SimpleDateFormat("h:mm a", Locale.US);
@@ -114,6 +115,7 @@ public class LauncherActivity extends Activity implements Pane.Host {
         });
         windowGuard.connect();
         prefs = getSharedPreferences(PREFS, MODE_PRIVATE);
+        maintenance = new MaintenanceStore(this);
         mode = prefs.getString(PREF_MODE, MODE_FULL);
 
         tvTime = findViewById(R.id.clock_time);
@@ -306,6 +308,7 @@ public class LauncherActivity extends Activity implements Pane.Host {
     @Override
     protected void onResume() {
         super.onResume();
+        maintenance = new MaintenanceStore(this);
         goImmersive();
         ui.removeCallbacks(clockTick);
         ui.post(clockTick);
@@ -395,7 +398,7 @@ public class LauncherActivity extends Activity implements Pane.Host {
     private void updateVehicle() {
         if (obdWidget != null) obdWidget.render();
         vehicleCard.setData(vehicle);
-        vehicleCard.setServiceText(new MaintenanceStore(this).nextDueText());
+        vehicleCard.setServiceText(maintenance.nextDueText());
         if (obd != null) vehicleCard.setObdStatus(obd.connected() ? null : obd.status().replace("OBD: ", "OBD ").toUpperCase(java.util.Locale.US));
         tvOutside.setText(Fmt.tempF(vehicle.outsideC()));
     }

@@ -1,6 +1,6 @@
 # Active worklist
 
-Updated 2026-10-26. Current branch: `codex/climate-icons-2026-10-26`, based on the
+Updated 2026-10-27. Current branch: `codex/maintenance-2026-10-26`, based on the
 tested reliability, TPMS and camera-alignment branches. Main is unchanged.
 
 ## Completed and previously verified
@@ -36,9 +36,9 @@ targets. Both launcher and climate are part of the same visual system.
 - [x] Implement SPLIT 0.5.5: native task management, in-place resize, full-width
   panes and corner chevrons. Native always-on-top proof passed; 37 unit tests pass.
   See [SPLIT-WINDOWS-2026-10-26.md](SPLIT-WINDOWS-2026-10-26.md).
-- [ ] Install the final 0.5.5 revision. An earlier candidate is on the HU; the
+- [ ] Install the latest cumulative 0.5.7 revision (includes 0.5.5/0.5.6). An earlier candidate is on the HU; the
   final installation was prevented by the HU going offline (`No route to host`).
-- [ ] Run integrated 0.5.5 parked map/app/chevron/dock/FULL/Home tests. Display
+- [ ] Run integrated native split-backend parked map/app/chevron/dock/FULL/Home tests. Display
   switched off; Beau opted to test later. Do not call this visually verified.
 - [ ] Complete the app's one-time local ADB approval and test helper restart and
   real cold boot. Current session uses the helper started through Crimson.
@@ -68,8 +68,17 @@ targets. Both launcher and climate are part of the same visual system.
   family, adds subtle graphite depth and reported seat-level bars, and retains
   permanent Power/Auto. Built and desktop asset preview inspected; 37 tests pass.
   See [CLIMATE-ICONS-2026-10-26.md](CLIMATE-ICONS-2026-10-26.md).
-- [ ] Install 0.5.6 and inspect collapsed/expanded/full climate on the actual HU.
+- [ ] Inspect the 0.5.6 icon correction in the latest build: collapsed/expanded/full climate on the actual HU.
   HU is offline. The prior text design was rejected, not accepted as final.
+- [x] Rebuild maintenance in 0.5.7: keyboard-aware full forms, persistent Save/Cancel,
+  validation/drafts, reminder/history pages, proper calendar dates, preserved legacy
+  data, usable backup export and automatic OBD mileage/source plumbing. 65 tests pass.
+  See [MAINTENANCE-2026-10-26.md](MAINTENANCE-2026-10-26.md).
+- [ ] Verify the maintenance forms and real keyboard/save path on the HU. The
+  compiled device probe has not run; desktop preview is illustrative.
+- [ ] Verify the odometer against the cluster. Beau estimates around 71,000 miles;
+  it is not stored as a verified value. A6 and provisional RAM 03BC reads are wired;
+  actual support on this 2019 Cummins remains unconfirmed while the HU is offline.
 
 ## Remaining reliability work
 

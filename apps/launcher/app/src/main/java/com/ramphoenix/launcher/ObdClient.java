@@ -53,11 +53,16 @@ public class ObdClient {
 
     private volatile Float coolantC, oilTempC, transC, oilPsi, volts;
     private volatile RamHdTpms.Snapshot tires;
+    private volatile ObdMileage mileage;
+    private final OdometerRepository odometer;
     /** Extra readings for the OBD card: label -> value (unit kept in {@link #customUnit}). */
     public final java.util.Map<String, Float> custom = new java.util.concurrent.ConcurrentHashMap<>();
     public final java.util.Map<String, String> customUnit = new java.util.concurrent.ConcurrentHashMap<>();
 
-    public ObdClient(Context ctx, Listener l) { this.ctx = ctx.getApplicationContext(); listener = l; }
+    public ObdClient(Context ctx, Listener l) { this.ctx = ctx.getApplicationContext(); listener = l; odometer=new OdometerRepository(this.ctx); }
+    boolean hasFreshMileage() {ObdMileage value=mileage;return connected && value!=null && value.fresh(android.os.SystemClock.elapsedRealtime());}
+    boolean hasFreshMileage(String source) {ObdMileage value=mileage;return hasFreshMileage() && value!=null && value.source.equals(source);}
+    boolean hasFreshMileage(String source,int miles) {ObdMileage value=mileage;return hasFreshMileage(source) && value!=null && (int)Math.floor(value.miles+1e-8)==miles;}
 
     public boolean connected() { return connected; }
     public String status() { return status; }
@@ -83,6 +88,7 @@ public class ObdClient {
         connected = false;
         coolantC = oilTempC = transC = oilPsi = volts = null;
         tires = null;
+        mileage = null;
         custom.clear();
         customUnit.clear();
     }
@@ -140,6 +146,8 @@ public class ObdClient {
                     if (parts.length >= 3) extras.add(parts);      // LABEL,req,formula[,unit]
                 }
                 long nextTirePoll = 0;
+                long nextMileagePoll = 0;
+                ObdMileage latestMileage = null;
                 RamHdTpms.Snapshot latestTires = null;
                 // One-shot DID scan for finding the Cummins/68RFE identifiers that are not
                 // published anywhere: setprop persist.phoenix.obd.scan "7E1:B000-B0FF"
@@ -185,6 +193,15 @@ public class ObdClient {
                         latestTires = readTires(in, out);
                     }
                     final RamHdTpms.Snapshot nextTires = latestTires;
+                    boolean polledMileage=now>=nextMileagePoll;
+                    if(polledMileage) {
+                        nextMileagePoll=now+ObdMileage.POLL_MS;
+                        header(in,out,"7E0");
+                        latestMileage=ObdMileage.decode(ObdMileage.STANDARD,cmd(in,out,"01A6"),android.os.SystemClock.elapsedRealtime());
+                        if(latestMileage==null) latestMileage=ObdMileage.decode(ObdMileage.RAM,cmd(in,out,"2203BC"),android.os.SystemClock.elapsedRealtime());
+                        if(latestMileage!=null) Log.i(TAG,"Odometer "+latestMileage.source+" miles="+latestMileage.miles);
+                    }
+                    final ObdMileage nextMileage=latestMileage;
                     header(in, out, "7DF");
                     Float nextCoolant = pidA(in, out, "0105", 0x05, a -> a - 40f);
                     Float ot = pidA(in, out, "015C", 0x5C, a -> a - 40f);
@@ -207,6 +224,8 @@ public class ObdClient {
                         transC = nextTrans;
                         oilPsi = nextOilPsi;
                         tires = nextTires;
+                        mileage = nextMileage;
+                        if(polledMileage && nextMileage!=null) odometer.observe(nextMileage);
                         custom.clear(); custom.putAll(nextCustom);
                         customUnit.clear(); customUnit.putAll(nextUnits);
                         ui.post(listener::onObdChanged);

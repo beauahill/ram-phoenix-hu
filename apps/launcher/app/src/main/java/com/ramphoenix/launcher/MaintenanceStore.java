@@ -2,145 +2,77 @@ package com.ramphoenix.launcher;
 
 import android.content.Context;
 import android.content.SharedPreferences;
-
-import org.json.JSONArray;
 import org.json.JSONObject;
+import java.util.*;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Locale;
-
-/**
- * Maintenance tracker data (docs/WISHLIST.md): service items with mileage and
- * month intervals, when each was last done, and the current odometer. Stored as
- * JSON in SharedPreferences; export/import to a JSON file for backup.
- *
- * Odometer: the head unit's bus does not carry it on this truck, so it is
- * entered by hand (or taken from the OBD link when the ECU answers PID 01 A6).
- */
-public class MaintenanceStore {
-
-    public static final class Item {
-        public String id, name, notes = "";
-        public int intervalMiles, intervalMonths;     // 0 = not tracked by that measure
-        public int lastMiles = -1;                     // -1 = never recorded
-        public long lastDate = 0;                      // epoch ms, 0 = never
-        Item(String id, String name, int miles, int months) { this.id = id; this.name = name; intervalMiles = miles; intervalMonths = months; }
-
-        /** Miles until due, or null when untracked / never done. */
-        public Integer milesLeft(int odo) { return (intervalMiles <= 0 || lastMiles < 0 || odo < 0) ? null : lastMiles + intervalMiles - odo; }
-        /** Days until due, or null. */
-        public Integer daysLeft(long now) { return (intervalMonths <= 0 || lastDate <= 0) ? null : (int) ((lastDate + intervalMonths * 30.44 * 86400000L - now) / 86400000L); }
-        /** 0 ok, 1 due soon, 2 overdue, -1 unknown. */
-        public int status(int odo, long now) {
-            Integer m = milesLeft(odo), d = daysLeft(now);
-            if (m == null && d == null) return -1;
-            if ((m != null && m < 0) || (d != null && d < 0)) return 2;
-            if ((m != null && m <= Math.max(500, intervalMiles / 10)) || (d != null && d <= 30)) return 1;
-            return 0;
-        }
-    }
-
-    private static final String PREFS = "maintenance";
+/** Durable local service records. Loading never re-saves or resets unreadable data. */
+public final class MaintenanceStore {
+    private static final Object SAVE_LOCK=new Object();
     private final SharedPreferences prefs;
-    private final List<Item> items = new ArrayList<>();
-    private int odometer = -1;
-
-    public MaintenanceStore(Context ctx) {
-        prefs = ctx.getApplicationContext().getSharedPreferences(PREFS, Context.MODE_PRIVATE);
-        load();
+    final OdometerRepository mileage;
+    private MaintenanceBook book;
+    private boolean readError;
+    public MaintenanceStore(Context context) {
+        this(context.getSharedPreferences("maintenance",Context.MODE_PRIVATE),new OdometerRepository(context));
     }
-
-    public List<Item> items() { return items; }
-    public int odometer() { return odometer; }
-    public void setOdometer(int miles) { odometer = miles; save(); }
-
-    public Item byId(String id) { for (Item i : items) if (i.id.equals(id)) return i; return null; }
-
-    public void markDone(Item it, int miles, long date) { it.lastMiles = miles; it.lastDate = date; save(); }
-    public void add(Item it) { items.add(it); save(); }
-    public void remove(Item it) { items.remove(it); save(); }
-    public void save() { prefs.edit().putString("json", toJson().toString()).apply(); }
-
-    /** Next item due by miles or days, formatted for the vehicle card ("OIL 1,240 MI"), or null. */
+    MaintenanceStore(SharedPreferences prefs,OdometerRepository mileage) {
+        this.prefs=prefs;this.mileage=mileage;
+        String raw=prefs.getString("json",null);
+        if(raw==null) book=MaintenanceBook.starter();
+        else try {book=MaintenanceBook.parse(raw);mileage.migrateLegacy(book.legacyOdometer);}
+        catch(Exception e) {book=new MaintenanceBook();readError=true;}
+    }
+    boolean readError() {return readError;}
+    List<MaintenanceBook.Item> items() {return Collections.unmodifiableList(book.items);}
+    List<MaintenanceBook.Record> history() {
+        List<MaintenanceBook.Record> result=new ArrayList<>(book.history);
+        result.sort(Comparator.comparing((MaintenanceBook.Record r)->r.date>0?r.serviceDay():java.time.LocalDate.MIN).reversed().thenComparing(Comparator.comparingInt((MaintenanceBook.Record r)->r.miles).reversed()));
+        return result;
+    }
+    MaintenanceBook.Item byId(String id) {return book.item(id);}
+    MaintenanceBook.Record recordById(String id) {return book.record(id);}
+    public int odometer() {return mileage.miles();}
+    private void writable() {if(readError)throw new IllegalStateException("Saved data could not be opened. Export it before making changes.");}
+    private void save() {
+        writable();
+        try {if(!prefs.edit().putString("json",book.json(odometer()).toString()).commit()) throw new IllegalStateException("Save failed; please try again");}
+        catch(IllegalStateException e) {throw e;}
+        catch(Exception e) {throw new IllegalStateException("Maintenance data could not be saved",e);}
+    }
+    private void latestForWrite() {
+        writable();String raw=prefs.getString("json",null);
+        try {book=raw==null?MaintenanceBook.starter():MaintenanceBook.parse(raw);}
+        catch(Exception e){readError=true;throw new IllegalStateException("Saved data changed and could not be opened; export a backup before editing",e);}
+    }
+    void putItem(MaintenanceBook.Item item) {synchronized(SAVE_LOCK){latestForWrite();book.putItem(item);save();}}
+    void putRecord(MaintenanceBook.Record record) {synchronized(SAVE_LOCK){latestForWrite();book.putRecord(record,System.currentTimeMillis());save();}}
+    void removeItem(String id) {synchronized(SAVE_LOCK){latestForWrite();book.removeItem(id);save();}}
+    void removeRecord(String id) {synchronized(SAVE_LOCK){latestForWrite();book.removeRecord(id);save();}}
+    String exportJson() throws Exception {
+        if(readError)return prefs.getString("json","");
+        return book.json(odometer()).put("odometerSource",mileage.json()).toString(2);
+    }
     public String nextDueText() {
-        long now = System.currentTimeMillis();
-        Item best = null; double bestScore = Double.MAX_VALUE;
-        for (Item it : items) {
-            Integer m = it.milesLeft(odometer), d = it.daysLeft(now);
-            double score = Math.min(m == null ? Double.MAX_VALUE : m / Math.max(1.0, it.intervalMiles),
-                                    d == null ? Double.MAX_VALUE : d / Math.max(1.0, it.intervalMonths * 30.44));
-            if (score < bestScore) { bestScore = score; best = it; }
+        if(readError)return null;
+        int odo=odometer();long now=System.currentTimeMillis();MaintenanceBook.Item best=null;double bestScore=Double.MAX_VALUE;
+        for(MaintenanceBook.Item item:book.items) {
+            if(item.status(odo,now)==MaintenanceBook.UNKNOWN)continue;
+            Integer m=item.milesLeft(odo),d=item.daysLeft(now);
+            double score=Math.min(m==null?Double.MAX_VALUE:m/Math.max(1d,item.intervalMiles),d==null?Double.MAX_VALUE:d/Math.max(1d,item.intervalMonths*30.44));
+            if(score<bestScore){best=item;bestScore=score;}
         }
-        if (best == null) return null;
-        Integer m = best.milesLeft(odometer), d = best.daysLeft(now);
-        String name = shortName(best.name);
-        if (m != null && (d == null || m / Math.max(1.0, best.intervalMiles) <= d / Math.max(1.0, best.intervalMonths * 30.44))) {
-            return m < 0 ? name + " OVERDUE" : String.format(Locale.US, "%s %,d MI", name, m);
-        }
-        if (d != null) return d < 0 ? name + " OVERDUE" : String.format(Locale.US, "%s %d D", name, d);
-        return null;
+        if(best==null)return null;
+        Integer m=best.milesLeft(odo),d=best.daysLeft(now);String name=shortName(best.name);
+        if(best.status(odo,now)>=MaintenanceBook.DUE)return name+(best.status(odo,now)==MaintenanceBook.OVERDUE?" OVERDUE":" DUE");
+        if(m!=null && (d==null || m/Math.max(1d,best.intervalMiles)<=d/Math.max(1d,best.intervalMonths*30.44)))
+            return String.format(Locale.US,"%s %,d MI",name,m);
+        return d==null?null:name+" "+d+" D";
     }
-
-    private static String shortName(String n) {
-        String u = n.toUpperCase(Locale.US);
-        if (u.startsWith("ENGINE OIL")) return "OIL";
-        if (u.startsWith("FUEL FILTER")) return "FUEL FLT";
-        if (u.startsWith("TIRE")) return "TIRES";
-        if (u.startsWith("AIR FILTER")) return "AIR FLT";
-        if (u.startsWith("TRANSMISSION")) return "TRANS";
-        if (u.startsWith("TRANSFER")) return "T-CASE";
-        return u.length() > 9 ? u.substring(0, 9) : u;
-    }
-
-    // ---- persistence ----
-
-    public JSONObject toJson() {
-        try {
-            JSONObject o = new JSONObject();
-            o.put("odometer", odometer);
-            JSONArray a = new JSONArray();
-            for (Item it : items) {
-                JSONObject j = new JSONObject();
-                j.put("id", it.id); j.put("name", it.name); j.put("notes", it.notes);
-                j.put("intervalMiles", it.intervalMiles); j.put("intervalMonths", it.intervalMonths);
-                j.put("lastMiles", it.lastMiles); j.put("lastDate", it.lastDate);
-                a.put(j);
-            }
-            o.put("items", a);
-            return o;
-        } catch (Exception e) { return new JSONObject(); }
-    }
-
-    public void fromJson(JSONObject o) {
-        items.clear();
-        odometer = o.optInt("odometer", -1);
-        JSONArray a = o.optJSONArray("items");
-        if (a != null) for (int i = 0; i < a.length(); i++) {
-            JSONObject j = a.optJSONObject(i);
-            if (j == null) continue;
-            Item it = new Item(j.optString("id", "item" + i), j.optString("name", "?"), j.optInt("intervalMiles"), j.optInt("intervalMonths"));
-            it.notes = j.optString("notes", ""); it.lastMiles = j.optInt("lastMiles", -1); it.lastDate = j.optLong("lastDate", 0);
-            items.add(it);
-        }
-        save();
-    }
-
-    private void load() {
-        String json = prefs.getString("json", null);
-        if (json != null) {
-            try { fromJson(new JSONObject(json)); return; } catch (Exception ignored) {}
-        }
-        // Defaults for a 2019+ RAM Cummins (edit freely in the app).
-        items.add(new Item("oil", "Engine oil & filter", 15000, 12));
-        items.add(new Item("fuel", "Fuel filters (both)", 15000, 12));
-        items.add(new Item("tires", "Tire rotation", 10000, 6));
-        items.add(new Item("air", "Air filter", 30000, 24));
-        items.add(new Item("def", "DEF top-up", 5000, 0));
-        items.add(new Item("trans", "Transmission fluid & filter", 60000, 0));
-        items.add(new Item("diff", "Axle & transfer case fluids", 30000, 0));
-        items.add(new Item("coolant", "Coolant", 100000, 60));
-        items.add(new Item("brake", "Brake fluid", 0, 36));
-        save();
+    private static String shortName(String name) {
+        String n=name.toUpperCase(Locale.US);
+        if(n.startsWith("ENGINE OIL"))return "OIL";if(n.startsWith("FUEL FILTER"))return "FUEL FLT";
+        if(n.startsWith("TIRE"))return "TIRES";if(n.startsWith("AIR FILTER"))return "AIR FLT";
+        if(n.startsWith("TRANSMISSION"))return "TRANS";if(n.startsWith("TRANSFER"))return "T-CASE";
+        return n.length()>9?n.substring(0,9):n;
     }
 }

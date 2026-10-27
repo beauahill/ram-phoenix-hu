@@ -21,8 +21,8 @@ android {
         applicationId 'com.ramphoenix.launcher'
         minSdk 31
         targetSdk 33
-        versionCode 13
-        versionName '0.5.6'
+        versionCode 14
+        versionName '0.5.7'
         testInstrumentationRunner 'com.ramphoenix.launcher.PaneWindowProbe'
         manifestPlaceholders = [MAPS_API_KEY: mapsKey]
     }
@@ -50,6 +50,8 @@ dependencies {
     // pulls androidx.fragment/core transitively; that's the price of the real Google map.
     implementation 'com.google.android.gms:play-services-maps:18.2.0'
     testImplementation 'junit:junit:4.13.2'
+    // Real JSON implementation for migration/round-trip tests; Android supplies runtime JSON.
+    testImplementation 'org.json:json:20240303'
 }
 
 // Compile the shell companion from source for every relevant build. No prebuilt
