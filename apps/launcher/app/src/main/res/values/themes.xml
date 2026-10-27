@@ -31,6 +31,28 @@
         <item name="android:clickable">true</item>
         <item name="android:focusable">true</item>
     </style>
+    <style name="ClimateSymbol" parent="ClimateTileImg">
+        <item name="android:minWidth">44dp</item>
+        <item name="android:minHeight">44dp</item>
+        <item name="android:padding">10dp</item>
+    </style>
+    <style name="ClimateHeaderSymbol" parent="ClimateSymbol">
+        <item name="android:layout_width">44dp</item>
+        <item name="android:layout_height">44dp</item>
+        <item name="android:layout_weight">0</item>
+        <item name="android:padding">8dp</item>
+    </style>
+    <style name="ClimateSeatSymbol" parent="ClimateSymbol">
+        <item name="android:layout_width">44dp</item>
+        <item name="android:layout_weight">0</item>
+        <item name="android:layout_marginStart">0dp</item>
+        <item name="android:layout_marginEnd">0dp</item>
+        <item name="android:paddingLeft">5dp</item>
+        <item name="android:paddingRight">5dp</item>
+        <item name="android:paddingTop">5dp</item>
+        <item name="android:paddingBottom">18dp</item>
+        <item name="android:background">@null</item>
+    </style>
     <style name="ClimateLabelTile" parent="ClimateTile">
         <item name="android:textSize">10sp</item>
         <item name="android:letterSpacing">0.02</item>

@@ -56,9 +56,10 @@ public class ClimateWidget {
     private final SparseIntArray state = new SparseIntArray();
     private boolean connected;
 
-    private final TextView status, tempL, tempR, heatL, heatR, ventL, ventR;
+    private final TextView status, tempL, tempR;
+    private final ClimateSeatButton heatL, heatR, ventL, ventR;
     private final View power, rearDef, wheel;
-    private final TextView auto, sync, ac, acMax;
+    private final View auto, sync, ac, acMax;
     private final View frontDef, recirc, modeFace, modeFaceFeet, modeFeet, modeFeetDef;
     private final android.widget.SeekBar fan;
     private boolean fanDragging;
@@ -83,25 +84,25 @@ public class ClimateWidget {
 
         status = card.findViewById(R.id.climate_status);
         power = button(R.id.cl_power, B_POWER);
-        auto = chip(R.id.cl_auto, B_AUTO);
-        sync = chip(R.id.cl_sync, B_SYNC);
-        ac = chip(R.id.cl_ac, B_AC);
-        acMax = chip(R.id.cl_acmax, B_AC_MAX);
+        auto = button(R.id.cl_auto, B_AUTO);
+        sync = button(R.id.cl_sync, B_SYNC);
+        ac = button(R.id.cl_ac, B_AC);
+        acMax = button(R.id.cl_acmax, B_AC_MAX);
         frontDef = button(R.id.cl_fdef, B_FRONT_DEF);
         rearDef = button(R.id.cl_rdef, B_REAR_DEF);
         recirc = button(R.id.cl_recirc, B_RECIRC);
         wheel = button(R.id.cl_wheel, B_HEAT_WHEEL);
 
-        heatL = chip(R.id.cl_heat_l, B_SEAT_HEAT_L);
-        ventL = chip(R.id.cl_vent_l, B_SEAT_VENT_L);
+        heatL = (ClimateSeatButton) button(R.id.cl_heat_l, B_SEAT_HEAT_L);
+        ventL = (ClimateSeatButton) button(R.id.cl_vent_l, B_SEAT_VENT_L);
         chip(R.id.cl_tl_dn, B_TEMP_L_DN);
         tempL = card.findViewById(R.id.cl_temp_l);
         chip(R.id.cl_tl_up, B_TEMP_L_UP);
         chip(R.id.cl_tr_dn, B_TEMP_R_DN);
         tempR = card.findViewById(R.id.cl_temp_r);
         chip(R.id.cl_tr_up, B_TEMP_R_UP);
-        ventR = chip(R.id.cl_vent_r, B_SEAT_VENT_R);
-        heatR = chip(R.id.cl_heat_r, B_SEAT_HEAT_R);
+        ventR = (ClimateSeatButton) button(R.id.cl_vent_r, B_SEAT_VENT_R);
+        heatR = (ClimateSeatButton) button(R.id.cl_heat_r, B_SEAT_HEAT_R);
 
         button(R.id.cl_fan_dn, B_FAN_DN);
         button(R.id.cl_fan_up, B_FAN_UP);
@@ -155,7 +156,10 @@ public class ClimateWidget {
 
     private View button(int id, final int button) {
         View v = card.findViewById(id);
-        if (v != null) v.setOnClickListener(x -> press(button));
+        if (v != null) {
+            v.setOnClickListener(x -> press(button));
+            v.setTooltipText(v.getContentDescription());
+        }
         return v;
     }
 
@@ -239,25 +243,20 @@ public class ClimateWidget {
         sel(modeFeetDef, foot && up);
     }
 
-    private static void toggle(TextView chip, boolean on) {
+    private static void toggle(View chip, boolean on) {
         if (chip == null) return;
         chip.setSelected(on);
         chip.setAlpha(1f);
     }
 
-    /** Seat controls use a short label and a readable level, with warm/cool state. */
-    private static void level(TextView chip, boolean left, boolean heat, int lvl) {
+    /** Symbols and level bars follow reported CAN state, never an optimistic tap. */
+    private static void level(ClimateSeatButton chip, boolean left, boolean heat, int lvl) {
         if (chip == null) return;
         int l = Math.max(0, Math.min(3, lvl));
-        String label = heat ? "HEAT" : "VENT";
-        chip.setText(label + "\n" + (lvl < 0 ? Fmt.NONE : l == 0 ? "OFF" : Integer.toString(l)));
         chip.setContentDescription((left ? "Driver" : "Passenger") + " seat "
                 + (heat ? "heat" : "ventilation") + (lvl < 0 ? " unavailable" : " level " + l));
-        int color = chip.getContext().getColor(l > 0 ? (heat ? R.color.accent : R.color.control_cool) : R.color.text_secondary);
-        chip.setCompoundDrawableTintList(android.content.res.ColorStateList.valueOf(color));
-        chip.setTextColor(color);
-        chip.setSelected(l > 0);
-        chip.setAlpha(l > 0 ? 1f : 0.8f);
+        chip.setTooltipText(chip.getContentDescription());
+        chip.setClimateLevel(lvl,heat);
     }
 
     /** Temp encoding as the stock PA panel renders it (PAJeepAirControlAct_SP.mUpdateAirTempLeft):

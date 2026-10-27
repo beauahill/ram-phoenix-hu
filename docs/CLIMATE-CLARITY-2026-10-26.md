@@ -1,5 +1,10 @@
 # Climate clarity — 2026-10-26
 
+**Superseded:** Beau rejected this text-only design as a regression and explicitly
+requested modern icons. Its build/layout checks below do not imply design
+acceptance. See [CLIMATE-ICONS-2026-10-26.md](CLIMATE-ICONS-2026-10-26.md) for the
+0.5.6 correction and its pending HU verification.
+
 Branch `codex/climate-clarity-2026-10-26`, based on `2976bce` with working oil
 temperature, TPMS and the previous camera fixes. Launcher **0.5.2 / code 9**;
 camera remains **0.3.4 / code 7**. Main is unchanged.

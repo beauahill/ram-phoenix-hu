@@ -1,6 +1,6 @@
 # Active worklist
 
-Updated 2026-10-26. Current branch: `codex/split-windows-2026-10-26`, based on the
+Updated 2026-10-26. Current branch: `codex/climate-icons-2026-10-26`, based on the
 tested reliability, TPMS and camera-alignment branches. Main is unchanged.
 
 ## Completed and previously verified
@@ -63,6 +63,13 @@ targets. Both launcher and climate are part of the same visual system.
   Visually inspect collapsed, expanded and full-page layouts on the actual HU.
   Existing CAN command mappings are retained; no HVAC controls pressed during QA.
   See [CLIMATE-CLARITY-2026-10-26.md](CLIMATE-CLARITY-2026-10-26.md).
+- [x] Correct the 0.5.2 visual regression: Beau wanted modern icons, not text
+  tiles. Launcher 0.5.6 restores the recognizable original automotive symbol
+  family, adds subtle graphite depth and reported seat-level bars, and retains
+  permanent Power/Auto. Built and desktop asset preview inspected; 37 tests pass.
+  See [CLIMATE-ICONS-2026-10-26.md](CLIMATE-ICONS-2026-10-26.md).
+- [ ] Install 0.5.6 and inspect collapsed/expanded/full climate on the actual HU.
+  HU is offline. The prior text design was rejected, not accepted as final.
 
 ## Remaining reliability work
 
