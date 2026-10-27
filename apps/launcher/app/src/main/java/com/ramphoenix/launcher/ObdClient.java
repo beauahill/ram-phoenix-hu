@@ -83,7 +83,7 @@ public class ObdClient {
     public Float coolantC() { return hasFreshReadings()?coolantC:null; }
     public Float oilTempC() { return hasFreshReadings()?oilTempC:null; }
     public Float transC() { return hasFreshReadings()?transC:null; }
-    public Float oilPsi() { return hasFreshReadings()?oilPsiClamped():null; }
+    public Float oilPsi() { return oilPsiClamped(); }
     public Float volts() { return hasFreshReadings()?volts:null; }
     public Float tirePsi(int corner) {
         RamHdTpms.Snapshot snapshot = tires;
@@ -411,7 +411,7 @@ public class ObdClient {
         return Expr.eval(formula, a, b);
     }
 
-    public Float oilPsiClamped() { Float v = oilPsi(); return v == null ? null : Math.max(0f, v); }
+    public Float oilPsiClamped() { Float v = hasFreshReadings()?oilPsi:null; return v == null ? null : Math.max(0f, v); }
 
     private static Float parseVolts(String r) {
         try {
