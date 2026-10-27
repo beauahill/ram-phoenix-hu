@@ -142,8 +142,10 @@ targets. Both launcher and climate are part of the same visual system.
   on launcher 0.5.15 / camera 0.3.5. This followed the 0.5.14 failure caused by a
   vendor-force-stopped camera and the installed monitor recovery.
   See [CAMERA-WAKE-2026-10-27.md](CAMERA-WAKE-2026-10-27.md).
-- [ ] Verify the dedicated physical camera button and another vendor sleep/wake
-  cycle independently of the confirmed Reverse/Park result.
+- [x] Dedicated physical camera button: Beau separately confirmed it opens the
+  camera with launcher 0.5.15 / camera 0.3.5 installed.
+- [ ] Verify recovery through another vendor sleep/wake cycle independently of
+  the confirmed Reverse/Park and physical-button results.
 - [x] Physical factory view-button response confirmed by Beau on 2026-10-26.
   Earlier remote taps were inconclusive; the parked user test takes precedence.
 - [ ] Measure time from physical reverse signal to displayed usable image.

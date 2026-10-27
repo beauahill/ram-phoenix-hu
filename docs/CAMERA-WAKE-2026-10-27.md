@@ -52,7 +52,7 @@ Launcher APK SHA-256:
 Camera APK SHA-256:
 `0f8a7cf7182b1ffa0ab75645d93d1b2a3421ebfad366bb87fdad2cf303a8af4c`.
 
-The physical button's exact show/hide route still needs a live trace. An earlier
+The physical button's exact show/hide route has not been traced. An earlier
 note's CAN 1013 `U_CAMERA_MODE` is insufficient: inspected factory code uses it for
 view/layout controls, so it was not guessed to be a manual launch trigger.
 
@@ -60,9 +60,10 @@ view/layout controls, so it was not guessed to be a manual launch trigger.
 
 With launcher **0.5.15** and camera **0.3.5** installed, Beau confirmed that the
 camera connects and shows a working picture in Reverse, dismisses in Park, and
-YouTube stays up afterward. This verifies physical reverse takeover/dismissal
-with the managed native app window. No further camera reset or video setting
-change was needed for that result.
+YouTube stays up afterward. Beau also separately confirmed that the dedicated
+physical camera button opens the camera. This verifies both launch paths and
+physical reverse takeover/dismissal with the managed native app window. No
+further camera reset or video setting change was needed for those results.
 
-The dedicated physical camera button, a subsequent vendor sleep/wake cycle and
-a real cold boot remain separate checks; this result does not establish them.
+A subsequent vendor sleep/wake cycle and a real cold boot remain separate checks;
+these results do not establish them.

@@ -33,7 +33,8 @@ in [CAMERA-WAKE-2026-10-27.md](CAMERA-WAKE-2026-10-27.md).
   the map's zoom button.
 - Physical reverse retest passed on launcher **0.5.15 / camera 0.3.5**: Beau
   confirmed a working camera picture in Reverse, dismissal in Park and YouTube
-  remaining up afterward. This follows the earlier force-stopped-camera failure
+  remaining up afterward. He separately confirmed the dedicated physical camera
+  button opens the camera. This follows the earlier force-stopped-camera failure
   and the installed monitor recovery. The initial manual zero-frame attempt did
   not persist as a failure during this reverse test.
 - Explicitly approved app-owned local debugging trust. Helper restart after a
@@ -43,8 +44,8 @@ in [CAMERA-WAKE-2026-10-27.md](CAMERA-WAKE-2026-10-27.md).
 
 ## Still pending
 
-- Dedicated physical camera button and recovery through another vendor sleep/wake
-  cycle. Physical Reverse/Park with the recovery build is now user-confirmed above.
+- Recovery through another vendor sleep/wake cycle. Physical Reverse/Park and the
+  dedicated camera button with the recovery build are user-confirmed above.
 - One explicitly approved Empty5 psi command completed and post-write readback
   remained35 kPa (target was already5 psi). No higher profile applied. Changed-target
   response/settling, app handoff and interruption checks remain pending.
