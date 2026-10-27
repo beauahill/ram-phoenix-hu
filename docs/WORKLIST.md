@@ -1,7 +1,8 @@
 # Active worklist
 
-Updated 2026-10-27. Current branch: `codex/can-gauges-2026-10-27`, based on the
-tested reliability, TPMS and camera-alignment branches. Main is unchanged.
+Updated 2026-10-27. Tested development line: `codex/can-gauges-2026-10-27`, based
+on the reliability, TPMS and camera-alignment work. Installed baseline: launcher
+0.5.21 / camera 0.3.6. See the current README and live checks for its verified scope.
 
 ## Completed and previously verified
 

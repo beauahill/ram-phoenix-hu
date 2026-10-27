@@ -7,24 +7,27 @@ restart loop every time you shift into reverse. This repo replaces the launcher,
 camera, and the car UI while keeping the vendor's CAN/MCU bridge as a dumb hardware
 abstraction layer.
 
-> **Status (2026-10-25):** see `docs/LIVE-2026-10-25.md` for the latest live session; the summary below predates it.
+> **Current installed baseline (2026-10-27): launcher 0.5.21 / camera 0.3.6.**
+> Phoenix is the default HOME. Beau confirmed reverse takeover/dismissal, the
+> physical camera button, and the latest map/seat fixes. All **92 launcher + 9
+> camera unit tests** passed. See [live checks](docs/LIVE-CHECKS-2026-10-27.md) and
+> the [active worklist](docs/WORKLIST.md) for verified results and remaining work.
 >
-> **TPMS resolved (2026-10-26):** the 2019 RAM 3500 SRW returns all four tire
-> pressures over OBD at request/reply IDs **740/4C0**, with custom ISO-TP flow
-> control. The earlier gateway-blocking conclusion was incorrect for these reads.
-> See [the verified profile and live values](docs/TPMS-2019-RAM3500.md).
+> Current features include persistent native split apps, full-width panes, subtle
+> glass with a wallpaper picker, recognizable climate icons with red/blue seat
+> levels, maintenance forms/history, and editable Air Lift pressure presets.
+> Long-press an Air Lift preset to edit; saving a definition does not apply it.
 >
-> **Status (2026-10-22):** Camera Milestone 1 is installed on the truck and the
-> reverse trigger is **proven live** (two shifts, ~130 ms from signal to first frame on
-> our side). Launcher v0.4 (dashboard, Google Maps, instrument cluster, climate card)
-> builds but is not yet the default HOME. **All work is on `main`** (the feature branch
-> was fast-forwarded in on 2026-10-22); do not push to the old branch.
-> Both apps now render at 320 dpi via a per-app density override: the panel is 160 dpi
-> and every layout was designed at 2x, so before this everything drew at half size.
+> **Vehicle data:** all four TPMS values are available over OBD at **740/4C0**;
+> the earlier gateway-blocking conclusion was incorrect for these reads. Engine
+> temperatures/pressure prefer verified factory CAN-box fields, with OBD fallback.
+> Field mapping and individual cluster-verification limits are recorded in
+> [TPMS](docs/TPMS-2019-RAM3500.md) and [CAN gauges](docs/CAN-GAUGES-2019-RAM3500.md).
 >
-> This README is the consolidated notebook. Everything below was either captured live
-> on the unit over adb or read out of jadx decompiles of the stock APKs; anything
-> still unverified is marked **VERIFY** or lives in the punch list.
+> Cold boot/vendor sleep recovery, independent CAN freshness, exact odometer
+> agreement, oil-life data and changed-target suspension tests still need work.
+> Historical session notes below may describe older builds; use the current
+> source and dated live checks when they differ.
 
 ---
 
@@ -39,13 +42,14 @@ abstraction layer.
 | Root | `adb root` is **refused** ("production build" despite `_nosec`). `/data/data/com.syu.*` is 0700 and unreadable from shell. We do everything as an untrusted app + `pm`/`appops`/`settings` from adb shell. |
 | Play Services | `com.google.android.gms` + Play Store are present (so Google Maps SDK works). |
 | Cameras | 15 Camera2 devices (0–14) reported by cameraserver. **Device 14 = backup feed, device 10 = 360 aux.** Both openable by an untrusted app. Analog inputs are 3× TP2850 AHD/TVI decoders bridged to MIPI CSI-2, owned by cameraserver, so there is no `/dev/video*`. |
-| Network | Unit is on the tailnet at `100.78.212.9` (hostname `uis7870sc-2h10-nosec`). |
+| Network | Current LAN HU `192.168.0.225`; Crimson `192.168.0.210`. HU tailnet address `100.78.212.9` (hostname `uis7870sc-2h10-nosec`). |
 
 ### adb
 
 - **adb is pinned to TCP 5555** on the unit (`persist.adb.tcp.port=5555`) and this
   **survives reboot** (verified 2026-10-21 16:11). Connect with
-  `adb connect 100.78.212.9:5555`. No more wireless-debug pairing dance.
+  `adb connect 192.168.0.225:5555` on the LAN. Always target this device explicitly:
+  `adb -s 192.168.0.225:5555 ...`; Crimson has other unrelated ADB devices.
 - Before the pin: wireless debugging rotated the port on every reboot / wifi cycle and
   dropped the trusted key on cold start, which meant re-pairing from the unit's screen
   every time. Don't go back to that.
@@ -58,8 +62,10 @@ abstraction layer.
 
 ### Build box
 
-Everything builds and pushes from **CrimsonMiniPC** (`100.107.169.36`,
-`~/ram-phoenix-hu`), which has the Android SDK + JDK toolchain
+Everything builds and pushes from **CrimsonMiniPC** (LAN `192.168.0.210`, SSH
+`crimson-ram`; tailnet `100.107.169.36`). The primary repository is
+`~/ram-phoenix-hu`; the current development worktree is
+`~/ram-phoenix-hu-codex-split-windows`. It has the Android SDK + JDK toolchain
 (`JAVA_HOME=~/toolchain/jdk`, `ANDROID_HOME=~/toolchain/android-sdk`) and the GitHub
 deploy key (`gh-ram-phoenix` ssh alias). Pulled stock APKs live in `~/ram-phoenix-hu/apks/`
 (gitignored). jadx 1.5.0 decompiles of `doublecamera`, `canbus`, `air`, `carui`, `ms`
@@ -75,7 +81,7 @@ are on the gateway host at `~/.openclaw/workspace/rea-ramphoenix/jadx-out/`.
    ┌──────────────────────────────────────────────────────┐
    │  OUR STACK (this repo)                                │
    │   apps/camera    com.ramphoenix.camera    ← M1, LIVE   │
-   │   apps/launcher  com.ramphoenix.launcher  ← M2, builds │
+   │   apps/launcher  com.ramphoenix.launcher  ← HOME, LIVE │
    │   car UI / climate strip (inside the launcher)         │
    └──────────────────────▲───────────────────────────────┘
                           │ Binder IPC: com.syu.ms/app.ToolkitService
@@ -110,8 +116,9 @@ every stock app binds to. Re-doing that is months of work for zero visible payof
 
 | Path | What |
 |---|---|
-| `apps/camera/` | `com.ramphoenix.camera` v0.3 — Milestone 1. Rear / front / 360 modes, view selector, Camera2 controller with reopen-on-error (no restart loop), `ReverseService` + `ReverseMonitor` (IPC subscription, sysfs fallback, boot receiver), 8-zone `ParkingSensorView`, guidelines (off by default: the ECU draws its own), sysfs geometry knobs. The service drives a visible activity by direct call, never by intent (intents to the resumed activity re-opened cam 14 on every shift). |
-| `apps/launcher/` | `com.ramphoenix.launcher` v0.4 — portrait dashboard HOME. Status row + **dock on top**, Google Maps SDK map (night style, heading-up follow), MediaSession now-playing, instrument cluster (`VehicleCardView`, traced RAM outline, currently on `VehicleData.STUB`), **climate card** (`ClimateWidget`: stock panel minus rear zone, reads CANBUS 10–66, sends `{24, id}`), FULL / SPLIT pane layouts (climate is also a pane option). Dock targets resolve off-thread and refresh on package changes. |
+| `apps/camera/` | `com.ramphoenix.camera` v0.3.6 — calibrated camera viewport, factory view-button mapping, capture-health watchdog, reverse-session isolation, parking sensors and shared wallpaper/glass. The launcher restores the reverse monitor after vendor cleanup; another sleep/wake and cold-boot check remain pending. |
+| `apps/launcher/` | `com.ramphoenix.launcher` v0.5.21 — default portrait HOME, expandable dock, adaptive map toolbar, media, CAN/OBD vehicle data, climate, maintenance/history and editable Air Lift presets. FULL/SPLIT layouts use persistent native app tasks managed by an authenticated, app-owned local ADB helper. |
+| `apps/appearance/shared/` | Shared wallpaper rendering. Image import stays private; the camera reads appearance through a signature-protected provider. |
 | `SyuIpc.java` (in both apps) | Hand-written Binder client for the SYU ToolkitService (no AIDL, no SYU jars). Two identical copies; keep them in sync. |
 | `tools/gen_truck.py` | Traces the truck outline for the cluster from a locally held blueprint (the blueprint is licensed and **not** in the repo). Writes `TruckOutline.java`; never hand-edit the output. |
 | `docs/` | Everything below in long form. See §9 for the index. |
@@ -144,30 +151,31 @@ path confirmed live. Full detail with every code: `docs/CANBUS-IPC.md`.
 
 ### Vehicle profile (MODULE_CANBUS)
 
-- `DATA[1000]` = `U_CANBUS_ID`. The RAM-with-climate profile is
-  `CAR_455_LZ_Dodge_RAM1500` = **6357447** (or `_H` = 6422983). **VERIFY** via
-  `get(7, 1000)` from our app; not readable from shell (no root).
+- `DATA[1000]` = `U_CANBUS_ID`. Live subscription confirms **2163062 /
+  PA_RAM_22_Low** on this truck. Earlier LZ profile assumptions were incorrect
+  for this installed CAN box. Retain the active profile; do not switch it to
+  match an older example.
 
-### Climate, read side (MODULE_CANBUS update codes, RAM 1500 profile)
+### Climate, read side (MODULE_CANBUS, installed PA RAM profile)
 
 10 power · 11 A/C · 12 recirc · 13 AUTO · 16 rear defrost · 18/19/20 vent up/body/foot ·
 21 fan 0–8 · **27 driver temp** (confirmed live) · 28 passenger temp · 29/30 seat heat
 D/P · 31/32 seat vent D/P · 37 temp unit (1 = °F) · 53 A/C MAX · 62 SYNC (= DUAL) ·
-65 front defrost · 66 heated steering · 0–5 doors · 98–136 raw car-info bits (TPMS /
-odometer probably in here, **map live**) · 137–144 EQ.
+65 front defrost · 66 heated steering. Seat heat/cooling levels 0–3 have been
+verified through live dashboard command/readback cycles on both seats.
 
-Temp encoding: °F = `(v*9+320)/10` when `persist.fyt.temperature=1`, else °C = `v/2`;
-−1 NO, −2 LO, −3 HI.
+Temp encoding for this PA panel: code 37 = 1 means raw °F; otherwise raw/2 is °C.
+−1 unavailable, −2 LO, −3 HI; valid ordinary raw values are 20–128.
 
 ### Climate, write side
 
-`cmd(7, 0, {24, BUTTON})` on press, `cmd(7, 0, {24})` on release. Button ids:
-1/2 driver temp ± · 3/4 passenger temp ± · 5/6 fan ± · 7 power · 8 SYNC/DUAL · 9 A/C MAX ·
-10 A/C · 11 recirc · 12 AUTO · 13 front defrost · 14 rear defrost · 15–18 vent modes
-(face, face+feet, feet, feet+defrost) · 20/21 passenger seat heat/vent · 22/23 driver seat
-heat/vent · 24 heated wheel. **VERIFY** whether press alone toggles or release is required
-(send `{24, 12}` from our app, watch code 13 flip). Seat/defrost work on accessory power;
-temp/fan/mode need the HVAC module awake (engine running).
+`cmd(MODULE_CANBUS, 6, {1, BUTTON})` once per press; no release packet, matching
+the installed factory `PAJeepAirControlAct_SP`. Button ids:
+1 A/C · 2 AUTO · 3 recirc · 4/5 driver temp ± · 6/7 fan ± ·
+8/9/10/11 face, face+feet, feet, feet+defrost · 12 front defrost · 13 SYNC ·
+14 rear defrost · 15 MAX A/C · 16 power · 17/18 driver/passenger seat heat ·
+20/21 passenger temp ± · 22/23 driver/passenger seat ventilation · 24 heated wheel.
+Do not reuse the older LZ `{24, id}` mapping for this profile.
 
 ---
 

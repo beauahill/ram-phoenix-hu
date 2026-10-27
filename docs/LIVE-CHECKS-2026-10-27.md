@@ -1,7 +1,7 @@
 # Parked HU checks — 2026-10-27
 
 Installed launcher **0.5.21 / code 28**, camera **0.3.6 / code 9**. All **92 launcher
-+ 9 camera unit tests** passed. No GitHub push. Current appearance changes and
++ 9 camera unit tests** passed. Current appearance changes and
 wallpaper checks are recorded in [GLASS-WALLPAPER-2026-10-27.md](GLASS-WALLPAPER-2026-10-27.md).
 Camera recovery details are in [CAMERA-WAKE-2026-10-27.md](CAMERA-WAKE-2026-10-27.md);
 preset-editor results are in [WIRELESSONE-2026-10-27.md](WIRELESSONE-2026-10-27.md).
