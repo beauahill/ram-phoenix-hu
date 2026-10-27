@@ -9,10 +9,12 @@ import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CameraDevice;
 import android.hardware.camera2.CameraManager;
 import android.hardware.camera2.CaptureRequest;
+import android.hardware.camera2.TotalCaptureResult;
 import android.hardware.camera2.params.StreamConfigurationMap;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Looper;
+import android.os.SystemClock;
 import android.util.Log;
 import android.util.Size;
 import android.view.Surface;
@@ -58,6 +60,21 @@ public class CameraController {
     private CameraCaptureSession session;
     private volatile boolean wantOpen;
     private int reopenDelayMs = 250;
+    private boolean recovering;
+    private final PreviewWatchdog watchdog = new PreviewWatchdog();
+    private Runnable healthTick;
+    public interface PreviewListener { void onPreviewState(String message); }
+    private PreviewListener previewListener;
+
+    /** Main thread; null message means successful capture results are arriving. */
+    public void setPreviewListener(PreviewListener listener) { previewListener = listener; }
+
+    private void publishPreviewState(int gen, String message) {
+        main.post(() -> {
+            if (gen == generation && wantOpen && previewListener != null)
+                previewListener.onPreviewState(message);
+        });
+    }
     /** Bumped on every open()/close(); callbacks older than this are stale. */
     private volatile int generation = 0;
 
@@ -101,6 +118,7 @@ public class CameraController {
             outputSurface = holder.getSurface();
             wantOpen = true;
             reopenDelayMs = 250;
+            recovering = false;
             generation++;
             gen = generation;
             ensureThread();
@@ -239,6 +257,9 @@ public class CameraController {
     }
 
     private void doClose() {
+        watchdog.stop();
+        if (bg != null && healthTick != null) bg.removeCallbacks(healthTick);
+        healthTick = null;
         try {
             if (session != null) { session.close(); session = null; }
             if (device != null) { device.close(); device = null; }
@@ -251,6 +272,20 @@ public class CameraController {
     private void doOpen(int gen) {
         if (gen != generation || !wantOpen || outputSurface == null || cameraId == null) return;
         doClose();
+        watchdog.start(SystemClock.elapsedRealtime());
+        publishPreviewState(gen, recovering ? "Camera unavailable · reconnecting…" : "Connecting camera…");
+        healthTick = new Runnable() {
+            @Override public void run() {
+                if (gen != generation || !wantOpen || bg == null) return;
+                if (watchdog.expired(SystemClock.elapsedRealtime())) {
+                    Log.w(TAG, "cam " + cameraId + ": capture results timed out -> reopen");
+                    scheduleReopen(gen);
+                    return;
+                }
+                bg.postDelayed(this, 500);
+            }
+        };
+        bg.postDelayed(healthTick, 500);
         try {
             manager.openCamera(cameraId, newStateCb(gen), bg);
         } catch (CameraAccessException | IllegalArgumentException | SecurityException e) {
@@ -260,8 +295,18 @@ public class CameraController {
     }
 
     private void scheduleReopen(int gen) {
-        if (gen != generation || !wantOpen || bg == null) return;
-        bg.postDelayed(() -> doOpen(gen), reopenDelayMs);
+        final int retryGen;
+        synchronized (this) {
+            if (gen != generation || !wantOpen || bg == null) return;
+            // Retire this attempt before closing it. Its late device/session/
+            // result callbacks cannot modify or retry the replacement attempt.
+            retryGen = ++generation;
+        }
+        doClose();
+        recovering = true;
+        publishPreviewState(retryGen, "Camera unavailable · reconnecting…");
+        if (bg == null) return;
+        bg.postDelayed(() -> doOpen(retryGen), reopenDelayMs);
         // gentle exponential backoff, capped — never a hard app restart
         reopenDelayMs = Math.min(reopenDelayMs * 2, 2000);
     }
@@ -273,7 +318,6 @@ public class CameraController {
             @Override public void onOpened(@NonNull CameraDevice cam) {
                 if (gen != generation || !wantOpen) { cam.close(); return; } // stale open loses
                 device = cam;
-                reopenDelayMs = 250; // healthy open resets backoff
                 startSession(gen);
             }
             @Override public void onDisconnected(@NonNull CameraDevice cam) {
@@ -303,7 +347,20 @@ public class CameraController {
                         if (gen != generation || !wantOpen) { s.close(); return; }
                         session = s;
                         try {
-                            s.setRepeatingRequest(req.build(), null, bg);
+                            s.setRepeatingRequest(req.build(), new CameraCaptureSession.CaptureCallback() {
+                                @Override public void onCaptureCompleted(@NonNull CameraCaptureSession cs,
+                                        @NonNull CaptureRequest request, @NonNull TotalCaptureResult result) {
+                                    if (gen != generation || !wantOpen || cs != session) return;
+                                    long now = SystemClock.elapsedRealtime();
+                                    if (watchdog.frame(now)) {
+                                        reopenDelayMs = 250;
+                                        recovering = false;
+                                        Log.i(TAG, "cam " + cameraId + ": first capture result in "
+                                                + watchdog.startupMs(now) + " ms (not display-present latency)");
+                                        publishPreviewState(gen, null);
+                                    }
+                                }
+                            }, bg);
                         } catch (Exception e) {
                             Log.e(TAG, "repeating req failed: " + e.getMessage());
                             scheduleReopen(gen);

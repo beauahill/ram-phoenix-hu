@@ -40,6 +40,17 @@
             android:id="@+id/guidelines"
             android:layout_width="match_parent"
             android:layout_height="match_parent" />
+
+        <TextView
+            android:id="@+id/preview_status"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="#FF080B0F"
+            android:gravity="center"
+            android:text="Connecting camera…"
+            android:textColor="#FFDCE3EA"
+            android:textSize="18sp"
+            android:fontFamily="sans-serif-medium" />
     </FrameLayout>
 
     <!-- This HAL's SurfaceView can paint beyond a parent's clipped bounds.

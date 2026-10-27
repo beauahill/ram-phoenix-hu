@@ -2,10 +2,10 @@ package com.ramphoenix.camera;
 
 import android.content.Context;
 import android.graphics.Canvas;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Color;
-import android.graphics.Matrix;
 import android.graphics.Paint;
-import android.graphics.Path;
 import android.graphics.RectF;
 import android.os.SystemClock;
 import android.util.AttributeSet;
@@ -32,16 +32,11 @@ public class ParkingSensorView extends View {
     // proximity thresholds for the three bands
     private static final float FAR = 0.05f, MID = 0.40f, NEAR = 0.75f;
 
-    private final Paint fill   = new Paint(Paint.ANTI_ALIAS_FLAG);
-    private final Paint stroke = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint vehiclePaint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
+    private final Bitmap vehicle;
     private final Paint band   = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint text   = new Paint(Paint.ANTI_ALIAS_FLAG);
 
-    private final Path body = new Path(), windshield = new Path(), rearWindow = new Path(),
-            roof = new Path(), bed = new Path(), hood = new Path(), wheels = new Path(),
-            mirrors = new Path();
-    private final Path scratch = new Path();
-    private final Matrix m = new Matrix();
     private final RectF oval = new RectF();
 
     private ParkingSensorSource source = ParkingSensorSource.STUB;
@@ -49,15 +44,15 @@ public class ParkingSensorView extends View {
     public ParkingSensorView(Context c) { this(c, null); }
     public ParkingSensorView(Context c, AttributeSet a) {
         super(c, a);
-        fill.setStyle(Paint.Style.FILL);
-        stroke.setStyle(Paint.Style.STROKE);
-        stroke.setStrokeCap(Paint.Cap.ROUND);
         band.setStyle(Paint.Style.STROKE);
         band.setStrokeCap(Paint.Cap.BUTT);
         text.setColor(Color.argb(150, 230, 230, 230));
         text.setTextSize(26f);
         text.setTextAlign(Paint.Align.CENTER);
-        buildTruck();
+        BitmapFactory.Options options = new BitmapFactory.Options();
+        options.inScaled = false;
+        options.inSampleSize = 2;
+        vehicle = BitmapFactory.decodeResource(getResources(), R.drawable.truck_oem_v1, options);
     }
 
     public void setSource(ParkingSensorSource s) {
@@ -76,7 +71,6 @@ public class ParkingSensorView extends View {
         final float truckW = truckH * (TruckOutline.WIDTH / TruckOutline.LENGTH);
         final float cx = w / 2f, cy = h / 2f;
         final float top = cy - truckH / 2f, bottom = cy + truckH / 2f;
-        final float s = truckH / TruckOutline.LENGTH;
 
         final float[] p = source.proximity();
         final boolean avail = source.available();
@@ -113,7 +107,7 @@ public class ParkingSensorView extends View {
                     // unlit bands draw faintly so the layout reads even when clear
                     final float a = start + i * (seg + segGap);
                     canvas.drawArc(oval, a, seg, false, band);
-                    if (lit && b == 2 && flash) {
+                    if (avail && lit && b == 2 && flash) {
                         // glow for the near band
                         band.setColor(Color.argb(0x50, 0xE8, 0x3A, 0x2E));
                         band.setStrokeWidth(bandW * 1.6f);
@@ -133,50 +127,13 @@ public class ParkingSensorView extends View {
         }
 
         // ---- truck ----
-        m.reset();
-        m.setScale(s, s);
-        m.postTranslate(cx - truckW / 2f, top);
-        drawPath(canvas, body, Color.rgb(0xF2, 0xF2, 0xF2), 0, 0f);
-        drawPath(canvas, hood, Color.rgb(0xE2, 0xE2, 0xE2), 0, 0f);
-        drawPath(canvas, windshield, Color.rgb(0x2A, 0x2F, 0x38), 0, 0f);
-        drawPath(canvas, roof, Color.rgb(0xEA, 0xEA, 0xEA), 0, 0f);
-        drawPath(canvas, rearWindow, Color.rgb(0x2A, 0x2F, 0x38), 0, 0f);
-        drawPath(canvas, bed, Color.rgb(0x1C, 0x1E, 0x22), 0, 0f);
-        drawPath(canvas, wheels, Color.rgb(0x16, 0x16, 0x18), 0, 0f);
-        drawPath(canvas, mirrors, Color.rgb(0xD8, 0xD8, 0xD8), 0, 0f);
-        drawPath(canvas, body, 0, Color.argb(0xB0, 0x60, 0x60, 0x66), 2.5f);
+        float pictureW = truckH * vehicle.getWidth() / vehicle.getHeight();
+        oval.set(cx - pictureW / 2, top, cx + pictureW / 2, bottom);
+        canvas.drawBitmap(vehicle, null, oval, vehiclePaint);
 
         if (!avail) {
             canvas.drawText("PARK ASSIST", cx, h - 12f, text);
         }
     }
 
-    private void drawPath(Canvas c, Path src, int fillColor, int strokeColor, float strokeW) {
-        src.transform(m, scratch);
-        if (fillColor != 0) { fill.setColor(fillColor); c.drawPath(scratch, fill); }
-        if (strokeColor != 0) { stroke.setColor(strokeColor); stroke.setStrokeWidth(strokeW); c.drawPath(scratch, stroke); }
-    }
-
-    // ---- truck geometry from TruckOutline (traced blueprint, unit box WIDTH x LENGTH, nose up) ----
-
-    private static void polygon(Path p, float[] xy) {
-        p.moveTo(xy[0], xy[1]);
-        for (int i = 2; i < xy.length; i += 2) p.lineTo(xy[i], xy[i + 1]);
-        p.close();
-    }
-
-    private static void rect(Path p, float[] r, float radius) {
-        p.addRoundRect(r[0], r[1], r[2], r[3], radius, radius, Path.Direction.CW);
-    }
-
-    private void buildTruck() {
-        polygon(body, TruckOutline.BODY);
-        rect(hood, TruckOutline.HOOD_BULGE, 8f);
-        polygon(windshield, TruckOutline.WINDSHIELD);
-        rect(roof, TruckOutline.ROOF, 14f);
-        polygon(rearWindow, TruckOutline.REAR_WINDOW);
-        rect(bed, TruckOutline.BED_FLOOR, 6f);
-        for (float[] wh : TruckOutline.WHEELS) rect(wheels, wh, 6f);
-        for (float[] mi : TruckOutline.MIRRORS) polygon(mirrors, mi);
-    }
 }

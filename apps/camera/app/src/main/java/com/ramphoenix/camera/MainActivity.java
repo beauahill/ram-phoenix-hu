@@ -80,6 +80,7 @@ public class MainActivity extends AppCompatActivity {
 
     private FrameLayout feedBox, auxBox;
     private View feedMask;
+    private android.widget.TextView previewStatus;
     private SurfaceView surfaceMain, surfaceAux;
     private GuidelineOverlay guidelines;
     private ParkingSensorView sensors;
@@ -122,6 +123,7 @@ public class MainActivity extends AppCompatActivity {
         feedBox     = findViewById(R.id.feed_box);
         auxBox      = findViewById(R.id.aux_box);
         feedMask    = findViewById(R.id.feed_mask);
+        previewStatus = findViewById(R.id.preview_status);
         surfaceMain = findViewById(R.id.surface_main);
         surfaceAux  = findViewById(R.id.surface_aux);
         guidelines  = findViewById(R.id.guidelines);
@@ -129,6 +131,10 @@ public class MainActivity extends AppCompatActivity {
         selector    = findViewById(R.id.selector);
 
         camMain = new CameraController(this);
+        camMain.setPreviewListener(message -> {
+            previewStatus.setText(message);
+            previewStatus.setVisibility(message == null ? View.GONE : View.VISIBLE);
+        });
         camAux  = new CameraController(this);
         sensors.setSource(sensorSource);
 
@@ -271,6 +277,7 @@ public class MainActivity extends AppCompatActivity {
     private long lastMoveMs;
 
     private boolean forwardTouch(View v, android.view.MotionEvent e) {
+        if (previewStatus.getVisibility() == View.VISIBLE) return true;
         int mode = propInt("persist.phoenix.cam.touch", 4);
         if (mode == 0) return false;
         int action = e.getActionMasked();
