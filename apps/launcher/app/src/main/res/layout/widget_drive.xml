@@ -1,22 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- TPMS/vehicle readings and a separate accessible air-spring control entry. -->
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<!-- Air Lift pressure and its compact control shortcut are part of the readings. -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/drive_row"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
     android:background="@drawable/glass_card"
     android:clipToOutline="true">
 
     <com.ramphoenix.launcher.VehicleCardView
         android:id="@+id/vehicle_card"
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
+        android:layout_height="match_parent"
         android:layout_margin="10dp" />
-    <com.ramphoenix.launcher.SuspensionWidget
-        android:layout_width="match_parent"
-        android:layout_height="44dp"
-        android:layout_marginHorizontal="8dp"
-        android:layout_marginBottom="6dp" />
-</LinearLayout>
+</FrameLayout>

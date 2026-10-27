@@ -1,6 +1,6 @@
 # Parked HU checks — 2026-10-27
 
-Installed launcher **0.5.19 / code 26**, camera **0.3.6 / code 9**. All **92 launcher
+Installed launcher **0.5.20 / code 27**, camera **0.3.6 / code 9**. All **92 launcher
 + 9 camera unit tests** passed. No GitHub push. Current appearance changes and
 wallpaper checks are recorded in [GLASS-WALLPAPER-2026-10-27.md](GLASS-WALLPAPER-2026-10-27.md).
 Camera recovery details are in [CAMERA-WAKE-2026-10-27.md](CAMERA-WAKE-2026-10-27.md);
@@ -8,6 +8,11 @@ preset-editor results are in [WIRELESSONE-2026-10-27.md](WIRELESSONE-2026-10-27.
 
 ## Verified
 
+- Compact Air Lift pressure in the vehicle table replaces the wide bottom bar.
+  Small icon opens full controls; actual measured 6 psi and return to Home verified
+  on 0.5.20. No pressure command sent; preset definitions are unchanged.
+- Beau confirmed camera picture/dismissal for the requested physical Reverse/Park
+  and camera-button retest after the 0.3.6 glass update.
 - Coolant and transmission select CAN independently of the OBD connection.
   Raw234/236 = 32874/32876 displayed 66°F/68°F, exactly Beau's cluster report.
   The ignition-only cluster showed a dash for pressure; initial CAN zero remained

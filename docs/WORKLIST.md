@@ -24,8 +24,11 @@ tested reliability, TPMS and camera-alignment branches. Main is unchanged.
   import, dimming/softness, restart persistence and reset verified on the HU;
   default appearance restored. Maintenance keyboard regression passed. See
   [GLASS-WALLPAPER-2026-10-27.md](GLASS-WALLPAPER-2026-10-27.md).
-- [ ] Physical Reverse/Park retest after camera 0.3.6 visual changes; prior physical
-  takeover/dismissal and camera-button success apply to 0.3.5.
+- [x] Beau confirmed physical camera picture/dismissal after the requested
+  Reverse/Park and camera-button retest with camera 0.3.6.
+- [x] Compact Air Lift entry, launcher 0.5.20: actual pressure in the vehicle
+  readings table and an 18 dp air-spring shortcut with a 44 dp tap target. Live
+  measured 6 psi and shortcut → full controls → Back verified; no pressure commands.
 
 Beau selected: **Modern OEM — graphite surfaces, subtle depth, realistic truck
 artwork, refined climate symbols.** Preserve the overall layout and usable touch

@@ -201,3 +201,23 @@ Private evidence: `air-preset-editor-live-20261027.txt`,
 `air-preset-editor-keyboard-20261027.png` and
 `air-preset-editor-final-20261027.png` under the research folder.
 APK SHA-256: `548708570ec571e84bf8f408c850a62fff6276a16e5afdb6fd761a47d6d5e7f6`.
+
+## Compact vehicle-card entry — launcher 0.5.20 / code 27
+
+The wide bottom suspension bar is removed. **AIR LIFT** measured pressure now sits
+in the vehicle readings table, beside a small air-spring icon opening the full
+suspension controls. Artwork is 18 dp, with a transparent 44 dp touch target and a
+pressure-aware accessibility description. Existing preset editing and commands
+are unchanged. Vehicle readings own the same foreground-only BLE subscription;
+initial/disconnected pressure remains a dash, rather than displaying the target.
+
+Inspected the installed card on the HU and verified fresh measured **6 psi**.
+Tapped the icon, verified the full controls (target 5 psi and all four saved
+profiles), then returned to Home with the measured pressure still shown. No Set
+action or suspension pressure command was sent. All **92 launcher tests** passed;
+camera's existing foreground reverse monitor remained running.
+
+Backup: `/home/beauhill/ram-phoenix-backups/compact-air-lift-bmvvm9ou`.
+Evidence: `compact-air-home-final.png`, `compact-air-lift-build.log` in the private
+Crimson research folder. APK SHA-256:
+`69ab1c5050600a9347fc4fe59175aba7de9ff72f3f324e3c0622da5dd599a49e`.

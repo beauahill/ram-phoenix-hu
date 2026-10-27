@@ -243,11 +243,8 @@ public class LauncherActivity extends Activity implements Pane.Host {
                 if (v == null) continue;
                 Pane.detach(v);
                 float w = CardsConfig.weight(key);
-                // Allocate the suspension entry separately instead of taking its
-                // entire height out of the existing vehicle gauges.
-                int extra = CardsConfig.VEHICLE.equals(key) ? Math.round(50 * d) : 0;
                 LinearLayout.LayoutParams lp = w > 0
-                        ? new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, extra, w)
+                        ? new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, w)
                         : new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
                 lp.topMargin = first ? 0 : Math.round(12 * d);
                 first = false;

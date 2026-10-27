@@ -57,9 +57,10 @@ Screenshots, probe output and build logs are private artifacts under Crimson's
 `/home/beauhill/ram-phoenix-research/` (`glass-*`). Pre-change APKs/preferences:
 `/home/beauhill/ram-phoenix-backups/glass-wallpaper-ftwan60d`.
 
-Physical Reverse/Park and the camera button were confirmed on camera 0.3.5 before
-this visual pass; a physical retest on 0.3.6 remains pending. No HVAC commands or
-suspension pressure commands were sent during this theme QA.
+Beau subsequently confirmed the requested physical Reverse/Park and camera-button
+retest on camera 0.3.6: picture and dismissal work. This also resolves the manual
+Park screenshot's unverified-video limitation above. No HVAC commands or suspension
+pressure commands were sent during this theme QA.
 
 APK SHA-256:
 
