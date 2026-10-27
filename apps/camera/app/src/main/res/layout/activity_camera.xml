@@ -1,19 +1,26 @@
 <?xml version="1.0" encoding="utf-8"?>
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/camera_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="#000000">
 
-    <!-- Overhead / aux panel (360 mode only): top 16:9 box, height set at runtime -->
-    <SurfaceView
-        android:id="@+id/surface_aux"
+    <!-- Clip the analog buffer to its calibrated picture area in both panels. -->
+    <FrameLayout
+        android:id="@+id/aux_box"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_gravity="top"
-        android:visibility="gone" />
+        android:clipChildren="true"
+        android:visibility="gone">
+        <SurfaceView
+            android:id="@+id/surface_aux"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+    </FrameLayout>
 
     <!-- Letterbox box for the primary feed + guideline overlay.
-         Height is computed at runtime from the feed's native aspect (720x504)
+         Height is computed at runtime from the active area of the 720x504 buffer
          and the box is pinned to the top: alone in rear/front, directly under
          the aux feed in 360 (MainActivity.placeFeeds). Prevents the analog
          feed being stretched to 9:16 on the portrait panel. -->
@@ -21,7 +28,8 @@
         android:id="@+id/feed_box"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_gravity="top">
+        android:layout_gravity="top"
+        android:clipChildren="true">
 
         <SurfaceView
             android:id="@+id/surface_main"
@@ -33,6 +41,16 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent" />
     </FrameLayout>
+
+    <!-- This HAL's SurfaceView can paint beyond a parent's clipped bounds.
+         Draw opaque letterboxing after the feed to cover its lower overhang.
+         Parking sensors and the optional selector draw above this mask. -->
+    <View
+        android:id="@+id/feed_mask"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_gravity="top"
+        android:background="#000000" />
 
     <!-- View selector buttons, right edge, just below the feed(s); the top
          margin is set at runtime by MainActivity.placeFeeds -->

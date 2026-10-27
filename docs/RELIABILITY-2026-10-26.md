@@ -59,9 +59,13 @@ commit `c279705` and the review document from `04ef82a`. Main is unchanged.
 
 ## Live results
 
-Physical tests pending.
+Beau confirmed on 2026-10-26: "The reverse shift worked." This confirms the
+physical reverse trigger on camera 0.3.2; manual-camera ownership, rapid repeated
+shifts and cold-boot ownership still need separate confirmation. The same test
+revealed a camera positioning/border issue, corrected in camera 0.3.3; see
+[CAMERA-ALIGNMENT-2026-10-26.md](CAMERA-ALIGNMENT-2026-10-26.md).
 
 The reverse monitor seeded `U_BACKCAR = 0` and all eight parking zones on the unit.
-The OBD adapter refused the current Bluetooth connection attempts, so live gauge
-recovery has not been verified. No reverse shifts had reached the recorded log at
-the last check; the two-cycle physical test is awaiting the driver's result.
+During the initial reliability check the OBD adapter refused Bluetooth connection
+attempts. A later session connected successfully and verified normal gauges and
+four tire pressures on launcher 0.4.2; see [TPMS-2019-RAM3500.md](TPMS-2019-RAM3500.md).

@@ -78,7 +78,8 @@ public class MainActivity extends AppCompatActivity {
         else sMain.post(action);
     }
 
-    private FrameLayout feedBox;
+    private FrameLayout feedBox, auxBox;
+    private View feedMask;
     private SurfaceView surfaceMain, surfaceAux;
     private GuidelineOverlay guidelines;
     private ParkingSensorView sensors;
@@ -91,6 +92,8 @@ public class MainActivity extends AppCompatActivity {
     private CameraMode mode = CameraMode.REAR;
     /** Letterbox height of one feed at the panel width; set by sizeFeedBoxes(). */
     private int feedH;
+    private VideoViewport viewport;
+    private VideoViewport.Layout videoLayout;
     private boolean mainSurfaceReady, auxSurfaceReady, permGranted;
     /** True when the current foregrounding was caused by shifting into reverse. */
     private boolean reverseInitiated;
@@ -117,6 +120,8 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_camera);
 
         feedBox     = findViewById(R.id.feed_box);
+        auxBox      = findViewById(R.id.aux_box);
+        feedMask    = findViewById(R.id.feed_mask);
         surfaceMain = findViewById(R.id.surface_main);
         surfaceAux  = findViewById(R.id.surface_aux);
         guidelines  = findViewById(R.id.guidelines);
@@ -129,7 +134,12 @@ public class MainActivity extends AppCompatActivity {
 
         buildSelector();
         guidelines.setMirror(Sysfs.readInt(HwConfig.NODE_MIRROR, 0) == 1);
-        sizeFeedBoxes();
+        viewport = VideoViewport.parse(propString("persist.phoenix.cam.insets", VideoViewport.DEFAULT_INSETS));
+        sizeFeedBoxes(getResources().getDisplayMetrics().widthPixels);
+        findViewById(R.id.camera_root).addOnLayoutChangeListener((v, l, t, r, bottom, ol, ot, or, ob) -> {
+            int width = r - l;
+            if (width > 0 && width != videoLayout.width) sizeFeedBoxes(width);
+        });
 
         surfaceMain.getHolder().addCallback(new SurfaceHolder.Callback() {
             @Override public void surfaceCreated(@NonNull SurfaceHolder h) { mainSurfaceReady = true; applyMode(); }
@@ -189,24 +199,28 @@ public class MainActivity extends AppCompatActivity {
         moveTaskToBack(true);
     }
 
-    /** Compute the letterbox height for the feed's native aspect from the real
-     *  panel width and pin both the main feed box and the aux surface to it.
-     *  Device 14 is 720x504 (live), i.e. 10:7, not 16:9. */
-    private void sizeFeedBoxes() {
-        int screenW = getResources().getDisplayMetrics().widthPixels;
-        android.util.Size n = HwConfig.nativeSize(HwConfig.REAR_CAM_ID);
-        int boxH = Math.round(screenW * (float) n.getHeight() / n.getWidth());
-        feedH = boxH;
-        if (feedBox != null) {
-            FrameLayout.LayoutParams lp = (FrameLayout.LayoutParams) feedBox.getLayoutParams();
-            lp.height = boxH;
-            feedBox.setLayoutParams(lp);
+    /** Keep the HAL's full native buffer, but show only the calibrated picture.
+     *  The grey top/left/bottom edge is inside that buffer, not another window.
+     *  Opaque letterboxing also covers SurfaceView's lower overhang on this HAL;
+     *  the parent clip alone does not clip its compositor surface. */
+    private void sizeFeedBoxes(int width) {
+        videoLayout = viewport.measure(width);
+        feedH = videoLayout.height;
+        for (FrameLayout box : new FrameLayout[]{feedBox, auxBox}) {
+            FrameLayout.LayoutParams lp = (FrameLayout.LayoutParams) box.getLayoutParams();
+            lp.height = feedH;
+            box.setLayoutParams(lp);
         }
-        if (surfaceAux != null) {
-            FrameLayout.LayoutParams lp = (FrameLayout.LayoutParams) surfaceAux.getLayoutParams();
-            lp.height = boxH;
-            surfaceAux.setLayoutParams(lp);
+        for (View picture : new View[]{surfaceMain, surfaceAux, guidelines}) {
+            FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(
+                    videoLayout.surfaceWidth, videoLayout.surfaceHeight, Gravity.TOP | Gravity.LEFT);
+            lp.leftMargin = videoLayout.surfaceLeft;
+            lp.topMargin = videoLayout.surfaceTop;
+            picture.setLayoutParams(lp);
         }
+        placeFeeds(mode == CameraMode.SURROUND_360);
+        Log.i(TAG, "video viewport " + width + "x" + feedH + " buffer insets="
+                + viewport.left + "," + viewport.top + "," + viewport.right + "," + viewport.bottom);
     }
 
     private void buildSelector() {
@@ -270,13 +284,17 @@ public class MainActivity extends AppCompatActivity {
         }
         float fx = e.getX(), fy = e.getY();
         int w = Math.max(1, v.getWidth()), h = Math.max(1, v.getHeight());
+        // OSD coordinates refer to the FULL encoded frame. Undo the display crop
+        // before converting to the proven 1024x600 factory touch coordinate space.
+        float nx = videoLayout.bufferX(fx), ny = videoLayout.bufferY(fy);
         int x, y;
         switch (mode) {
             case 2:  x = Math.round(e.getRawX());    y = Math.round(e.getRawY());    break;
-            case 3:  x = Math.round(fx * 1920f / w); y = Math.round(fy * 1080f / h); break;
-            case 4:  x = Math.round(fx * 1024f / w); y = Math.round(fy * 600f / h);  break;
-            case 5:  x = Math.round(fx * 800f / w);  y = Math.round(fy * 480f / h);  break;
-            default: x = Math.round(fx);             y = Math.round(fy);             break;
+            case 3:  x = Math.round(nx * 1920f); y = Math.round(ny * 1080f); break;
+            case 4:  x = Math.round(nx * 1024f); y = Math.round(ny * 600f);  break;
+            case 5:  x = Math.round(nx * 800f);  y = Math.round(ny * 480f);  break;
+            default: x = Math.round(nx * w);
+                     y = Math.round(ny * w * VideoViewport.BUFFER_HEIGHT / VideoViewport.BUFFER_WIDTH); break;
         }
         int a = action == android.view.MotionEvent.ACTION_DOWN ? 0 : action == android.view.MotionEvent.ACTION_UP ? 1 : 2;
         boolean ok = mode == 5
@@ -299,6 +317,16 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    private static String propString(String key, String def) {
+        try {
+            Class<?> sp = Class.forName("android.os.SystemProperties");
+            String s = (String) sp.getMethod("get", String.class, String.class).invoke(null, key, "");
+            return s == null || s.trim().isEmpty() ? def : s;
+        } catch (Exception e) {
+            return def;
+        }
+    }
+
     /** Idempotent: binds cameras + overlays to whatever the current mode is.
      *  CameraController.open() is itself a no-op for an unchanged id/surface. */
     private void applyMode() {
@@ -307,14 +335,14 @@ public class MainActivity extends AppCompatActivity {
         switch (mode) {
             case REAR:
                 placeFeeds(false);
-                surfaceAux.setVisibility(View.GONE);
+                auxBox.setVisibility(View.GONE);
                 guidelines.setVisibility(HwConfig.SHOW_GUIDELINES ? View.VISIBLE : View.GONE);
                 camAux.close();
                 camMain.open(HwConfig.REAR_CAM_ID, surfaceMain.getHolder());
                 break;
             case FRONT:
                 placeFeeds(false);
-                surfaceAux.setVisibility(View.GONE);
+                auxBox.setVisibility(View.GONE);
                 guidelines.setVisibility(View.GONE);
                 camAux.close();
                 camMain.open(HwConfig.FRONT_CAM_ID, surfaceMain.getHolder());
@@ -322,7 +350,7 @@ public class MainActivity extends AppCompatActivity {
             case SURROUND_360:
                 placeFeeds(true);
                 guidelines.setVisibility(View.GONE);
-                surfaceAux.setVisibility(View.VISIBLE);
+                auxBox.setVisibility(View.VISIBLE);
                 camMain.open(HwConfig.REAR_CAM_ID, surfaceMain.getHolder());
                 if (auxSurfaceReady) {
                     camAux.open(HwConfig.SURROUND_AUX_ID, surfaceAux.getHolder());
@@ -340,6 +368,9 @@ public class MainActivity extends AppCompatActivity {
      * drops to just below whatever is showing so it never covers the picture.
      */
     private void placeFeeds(boolean stacked) {
+        FrameLayout.LayoutParams maskLp = (FrameLayout.LayoutParams) feedMask.getLayoutParams();
+        maskLp.topMargin = feedH * (stacked ? 2 : 1);
+        feedMask.setLayoutParams(maskLp);
         if (feedBox != null) {
             FrameLayout.LayoutParams lp = (FrameLayout.LayoutParams) feedBox.getLayoutParams();
             lp.gravity = Gravity.TOP;
@@ -348,7 +379,7 @@ public class MainActivity extends AppCompatActivity {
         }
         if (selector != null) {
             FrameLayout.LayoutParams lp = (FrameLayout.LayoutParams) selector.getLayoutParams();
-            // Two stacked feeds (2 x 756 px of 1920) leave no room underneath for a
+            // Two stacked feeds leave no room underneath for a
             // vertical selector, so park it bottom-right there (live 2026-10-25: the
             // 360 button clipped off the panel when it was placed below both feeds).
             lp.gravity = stacked ? (Gravity.BOTTOM | Gravity.END) : (Gravity.TOP | Gravity.END);
