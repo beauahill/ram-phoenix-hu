@@ -9,6 +9,11 @@ abstraction layer.
 
 > **Status (2026-10-25):** see `docs/LIVE-2026-10-25.md` for the latest live session; the summary below predates it.
 >
+> **TPMS resolved (2026-10-26):** the 2019 RAM 3500 SRW returns all four tire
+> pressures over OBD at request/reply IDs **740/4C0**, with custom ISO-TP flow
+> control. The earlier gateway-blocking conclusion was incorrect for these reads.
+> See [the verified profile and live values](docs/TPMS-2019-RAM3500.md).
+>
 > **Status (2026-10-22):** Camera Milestone 1 is installed on the truck and the
 > reverse trigger is **proven live** (two shifts, ~130 ms from signal to first frame on
 > our side). Launcher v0.4 (dashboard, Google Maps, instrument cluster, climate card)

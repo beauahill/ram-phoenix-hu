@@ -6,7 +6,7 @@ import android.os.Looper;
 import android.util.Log;
 
 /**
- * Vehicle data from the SYU ToolkitService for the RAM 1500 profile.
+ * Vehicle data from the SYU ToolkitService and the truck's verified OBD profiles.
  *
  * What this unit's MCU/canbus layer actually decodes for CAR_455_LZ_Dodge_RAM1500
  * (decompile of com.syu.ms k0.vr.U2 + com.syu.canbus Callback_0455, 2026-10-25):
@@ -15,8 +15,9 @@ import android.util.Log;
  *   CANBUS 1031 speed, raw byte from frame 0x35 (units unverified, probably km/h)
  *   CANBUS 0..5 doors: hood, FL, FR, RL, RR, tailgate (1 = open)
  *   CANBUS 1052 every raw frame from the canbus box (logged at debug for discovery)
- * Fuel level, coolant, battery voltage, TPMS, odometer and RPM are NOT decoded by
- * this firmware (no frame type carries them), so those stay null here.
+ * Fuel level, coolant, battery voltage, TPMS, odometer and RPM are not decoded by
+ * this vendor profile. Available engine/pressure values are delegated to ObdClient;
+ * unsupported values remain null.
  */
 public class CanbusVehicleData implements VehicleData {
 
@@ -81,7 +82,7 @@ public class CanbusVehicleData implements VehicleData {
     public boolean doorOpen(int idx) { return idx >= 0 && idx < 6 && doors[idx]; }
     public boolean anyDoorOpen() { for (boolean d : doors) if (d) return true; return false; }
 
-    @Override public Float tirePsi(int corner) { return null; }
+    @Override public Float tirePsi(int corner) { return obd != null ? obd.tirePsi(corner) : null; }
     @Override public Float fuelPercent() { return null; }
     @Override public Float coolantC() { return obd != null ? obd.coolantC() : null; }
     @Override public Float batteryVolts() { return obd != null ? obd.volts() : null; }

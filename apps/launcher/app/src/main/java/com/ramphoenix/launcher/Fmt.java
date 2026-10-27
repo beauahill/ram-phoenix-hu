@@ -17,6 +17,8 @@ final class Fmt {
         return v == null ? NONE : String.format(Locale.US, "%.1fV", v);
     }
     static String psi(Float v) {
-        return v == null ? NONE : String.valueOf(Math.round(v));
+        // The 2019 RAM cluster displays whole psi by truncation. Keep the raw
+        // decimal pressure in VehicleData; quantize only the visible label.
+        return v == null || !Float.isFinite(v) ? NONE : String.valueOf((int) Math.floor(v));
     }
 }

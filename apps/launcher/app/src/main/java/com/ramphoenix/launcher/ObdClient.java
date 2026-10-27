@@ -22,10 +22,11 @@ import java.util.UUID;
  * Pairing: press the MX+ button, pair it from the unit's Android Settings >
  * Bluetooth. The client picks any bonded device whose name contains "OBD".
  *
- * Reads, once a second each while connected:
+ * Polls while the launcher is active (one-second pause between engine cycles):
  *   coolant  mode 01 PID 05  (A - 40 °C)                 standard
  *   oil temp mode 01 PID 5C  (A - 40 °C)                 standard, not all ECUs
  *   voltage  ATRV                                       adapter supply
+ *   tire psi 740/4C0, 22 A0F1..A0F4 and A0A5            every 15 seconds
  *   trans / oil pressure: manufacturer mode 22 PIDs, not standard across
  *   trucks. Set them live without a rebuild:
  *     setprop persist.phoenix.obd.trans  "<hex request>,<formula>"
@@ -51,6 +52,7 @@ public class ObdClient {
     private volatile String status = "OBD: idle";
 
     private volatile Float coolantC, oilTempC, transC, oilPsi, volts;
+    private volatile RamHdTpms.Snapshot tires;
     /** Extra readings for the OBD card: label -> value (unit kept in {@link #customUnit}). */
     public final java.util.Map<String, Float> custom = new java.util.concurrent.ConcurrentHashMap<>();
     public final java.util.Map<String, String> customUnit = new java.util.concurrent.ConcurrentHashMap<>();
@@ -64,6 +66,10 @@ public class ObdClient {
     public Float transC() { return transC; }
     public Float oilPsi() { return oilPsiClamped(); }
     public Float volts() { return volts; }
+    public Float tirePsi(int corner) {
+        RamHdTpms.Snapshot snapshot = tires;
+        return snapshot == null ? null : snapshot.tirePsi(corner, android.os.SystemClock.elapsedRealtime());
+    }
 
     public synchronized void start() { worker.start(); }
 
@@ -76,6 +82,7 @@ public class ObdClient {
     private void clearReadings() {
         connected = false;
         coolantC = oilTempC = transC = oilPsi = volts = null;
+        tires = null;
         custom.clear();
         customUnit.clear();
     }
@@ -116,10 +123,6 @@ public class ObdClient {
                     connected = true;
                     set("OBD: connected " + dev.getName());
                 })) break;
-                // Defaults are community-reported Chrysler/RAM mode-22 PIDs on the engine
-                // header (ramforum / promasterforum, 2026-10-25 search): trans temp 22 B010
-                // = ((A*256)+B)/64 °F (converted to °C here), oil pressure 22 022A (scale
-                // unverified, raw A shown as psi). Override live with the setprops below.
                 // Pinned live against the cluster, 2026-10-26 (scan + diff, see docs):
                 //   trans temp   7E0 22 A0A3  = °C x 128      (cluster 93 °F ↔ 36 °C)
                 //   oil pressure 7E0 22 A05C  = 0.25 kPa gauge (cluster 37 psi ↔ 0x40)
@@ -136,6 +139,8 @@ public class ObdClient {
                     String[] parts = c.split(",");
                     if (parts.length >= 3) extras.add(parts);      // LABEL,req,formula[,unit]
                 }
+                long nextTirePoll = 0;
+                RamHdTpms.Snapshot latestTires = null;
                 // One-shot DID scan for finding the Cummins/68RFE identifiers that are not
                 // published anywhere: setprop persist.phoenix.obd.scan "7E1:B000-B0FF"
                 // then watch `logcat -s PhoenixObd` for "scan HIT". Cleared after it runs.
@@ -157,6 +162,14 @@ public class ObdClient {
                         }
                         Log.i(TAG, wb.toString());
                     }
+                    long now = android.os.SystemClock.elapsedRealtime();
+                    boolean tpmsEnabled = !"0".equals(prop("persist.phoenix.obd.tpms", "1"));
+                    if (!tpmsEnabled) latestTires = null;
+                    else if (now >= nextTirePoll) {
+                        nextTirePoll = now + RamHdTpms.POLL_MS;
+                        latestTires = readTires(in, out);
+                    }
+                    final RamHdTpms.Snapshot nextTires = latestTires;
                     header(in, out, "7DF");
                     Float nextCoolant = pidA(in, out, "0105", 0x05, a -> a - 40f);
                     Float ot = pidA(in, out, "015C", 0x5C, a -> a - 40f);
@@ -178,6 +191,7 @@ public class ObdClient {
                         volts = nextVolts;
                         transC = nextTrans;
                         oilPsi = nextOilPsi;
+                        tires = nextTires;
                         custom.clear(); custom.putAll(nextCustom);
                         customUnit.clear(); customUnit.putAll(nextUnits);
                         ui.post(listener::onObdChanged);
@@ -243,12 +257,27 @@ public class ObdClient {
         cmd(in, out, "ATL0");     // no linefeeds
         cmd(in, out, "ATS0");     // no spaces
         cmd(in, out, "ATH0");     // no headers
+        cmd(in, out, "ATCAF1");   // let the adapter assemble ISO-TP multi-frame replies
+        cmd(in, out, "ATCFC1");   // enable flow control for long replies
         cmd(in, out, "ATSP6");    // ISO 15765-4 CAN 11-bit 500k: what the RAM uses; no bus search
         cmd(in, out, "ATAT1");    // adaptive timing
         cmd(in, out, "0100");     // wakes the bus / settles the protocol
     }
 
     interface F { float f(int a); }
+
+    private RamHdTpms.Snapshot readTires(InputStream in, OutputStream out) throws Exception {
+        header(in, out, RamHdTpms.ROUTE);
+        String validity = cmd(in, out, "22A0A5");
+        String[] replies = new String[4];
+        for (int i = 0; i < replies.length; i++) replies[i] = cmd(in, out, RamHdTpms.REQUESTS[i]);
+        long now = android.os.SystemClock.elapsedRealtime();
+        RamHdTpms.Snapshot snapshot = RamHdTpms.decode(validity, replies, now);
+        if (snapshot == null) Log.i(TAG, "TPMS unavailable (validity " + validity + ")");
+        else Log.i(TAG, "TPMS psi FL=" + snapshot.tirePsi(0, now) + " FR=" + snapshot.tirePsi(1, now)
+                + " RL=" + snapshot.tirePsi(2, now) + " RR=" + snapshot.tirePsi(3, now));
+        return snapshot;
+    }
 
     private Float pidA(InputStream in, OutputStream out, String req, int pid, F f) throws Exception {
         String r = cmd(in, out, req);
@@ -297,29 +326,19 @@ public class ObdClient {
     }
 
     /**
-     * Set the request header (ATSH) only when it changes; the reply filter follows it.
+     * Set the request header only when it changes. Optional TX/RX notation supplies
+     * asymmetric reply IDs and custom flow control, e.g. 740/4C0 for a RAM TPM probe.
      * 3-digit header = 11-bit CAN (ATSP6; engine 7E0, trans 7E1, broadcast 7DF).
      * 8-digit header = 29-bit CAN (ATSP7; FCA body modules are 18DA<target>F1 and
      * answer on 18DAF1<target>).
      */
     private void header(InputStream in, OutputStream out, String h) throws Exception {
-        if (h.equalsIgnoreCase(curHeader)) return;
-        boolean ext = h.length() == 8;
-        boolean curExt = curHeader.length() == 8;
-        if (ext != curExt || curHeader.isEmpty()) cmd(in, out, ext ? "ATSP7" : "ATSP6");
-        if (ext) {
-            cmd(in, out, "ATCP" + h.substring(0, 2));            // priority byte (18)
-            cmd(in, out, "ATSH" + h.substring(2));               // DA 44 F1
-            String rx = h.substring(0, 4) + h.substring(6, 8) + h.substring(4, 6);   // 18DA F1 44
-            cmd(in, out, "ATCRA" + rx);
-        } else {
-            cmd(in, out, "ATSH" + h);
-            if (h.equalsIgnoreCase("7DF")) cmd(in, out, "ATCRA"); else {
-                int rx = Integer.parseInt(h, 16) + 8;
-                cmd(in, out, "ATCRA" + String.format("%03X", rx));
-            }
+        ObdRoute route = ObdRoute.parse(h);
+        for (String command : route.commandsAfter(curHeader)) {
+            String response = cmd(in, out, command);
+            if (!"OK".equals(response)) throw new java.io.IOException("Adapter rejected " + command + ": " + response);
         }
-        curHeader = h;
+        curHeader = route.spec;
     }
 
     private Float custom(InputStream in, OutputStream out, String cfg) throws Exception {
