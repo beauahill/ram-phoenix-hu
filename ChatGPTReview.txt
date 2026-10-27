@@ -1,0 +1,49 @@
+I’d keep the current architecture: separate camera and launcher apps, using the vendor CAN/MCU bridge. The reverse engineering has produced useful, working integrations. **The next milestone should focus on reliable startup, recovery, and trustworthy data.**
+
+I reviewed `main` at commit `133e8bd`, including the camera, launcher, climate, audio, OBD, maintenance code, and session notes.
+
+I would address these first:
+
+1. **High priority: the OBD worker fix is incomplete.**  
+   `stop()` interrupts the thread and drops its reference, but it doesn’t close the Bluetooth socket. A blocked connection can survive while a replacement worker starts. The old worker can subsequently publish state or clear the replacement’s readings. Keep ownership of the active socket, close it during cancellation, and guard every state update and cleanup with the generation. Android explicitly supports closing a socket to abort blocked operations. [ObdClient.java](<C:/Users/bhill/OneDrive - The Anschutz Corporation/Documents/_Personal/HU/ram-phoenix-hu/apps/launcher/app/src/main/java/com/ramphoenix/launcher/ObdClient.java:86>), [Android documentation](https://developer.android.com/reference/android/bluetooth/BluetoothSocket).
+
+   Also, a command timeout without the `>` prompt currently permits another command to be sent. Treat that as a failed transaction and resynchronize or reconnect.
+
+2. **High priority: reverse dismissal can lose a race with activity startup.**  
+   `requestHide()` only affects an already resumed activity. If you briefly select reverse and leave it while the camera activity is still starting, the dismissal can be lost. The delayed notification fallback also doesn’t check whether reverse remains engaged. Make the service own the current reverse state and a session identifier; have the activity reconcile that state when it resumes. Preserve whether the camera was originally opened manually. [MainActivity.java](<C:/Users/bhill/OneDrive - The Anschutz Corporation/Documents/_Personal/HU/ram-phoenix-hu/apps/camera/app/src/main/java/com/ramphoenix/camera/MainActivity.java:67>).
+
+3. **High priority: camera recovery detects errors, but not stalled video.**  
+   The repeating request supplies no capture callback, and there is no first-frame timeout or frame-progress watchdog. Your own notes describe a HAL configuration that succeeds but delivers zero frames. Track capture progress, add bounded recovery, and display an explicit unavailable state when the feed fails. Measure first visible frame separately from camera-open time. [CameraController.java](<C:/Users/bhill/OneDrive - The Anschutz Corporation/Documents/_Personal/HU/ram-phoenix-hu/apps/camera/app/src/main/java/com/ramphoenix/camera/CameraController.java:302>).
+
+4. **High priority: parking sensor availability never resets.**  
+   Once any sensor update arrives, `available()` remains true for the lifetime of the process. If ToolkitService disconnects, old obstacle readings—or old clear readings—continue appearing active. Invalidate them on transport loss and require a fresh snapshot after reconnect. Coordinate any age timeout with the vendor’s actual update behavior. [IpcRadarSource.java](<C:/Users/bhill/OneDrive - The Anschutz Corporation/Documents/_Personal/HU/ram-phoenix-hu/apps/camera/app/src/main/java/com/ramphoenix/camera/IpcRadarSource.java:75>).
+
+5. **Medium priority: serialize climate state changes.**  
+   Binder callbacks mutate a `SparseIntArray` while the UI thread reads it. Move the mutation into the UI-thread runnable, or publish synchronized snapshots. Also cancel previously queued fan adjustments when a new slider target arrives; overlapping sequences can overshoot the requested setting. [ClimateWidget.java](<C:/Users/bhill/OneDrive - The Anschutz Corporation/Documents/_Personal/HU/ram-phoenix-hu/apps/launcher/app/src/main/java/com/ramphoenix/launcher/ClimateWidget.java:71>).
+
+6. **Medium priority: the app drawer hides Climate and Maintenance.**  
+   `AppRepository` excludes the entire `com.ramphoenix.launcher` package, including those two new launcher activities. Hide the HOME activity by component instead. This also makes Climate and Maintenance available to the shortcut pickers. [AppRepository.java](<C:/Users/bhill/OneDrive - The Anschutz Corporation/Documents/_Personal/HU/ram-phoenix-hu/apps/launcher/app/src/main/java/com/ramphoenix/launcher/AppRepository.java:37>).
+
+7. **Medium priority: complete the map lifecycle.**  
+   The host forwards resume/pause/destroy, but omits `MapView.onStart()` and `onStop()`. Google requires those lifecycle calls. Search also needs cancellation or request identifiers so an older, slower result cannot overwrite a newer destination. Return the result name and coordinates together instead of sharing `poiName` between searches. [MapWidget.java](<C:/Users/bhill/OneDrive - The Anschutz Corporation/Documents/_Personal/HU/ram-phoenix-hu/apps/launcher/app/src/main/java/com/ramphoenix/launcher/MapWidget.java:420>), [MapView documentation](https://developers.google.com/android/reference/com/google/android/gms/maps/MapView).
+
+There is also an important **reboot acceptance test**: the README still records stock camera packages being re-enabled at boot. The current boot receiver starts your watcher but doesn’t resolve camera ownership. Confirm a persistent takeover mechanism on the truck before considering automatic reverse fully finished. A normal app cannot simply assume it has permission to disable other packages.
+
+For the next development pass, I recommend:
+
+- **Extract a shared protocol library.** Share `SyuIpc`, constants, parsers, and verified vehicle profiles between the APKs. Keep the camera independently runnable. Inside the launcher, share a connection and state repository across widgets.
+- **Make data quality explicit.** Represent unknown, disconnected, stale, and live states separately. Apply this consistently to gauges, climate, phone, and parking sensors. Add the missing Bluetooth runtime-permission flow.
+- **Add reproducible builds and focused tests.** CI should build both APKs and run lint. Test reverse transitions, worker cancellation, Binder reconnects, OBD response parsing, and maintenance calculations. Those tests will protect the most fragile behavior.
+- **Consolidate the documentation.** Several README instructions still describe the superseded LZ climate protocol, guessed camera identities, and unfinished features that now exist. Maintain one current hardware/profile reference and retain session notes as history.
+
+For the interface and features:
+
+- **Give configurable cards minimum usable sizes.** Enabling every card currently divides a fixed screen among more weighted panels. Use pages, compact variants, or a separate vehicle-data screen to preserve readability.
+- **Keep frequent controls within easy reach.** Make camera access, seat heat/ventilation, temperature, and media transport consistently accessible. Several small controls, including the dock chevron and fan buttons, deserve larger touch areas.
+- **Tune camera processing conservatively.** Calibrate crop, display aspect, and levels against the truck. Preserve latency, and apply the same geometric transformation to ECU touch coordinates.
+- **Expand maintenance into a service history.** Support backdated entries, retain previous services, and add an import/restore flow. Export backups somewhere outside the app-specific directory so they survive uninstalling or reflashing.
+- **Harden map search.** Add caching, request throttling, and provider configuration. The public Nominatim service requires attribution and an application-wide maximum of one request per second; the nearby-to-global fallback can currently make consecutive requests immediately. [Nominatim policy](https://operations.osmfoundation.org/policies/nominatim/).
+
+My suggested release gate is a repeatable truck test covering cold boot, ACC sleep/wake, rapid R–D–R changes, reverse over navigation or a phone call, ToolkitService restart, camera interruption, and OBD disconnect/reconnect.
+
+Validation here was limited to source analysis, parsing all 155 XML files, and checking local resource references. Those checks passed. I couldn’t compile or run the apps because this machine has no Android toolchain or connected head unit. No source files were changed.
