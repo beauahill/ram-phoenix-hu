@@ -40,6 +40,11 @@ All five map controls were fully inside the card, with 88×88 px targets, in:
 - SPLIT with dock open and closed.
 - FULL with dock closed and climate compact (original layout restored).
 
+Beau subsequently confirmed **both work correctly** in the requested hands-on
+check: seats physically respond with the correct colors/levels, and the traffic
+icon fits with the top app tray open. These fixes are user-verified on 0.5.21;
+the earlier temporary nonresponse remains recorded for diagnosis if it recurs.
+
 All **92 launcher unit tests passed**. Launcher and instrumentation APKs built;
 the camera foreground reverse monitor remained running. No suspension command
 was sent. Pre-install APK/preferences backup:

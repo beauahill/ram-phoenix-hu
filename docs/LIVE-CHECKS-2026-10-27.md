@@ -10,7 +10,9 @@ preset-editor results are in [WIRELESSONE-2026-10-27.md](WIRELESSONE-2026-10-27.
 
 - Adaptive map toolbar: all five controls fit through dock/climate expansion and
   FULL/SPLIT mode changes. Seat heat now renders red, cooling blue, with active
-  level bars. Both seats' heat/cooling 3→2→1→Off readbacks verified. Earlier
+  level bars. Both seats' heat/cooling 3→2→1→Off readbacks verified. Beau then
+  confirmed both fixes: physical seat response with correct colors/levels, and
+  Traffic fitting with the top tray open. Earlier
   temporary command nonresponse recovered during factory comparison; its cause
   remains unproven. See [MAP-SEAT-FEEDBACK-2026-10-27.md](MAP-SEAT-FEEDBACK-2026-10-27.md).
 - Compact Air Lift pressure in the vehicle table replaces the wide bottom bar.
