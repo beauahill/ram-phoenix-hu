@@ -1,6 +1,6 @@
 # Active worklist
 
-Updated 2026-10-27. Current branch: `codex/maintenance-2026-10-26`, based on the
+Updated 2026-10-27. Current branch: `codex/wirelessone-2026-10-27`, based on the
 tested reliability, TPMS and camera-alignment branches. Main is unchanged.
 
 ## Completed and previously verified
@@ -36,7 +36,7 @@ targets. Both launcher and climate are part of the same visual system.
 - [x] Implement SPLIT 0.5.5: native task management, in-place resize, full-width
   panes and corner chevrons. Native always-on-top proof passed; 37 unit tests pass.
   See [SPLIT-WINDOWS-2026-10-26.md](SPLIT-WINDOWS-2026-10-26.md).
-- [ ] Install the latest cumulative 0.5.7 revision (includes 0.5.5/0.5.6). An earlier candidate is on the HU; the
+- [ ] Install the latest cumulative 0.5.8 revision (includes 0.5.5/0.5.6/0.5.7). An earlier candidate is on the HU; the
   final installation was prevented by the HU going offline (`No route to host`).
 - [ ] Run integrated native split-backend parked map/app/chevron/dock/FULL/Home tests. Display
   switched off; Beau opted to test later. Do not call this visually verified.
@@ -79,6 +79,22 @@ targets. Both launcher and climate are part of the same visual system.
 - [ ] Verify the odometer against the cluster. Beau estimates around 71,000 miles;
   it is not stored as a verified value. A6 and provisional RAM 03BC reads are wired;
   actual support on this 2019 Cummins remains unconfirmed while the HU is offline.
+
+## WirelessOne air suspension
+
+- [x] Inspect a signed 2.3.0 reference app offline; identify separate measured and
+  target BLE pressure fields and the ordinary target command. No exported app API
+  was found. No suspension commands sent.
+- [x] Implement candidate 0.5.8: Vehicle Info air-suspension entry, local 80/50/30/minimum
+  profiles, configured kit limits, fresh readback, one-attempt commands and app handoff.
+  Android builds and all 81 unit tests pass (16 new protocol/session cases).
+  See [WIRELESSONE-2026-10-27.md](WIRELESSONE-2026-10-27.md).
+- [ ] Confirm the installed air-spring kit/pressure limits and whether the HU app is paired.
+- [ ] Pull/compare Beau's installed WirelessOne APK and verify HU BLE support and live
+  manifold mode/diagnostics/measured/target fields. HU is offline; reference inspection
+  and synthetic packet tests do not establish live compatibility.
+- [ ] Inspect the native card/control/setup layouts on the panel, then conduct an
+  explicit parked pressure/handoff/disconnect/reverse test. No live actuation tested.
 
 ## Remaining reliability work
 

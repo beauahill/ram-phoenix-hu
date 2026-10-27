@@ -23,6 +23,8 @@ final class AppLaunch {
         Intent intent = new Intent(original);
         if (intent.getComponent() == null) intent.setComponent(intent.resolveActivity(context.getPackageManager()));
         if (intent.getComponent() == null) throw new android.content.ActivityNotFoundException();
+        if (WirelessOneProtocol.PACKAGE.equals(intent.getComponent().getPackageName()))
+            WirelessOneClient.get(context).yieldToOfficialApp();
         intent.setSelector(null);
         intent.setFlags(intent.getFlags() & ~(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_MULTIPLE_TASK
                 | Intent.FLAG_ACTIVITY_NEW_DOCUMENT | Intent.FLAG_ACTIVITY_CLEAR_TASK));
