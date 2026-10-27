@@ -1,12 +1,22 @@
 # Parked HU checks — 2026-10-27
 
-Installed launcher **0.5.21 / code 28**, camera **0.3.6 / code 9**. All **92 launcher
+Currently installed: **launcher 0.5.23 / code 30, camera 0.3.7 / code 10**.
+All **104 launcher + 9 camera tests** pass locally and on GitHub. Day/night modes,
+map toolbar, connected OBD, native YouTube task persistence and background camera
+monitor recovery checked on the HU. Records and suspension presets preserved.
+0.5.22 exposed a connected-OBD getter crash and is withdrawn; installed 0.5.23
+corrects it with new regression coverage. User physical reverse/button/climate
+confirmation, cold boot and ACC sleep/wake are pending. See
+[current deployment details](OEM-POLISH-RELIABILITY-2026-10-27.md).
+
+The prior user-verified baseline was launcher **0.5.21 / code 28**, camera
+**0.3.6 / code 9**. All **92 launcher
 + 9 camera unit tests** passed. Current appearance changes and
 wallpaper checks are recorded in [GLASS-WALLPAPER-2026-10-27.md](GLASS-WALLPAPER-2026-10-27.md).
 Camera recovery details are in [CAMERA-WAKE-2026-10-27.md](CAMERA-WAKE-2026-10-27.md);
 preset-editor results are in [WIRELESSONE-2026-10-27.md](WIRELESSONE-2026-10-27.md).
 
-## Verified
+## Prior baseline verified
 
 - Adaptive map toolbar: all five controls fit through dock/climate expansion and
   FULL/SPLIT mode changes. Seat heat now renders red, cooling blue, with active

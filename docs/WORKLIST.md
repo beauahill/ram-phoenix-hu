@@ -2,8 +2,8 @@
 
 Updated 2026-10-27. Candidate development line:
 `codex/oem-polish-reliability-2026-10-27`, based on synced main `2437334`.
-Installed baseline: launcher
-0.5.21 / camera 0.3.6. See the current README and live checks for its verified scope.
+Installed: launcher 0.5.23 / camera 0.3.7. See the current README and live checks
+for verified scope; post-update physical checks remain pending.
 
 ## Completed and previously verified
 
@@ -21,16 +21,20 @@ Installed baseline: launcher
 
 ## Current refinement pass
 
-- [x] Implement 0.5.22 / 0.3.7 OEM polish and initial reliability changes on
+- [x] Implement 0.5.23 / 0.3.7 OEM polish and initial reliability changes on
   `codex/oem-polish-reliability-2026-10-27`: day/night shared surfaces, neutral
   dock, compact idle media, clearer vehicle information, bounded reading age,
   background camera monitor recovery and automated native layout/build checks.
-  102 launcher + 9 camera tests pass on Crimson. See
+  104 launcher + 9 camera tests pass on Crimson. See
   [candidate notes](OEM-POLISH-RELIABILITY-2026-10-27.md).
-- [ ] Install this candidate when the HU reconnects; complete the dated parked
-  acceptance checklist. The installed baseline remains 0.5.21 / 0.3.6.
+- [x] Install corrected launcher 0.5.23 / camera 0.3.7. The first 0.5.22 install
+  exposed an OBD getter recursion, fixed and regression-tested in 0.5.23. Live OBD,
+  day/night profiles, map toolbar, native app persistence and monitor fault
+  recovery checked on the HU; presets/records preserved.
+- [ ] Complete the dated parked acceptance checklist: user physical camera and
+  climate confirmation, exact cluster comparison, real cold boot and ACC wake.
 - [x] Both candidate builds passed the
-  [GitHub-hosted workflow](https://github.com/beauahill/ram-phoenix-hu/actions/runs/40571459451).
+  [GitHub-hosted workflow](https://github.com/beauahill/ram-phoenix-hu/actions/runs/40580727733).
 - [x] Isolated Android emulator: appearance profiles/dimming, background camera
   service recovery and BOOT_COMPLETED startup checked. Actual HU hardware tests
   remain separate and pending.

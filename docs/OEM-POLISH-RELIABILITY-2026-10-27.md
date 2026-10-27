@@ -1,8 +1,10 @@
 # OEM polish and reliability candidate
 
-Candidate: launcher **0.5.22 / code 29**, camera **0.3.7 / code 10**.
-Based on the user-tested 0.5.21 / 0.3.6 baseline. Installation and physical tests
-remain pending while the head unit is offline. Do not describe this as installed.
+Installed: launcher **0.5.23 / code 30**, camera **0.3.7 / code 10**.
+Based on the user-tested 0.5.21 / 0.3.6 baseline. The initial 0.5.22 launcher
+exposed a connected-OBD crash described below. After the network recovered,
+0.5.23 installed successfully and remained running through live diagnostic
+updates. Post-update physical camera/climate confirmation is pending.
 
 ## Appearance
 
@@ -80,7 +82,7 @@ hardware behavior still require the actual head unit.
 ## Verification
 
 - Crimson builds: launcher and camera debug APKs built successfully.
-- **102 launcher tests and 9 camera tests passed**, including the eight-state
+- **104 launcher tests and 9 camera tests passed**, including the eight-state
   native layout matrix and cached/expired reading scenarios.
 - Day/night idle, playing/expanded-climate and SPLIT previews inspected.
 - Isolated Android 13 emulator: both apps installed, no fatal runtime exceptions;
@@ -94,12 +96,76 @@ hardware behavior still require the actual head unit.
   services automatically. Vendor services/camera hardware are absent there; this
   does not establish the HU's real boot or ACC sleep/wake behavior.
 - No suspension pressure commands sent during this pass.
-- HU installation, reverse/physical-button regression, fresh-source comparison,
-  background-monitor fault recovery, real cold boot and vendor sleep/wake pending.
-- [GitHub-hosted checks passed for both apps](https://github.com/beauahill/ram-phoenix-hu/actions/runs/40571459451)
-  at source commit `e6d25b07f5d5ba4b976ffd9a442551293ec7c828`. The runner is
+- Corrected launcher installation, live source diagnostics, day/night profiles,
+  map toolbar and background monitor recovery checked on the HU, as detailed below.
+- User physical reverse/button/climate confirmation, exact fresh-source cluster
+  comparison, real cold boot and vendor sleep/wake remain separate pending checks.
+- [GitHub-hosted checks passed for both corrected apps](https://github.com/beauahill/ram-phoenix-hu/actions/runs/40580727733)
+  at source commit `5caee034fac4245158dbe83507ab587612211404`. The runner is
   pinned to Ubuntu 24.04 and resolves SDK tools explicitly rather than assuming
   `sdkmanager` is on PATH.
+
+### First HU deployment and correction
+
+The installed 0.5.21 / 0.3.6 APKs and launcher shared preferences were backed up
+to private Crimson directory `/home/beauhill/ram-phoenix-backups/oem-polish-5li9nleb`.
+The app-owned ADB key and authentication files in `no_backup` were excluded.
+Candidate and installed signer SHA-256 matched for both apps.
+
+The first update installed 0.5.22 / 0.3.7 and both monitor services started. Once
+OBD connected, the launcher crashed with a StackOverflowError: the freshness
+change made `oilPsi()` and `oilPsiClamped()` call each other. This had not executed
+on the emulator without a live OBD sample. The 0.5.22 launcher is withdrawn.
+
+Launcher 0.5.23 fixes that path by clamping the guarded raw field directly. New
+tests exercise the actual public getters with fresh connected pressure, negative
+pressure, absent pressure, missing freshness and disconnected values, without
+opening Bluetooth or sending vehicle commands. All 104 launcher tests pass.
+
+The initial rollback command was refused as a version downgrade; a retry with
+`install -r -d` then lost the transport with `abb_exec: closed`. The HU stopped
+answering LAN and Tailscale probes. After reconnect, a device read confirmed that
+0.5.22 was still installed; no successful rollback was inferred. The corrected
+0.5.23 subsequently installed successfully, with code 30 confirmed from Android.
+
+Corrected launcher APK SHA-256:
+`411a16b86c80102a9c90eb8762b4ba832e6fd1d4bfe214b55395cdbfeb10f155`.
+
+### Corrected HU live checks
+
+- The corrected launcher stayed in one process through OBD connection, multiple
+  TPMS polls and mileage reads. The initial PID was 19032; instrumentation later
+  restarted the target as expected. No post-fix recursive getter crash observed.
+- Source details showed coolant 114°F / CAN, transmission 86°F / CAN, oil
+  temperature 114°F / CAN and oil pressure 0 psi / OBD at that sample. CAN had a
+  genuine post-registration change; source age was 10 seconds, OBD age 3 seconds.
+  These are observed values, not a new cluster comparison.
+- Actual Day and Night surfaces were inspected. The owner's dimming values
+  remained 26% and 43%, and Automatic mode was restored. No wallpaper replacement.
+- All five map buttons stayed within the card with 88×88 px targets in Home,
+  tray-open and tray-plus-expanded-climate states. Layout toggles were restored.
+- The native window probe passed actual YouTube task persistence through map
+  gestures, in-place resize, software reverse guard and Home dismissal. This
+  synthetic guard check does not prove physical reverse picture/takeover.
+- With Android Settings foreground, only Phoenix Camera was force-stopped. Its
+  service record returned after 14.6 seconds; foreground status and launcher as
+  the caller were confirmed in a subsequent read. Settings remained foreground,
+  with no camera activity opened by the recovery pulse.
+- Phoenix was selected as default HOME; Android resolution and an ordinary Home
+  key from Settings both returned to Phoenix. Retired `com.syu.doublecamera` was
+  already disabled (enabled=3); no vendor package state or service was changed.
+- Suspension presets, maintenance records/drafts and launcher/pane preferences
+  matched the backup. The appearance preference only gained explicit `auto`;
+  odometer freshness time advanced from a normal live read. No pressure command.
+- FYT reports app bounds ending at y=1693 to accessibility even though the actual
+  window/surface spans y=1920. Thus UIAutomator reports zero seat-control bounds
+  at the bottom; this is not used as proof of a touch failure or a passing seat
+  test. Physical lower-control confirmation remains pending.
+
+Private Crimson evidence: `hu-polish-source-details.*`, `hu-polish-profile-*`,
+`hu-polish-expanded.*`, `hu-polish-native-pane-check.txt`,
+`hu-polish-background-recovery.json`, `hu-polish-window-frames.txt` and
+`hu-polish-preference-compare.json` under `ram-phoenix-research`.
 
 ## Parked acceptance checklist
 

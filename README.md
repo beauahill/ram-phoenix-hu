@@ -7,10 +7,12 @@ restart loop every time you shift into reverse. This repo replaces the launcher,
 camera, and the car UI while keeping the vendor's CAN/MCU bridge as a dumb hardware
 abstraction layer.
 
-> **Current installed baseline (2026-10-27): launcher 0.5.21 / camera 0.3.6.**
-> Phoenix is the default HOME. Beau confirmed reverse takeover/dismissal, the
-> physical camera button, and the latest map/seat fixes. All **92 launcher + 9
-> camera unit tests** passed. See [live checks](docs/LIVE-CHECKS-2026-10-27.md) and
+> **Installed (2026-10-27): launcher 0.5.23 / camera 0.3.7.**
+> Phoenix is the default HOME. All **104 launcher + 9 camera tests** pass on
+> Crimson and GitHub. Live layouts, native windows and monitor recovery checked;
+> post-update physical reverse/button/climate confirmation is pending. Beau's
+> previous physical map/seat/camera confirmation was on 0.5.21 / 0.3.6.
+> See [live checks](docs/LIVE-CHECKS-2026-10-27.md) and
 > the [active worklist](docs/WORKLIST.md) for verified results and remaining work.
 >
 > Current features include persistent native split apps, full-width panes, subtle
@@ -29,10 +31,12 @@ abstraction layer.
 > Historical session notes below may describe older builds; use the current
 > source and dated live checks when they differ.
 
-**New candidate:** launcher 0.5.22 / camera 0.3.7 adds day/night glass profiles,
+**Latest update:** launcher 0.5.23 / camera 0.3.7 adds day/night glass profiles,
 quieter dock icons, compact idle media, vehicle source details, stale-reading
-guards and background camera-monitor recovery. **102 launcher + 9 camera tests
-pass on Crimson.** HU installation and physical recovery tests remain pending;
+guards and background camera-monitor recovery. **104 launcher + 9 camera tests
+pass on Crimson and GitHub.** Initial launcher 0.5.22 exposed a connected-OBD
+getter crash and is withdrawn; the installed 0.5.23 fixes it. Real HU cold boot,
+ACC sleep/wake and post-update physical camera/climate confirmation remain pending;
 see [candidate notes and acceptance checklist](docs/OEM-POLISH-RELIABILITY-2026-10-27.md).
 
 ---
