@@ -62,7 +62,7 @@ public class AppsWidget {
                     if (target == null) { choose(slot); return; }
                     Intent i = new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER).setComponent(target)
                             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED);
-                    try { act.startActivity(i); } catch (Exception e) { choose(slot); }
+                    try { AppLaunch.fullscreen(act, i); } catch (Exception e) { choose(slot); }
                 });
                 tile.setOnLongClickListener(v -> { choose(slot); return true; });
             }

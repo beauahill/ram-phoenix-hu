@@ -14,7 +14,7 @@
         android:orientation="vertical"
         android:paddingStart="16dp"
         android:paddingTop="14dp"
-        android:paddingEnd="64dp"
+        android:paddingEnd="16dp"
         android:paddingBottom="8dp">
 
         <LinearLayout
@@ -67,6 +67,11 @@
             android:letterSpacing="0.14"
             android:textAllCaps="true"
             android:fontFamily="sans-serif-medium" />
+
+        <TextView android:id="@+id/window_setup" android:layout_width="match_parent"
+            android:layout_height="48dp" android:gravity="center_vertical"
+            android:text="Enable split app windows" android:textColor="@color/text_primary"
+            android:textSize="14sp" android:visibility="gone" />
 
         <GridView
             android:id="@+id/pane_app_grid"

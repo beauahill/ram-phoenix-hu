@@ -1,6 +1,6 @@
 # Active worklist
 
-Updated 2026-10-26. Current branch: `codex/climate-clarity-2026-10-26`, based on the
+Updated 2026-10-26. Current branch: `codex/split-windows-2026-10-26`, based on the
 tested reliability, TPMS and camera-alignment branches. Main is unchanged.
 
 ## Completed and previously verified
@@ -30,9 +30,19 @@ targets. Both launcher and climate are part of the same visual system.
 - [x] Verify expanded climate in FULL mode; fix clipped media controls and
   fallback-art sizing. Fix shared app-grid tiles exceeding their columns; verified
   in the drawer. Climate and Maintenance entries are visible.
-- [ ] Continue SPLIT layout review: the saved external Chrome pane can display
-  vendor system bars, and the pane selector overlaps map controls. Keep this
-  distinct from the corrected shared app-grid cell sizing.
+- [x] SPLIT 0.5.3: Beau confirmed camera takeover/dismissal and removal of the
+  factory overlays. Earlier open/reflow/Home probes missed a focus-change bug:
+  interacting with the map hid the selected app's independent native task.
+- [x] Implement SPLIT 0.5.5: native task management, in-place resize, full-width
+  panes and corner chevrons. Native always-on-top proof passed; 37 unit tests pass.
+  See [SPLIT-WINDOWS-2026-10-26.md](SPLIT-WINDOWS-2026-10-26.md).
+- [ ] Install the final 0.5.5 revision. An earlier candidate is on the HU; the
+  final installation was prevented by the HU going offline (`No route to host`).
+- [ ] Run integrated 0.5.5 parked map/app/chevron/dock/FULL/Home tests. Display
+  switched off; Beau opted to test later. Do not call this visually verified.
+- [ ] Complete the app's one-time local ADB approval and test helper restart and
+  real cold boot. Current session uses the helper started through Crimson.
+- [ ] Broaden split app compatibility checks, including WirelessOne/Chrome/Spotify.
 - [x] Verify TPMS/gauges recover after leaving climate and camera. Live samples
   resumed at 61 / 63 / 72 / 75 psi, coolant 95°F, transmission 84°F, battery 12.6 V.
 - [x] Install/test camera 0.3.4 capture-result watchdog: six-second initial
@@ -61,6 +71,9 @@ targets. Both launcher and climate are part of the same visual system.
   Static enable paths are now traced in [REFINEMENT-2026-10-26.md](REFINEMENT-2026-10-26.md).
 - [ ] Confirm camera ownership after repeated reverse cycles, boot while in R and
   manual camera use followed by R/Park. Mark each only after the actual test.
+- [x] Beau confirmed Reverse/Park takeover/dismissal with SPLIT on launcher 0.5.3.
+- [ ] Repeat physical Reverse/Park with a native managed app on launcher 0.5.5;
+  the always-on-top backend needs its own camera-priority check.
 - [x] Physical factory view-button response confirmed by Beau on 2026-10-26.
   Earlier remote taps were inconclusive; the parked user test takes precedence.
 - [ ] Measure time from physical reverse signal to displayed usable image.

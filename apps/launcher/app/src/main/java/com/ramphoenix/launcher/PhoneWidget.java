@@ -27,7 +27,7 @@ public class PhoneWidget {
         icon = card.findViewById(R.id.ph_icon);
         card.findViewById(R.id.ph_dial).setOnClickListener(v -> {
             Intent i = Dock.phoneIntent(act);
-            if (i != null) { i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK); try { act.startActivity(i); } catch (Exception ignored) {} }
+            if (i != null) { try { AppLaunch.fullscreen(act, i); } catch (Exception ignored) {} }
         });
         ipc = new SyuIpc(act);
         ipc.setConnectionListener(c -> { connected = c; ui.post(this::render); });

@@ -208,10 +208,10 @@ public class MediaWidget {
         }
         if (current != null) {
             Intent i = act.getPackageManager().getLaunchIntentForPackage(current.getPackageName());
-            if (i != null) { i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK); act.startActivity(i); return; }
+            if (i != null) { AppLaunch.fullscreen(act, i); return; }
         }
         Intent music = Dock.musicIntent(act);
-        if (music != null) { music.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK); act.startActivity(music); }
+        if (music != null) { AppLaunch.fullscreen(act, music); }
     }
 
     /** SPLIT pane (large) vs FULL-mode card (small): scale the text and controls. */

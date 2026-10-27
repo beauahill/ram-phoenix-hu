@@ -1,49 +1,69 @@
 package com.ramphoenix.launcher;
 
 import android.app.Activity;
-import android.app.ActivityOptions;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
 import android.graphics.Rect;
 import android.provider.Settings;
+import android.widget.Toast;
 
-/**
- * Launch an app into a rectangle of the screen (one SPLIT pane). Uses the
- * public {@link ActivityOptions#setLaunchBounds} API, which Android honours
- * only when freeform windows are enabled on the device:
- *
- *   adb shell settings put global enable_freeform_support 1
- *   adb shell settings put global force_resizable_activities 1   # apps that aren't resizable
- *   adb reboot
- *
- * Without that the bounds are ignored and the app opens full-screen, which is
- * still a sane fallback. {@link #freeformEnabled} lets the UI say which happened.
- */
+/** Shared launch path: controlled app tasks, explicit full-screen fallback, no duplicates. */
 final class AppLaunch {
     private AppLaunch() {}
 
     static boolean freeformEnabled(Context ctx) {
-        if (ctx.getPackageManager().hasSystemFeature(PackageManager.FEATURE_FREEFORM_WINDOW_MANAGEMENT)) return true;
-        return Settings.Global.getInt(ctx.getContentResolver(), "enable_freeform_support", 0) == 1;
+        return ctx.getPackageManager().hasSystemFeature(PackageManager.FEATURE_FREEFORM_WINDOW_MANAGEMENT)
+                || Settings.Global.getInt(ctx.getContentResolver(), "enable_freeform_support", 0) == 1;
     }
 
-    /** WindowConfiguration.WINDOWING_MODE_FREEFORM (hidden constant). */
-    private static final int WINDOWING_MODE_FREEFORM = 5;
+    private static Intent explicit(Context context, Intent original) {
+        Intent intent = new Intent(original);
+        if (intent.getComponent() == null) intent.setComponent(intent.resolveActivity(context.getPackageManager()));
+        if (intent.getComponent() == null) throw new android.content.ActivityNotFoundException();
+        intent.setSelector(null);
+        intent.setFlags(intent.getFlags() & ~(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_MULTIPLE_TASK
+                | Intent.FLAG_ACTIVITY_NEW_DOCUMENT | Intent.FLAG_ACTIVITY_CLEAR_TASK));
+        return intent;
+    }
 
-    static void inBounds(Activity act, Intent intent, Rect boundsPx) {
-        Intent i = new Intent(intent);
-        // A task that already exists full-screen keeps its mode, so ask for a fresh
-        // task in a fresh window (live 2026-10-26: bounds alone were ignored).
-        i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_MULTIPLE_TASK);
-        ActivityOptions o = ActivityOptions.makeBasic();
-        o.setLaunchBounds(boundsPx);
+    private static boolean hostable(Context context, Intent intent) {
+        String pkg = intent.getComponent().getPackageName();
+        if (pkg.equals(context.getPackageName()) || pkg.equals("com.ramphoenix.camera")) return false;
         try {
-            ActivityOptions.class.getMethod("setLaunchWindowingMode", int.class).invoke(o, WINDOWING_MODE_FREEFORM);
-        } catch (Throwable t) {
-            android.util.Log.w("PhoenixLauncher", "setLaunchWindowingMode unavailable: " + t);
+            int mode = context.getPackageManager().getActivityInfo(intent.getComponent(), 0).launchMode;
+            return mode == ActivityInfo.LAUNCH_MULTIPLE || mode == ActivityInfo.LAUNCH_SINGLE_TOP;
+        } catch (PackageManager.NameNotFoundException missing) { return false; }
+    }
+
+    static void fullscreen(Activity activity, Intent original) {
+        if (PaneWindows.reversing()) return;
+        Intent intent = explicit(activity, original);
+        PaneWindows.closeAll(activity);
+        OemBars.keepHidden(activity);
+        WindowBridge.get(activity).afterClose(() -> launchFullscreen(activity,intent));
+    }
+
+    private static void launchFullscreen(Activity activity,Intent intent) {
+        if (activity.isDestroyed() || PaneWindows.reversing()) return;
+        if (hostable(activity, intent)) {
+            PaneWindows.open(activity, "external", intent, null);
+        } else {
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED);
+            activity.startActivity(intent, PaneWindows.options(null).toBundle());
         }
-        android.util.Log.i("PhoenixLauncher", "launch in bounds " + boundsPx.toShortString() + " " + i.getComponent());
-        act.startActivity(i, o.toBundle());
+    }
+
+    static void inPane(Activity activity, String key, Intent original, Rect frame) {
+        if (PaneWindows.reversing()) return;
+        Intent intent = explicit(activity, original);
+        if (!freeformEnabled(activity) || intent.getComponent().getPackageName().startsWith("com.ramphoenix.")) {
+            fullscreen(activity, intent);
+            Toast.makeText(activity, "This app opens full screen", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        PaneWindows.open(activity, key, intent, frame);
     }
 }

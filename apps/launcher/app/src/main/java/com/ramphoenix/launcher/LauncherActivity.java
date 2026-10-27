@@ -15,8 +15,6 @@ import android.provider.Settings;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.WindowInsets;
-import android.view.WindowInsetsController;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -71,6 +69,7 @@ public class LauncherActivity extends Activity implements Pane.Host {
 
     private CanbusVehicleData vehicle;
     private ObdClient obd;
+    private SyuIpc windowGuard;
 
     private final Handler ui = new Handler(Looper.getMainLooper());
     private final SimpleDateFormat timeFmt = new SimpleDateFormat("h:mm a", Locale.US);
@@ -100,7 +99,20 @@ public class LauncherActivity extends Activity implements Pane.Host {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_launcher);
+        PaneWindows.closeAll(this);
         goImmersive();
+        windowGuard = new SyuIpc(this);
+        windowGuard.subscribe(SyuIpc.MODULE_MAIN, SyuIpc.U_BACKCAR, (code, ints, f, s) -> {
+            if (ints != null && ints.length > 0) {
+                boolean reverse = ints[0] == 1;
+                ui.post(() -> { if (!isDestroyed()) {
+                    PaneWindows.reverse(this, reverse);
+                    if (paneA != null) paneA.updateControls();
+                    if (paneB != null) paneB.updateControls();
+                } });
+            }
+        });
+        windowGuard.connect();
         prefs = getSharedPreferences(PREFS, MODE_PRIVATE);
         mode = prefs.getString(PREF_MODE, MODE_FULL);
 
@@ -286,6 +298,8 @@ public class LauncherActivity extends Activity implements Pane.Host {
     @Override
     protected void onStart() {
         super.onStart();
+        WindowBridge.get(this).visible(true);
+        paneA.visible(true); paneB.visible(true);
         map.onStart();
     }
 
@@ -332,12 +346,17 @@ public class LauncherActivity extends Activity implements Pane.Host {
 
     @Override
     protected void onStop() {
+        WindowBridge.get(this).visible(false);
+        paneA.visible(false); paneB.visible(false);
         map.onStop();
         super.onStop();
     }
 
     @Override
     protected void onDestroy() {
+        if (windowGuard != null) windowGuard.disconnect();
+        if (paneA != null) paneA.dispose();
+        if (paneB != null) paneB.dispose();
         super.onDestroy();
         map.onDestroy();
     }
@@ -351,6 +370,18 @@ public class LauncherActivity extends Activity implements Pane.Host {
     @Override
     public void onBackPressed() {
         // A home screen swallows BACK.
+    }
+
+    @Override protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        PaneWindows.closeAll(this);
+        goImmersive();
+    }
+
+    @Override public void onWindowFocusChanged(boolean focused) {
+        super.onWindowFocusChanged(focused);
+        if (focused) goImmersive();
     }
 
     // ---- data refresh ----
@@ -402,8 +433,7 @@ public class LauncherActivity extends Activity implements Pane.Host {
             return;
         }
         try {
-            i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            startActivity(i);
+            AppLaunch.fullscreen(this, i);
         } catch (Exception e) {
             Toast.makeText(this, R.string.not_installed, Toast.LENGTH_SHORT).show();
         }
@@ -414,11 +444,7 @@ public class LauncherActivity extends Activity implements Pane.Host {
     }
 
     private void goImmersive() {
-        getWindow().setDecorFitsSystemWindows(false);
-        WindowInsetsController c = getWindow().getInsetsController();
-        if (c != null) {
-            c.hide(WindowInsets.Type.systemBars());
-            c.setSystemBarsBehavior(WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
-        }
+        OemBars.keepHidden(this);
+        ImmersiveUi.apply(this);
     }
 }

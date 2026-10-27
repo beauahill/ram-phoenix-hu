@@ -85,9 +85,11 @@ unavailable; sensor mapping and proximity thresholds are unchanged.
   kept out of the Git repository.
 
 Beau confirmed the parked physical test on the refreshed apps: reverse, factory
-camera view buttons and climate temperature/fan changes all work. SPLIT still
-needs attention for the saved external Chrome window's vendor
-system bars and the pane selector sharing space with map tools. See the
+camera view buttons and climate temperature/fan changes all work. The later
+[SPLIT follow-up](SPLIT-WINDOWS-2026-10-26.md) records 0.5.3's user-confirmed camera
+and factory-bar fixes and its subsequently reported map-focus failure. Version
+0.5.5 adds native task management, direct resize and full-width corner pickers;
+its integrated parked test and one-time connection approval remain pending. See the
 [active worklist](WORKLIST.md) for the remaining tasks.
 
 ## Vendor camera ownership: static investigation

@@ -8,8 +8,6 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.provider.Settings;
 import android.view.View;
-import android.view.WindowInsets;
-import android.view.WindowInsetsController;
 import android.widget.GridView;
 import android.widget.Toast;
 
@@ -63,13 +61,13 @@ public class AppDrawerActivity extends Activity {
                     .addCategory(Intent.CATEGORY_LAUNCHER)
                     .setComponent(app.component)
                     .setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED);
-            startActivity(i);
+            AppLaunch.fullscreen(this, i);
             finish();
         } catch (ActivityNotFoundException e) {
             Intent fb = getPackageManager().getLaunchIntentForPackage(app.packageName);
             if (fb != null) {
                 fb.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                startActivity(fb);
+                AppLaunch.fullscreen(this, fb);
                 finish();
             } else {
                 Toast.makeText(this, "Can't open " + app.label, Toast.LENGTH_SHORT).show();
@@ -88,12 +86,8 @@ public class AppDrawerActivity extends Activity {
     }
 
     private void goImmersive() {
-        getWindow().setDecorFitsSystemWindows(false);
-        WindowInsetsController c = getWindow().getInsetsController();
-        if (c != null) {
-            c.hide(WindowInsets.Type.systemBars());
-            c.setSystemBarsBehavior(WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
-        }
+        OemBars.keepHidden(this);
+        ImmersiveUi.apply(this);
         View root = findViewById(android.R.id.content);
         if (root != null) root.setKeepScreenOn(false);
     }

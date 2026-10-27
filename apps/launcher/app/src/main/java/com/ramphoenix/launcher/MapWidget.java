@@ -377,10 +377,10 @@ public class MapWidget {
         Intent nav = new Intent(Intent.ACTION_VIEW, Uri.parse("google.navigation:q=" + ll + "&mode=d"));
         nav.setPackage("com.google.android.apps.maps");
         nav.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-        try { act.startActivity(nav); return; } catch (ActivityNotFoundException ignored) {}
+        try { AppLaunch.fullscreen(act, nav); return; } catch (ActivityNotFoundException ignored) {}
         Intent geo = new Intent(Intent.ACTION_VIEW, Uri.parse("geo:" + ll + "?q=" + ll + "(" + Uri.encode(destName) + ")"));
         geo.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-        try { act.startActivity(geo); }
+        try { AppLaunch.fullscreen(act, geo); }
         catch (ActivityNotFoundException e) { Toast.makeText(ctx, R.string.not_installed, Toast.LENGTH_SHORT).show(); }
     }
 

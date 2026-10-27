@@ -21,8 +21,9 @@ android {
         applicationId 'com.ramphoenix.launcher'
         minSdk 31
         targetSdk 33
-        versionCode 9
-        versionName '0.5.2'
+        versionCode 12
+        versionName '0.5.5'
+        testInstrumentationRunner 'com.ramphoenix.launcher.PaneWindowProbe'
         manifestPlaceholders = [MAPS_API_KEY: mapsKey]
     }
 
@@ -50,3 +51,42 @@ dependencies {
     implementation 'com.google.android.gms:play-services-maps:18.2.0'
     testImplementation 'junit:junit:4.13.2'
 }
+
+// Compile the shell companion from source for every relevant build. No prebuilt
+// helper or workstation credentials are shipped in the repository.
+def bridgeClasses = layout.buildDirectory.dir('windowBridge/classes')
+def bridgeDex = layout.buildDirectory.dir('windowBridge/dex')
+def bridgeAssets = layout.buildDirectory.dir('generated/windowBridgeAssets')
+def compileBridge = tasks.register('compileWindowBridge', JavaCompile) {
+    source rootProject.fileTree('../windowbridge/src') { include '**/*.java' }
+    source rootProject.fileTree('../windowbridge/shared') { include '**/*.java' }
+    classpath = files(android.bootClasspath)
+    destinationDirectory = bridgeClasses
+    sourceCompatibility = '1.8'
+    targetCompatibility = '1.8'
+}
+def dexBridge = tasks.register('dexWindowBridge', JavaExec) {
+    dependsOn compileBridge
+    inputs.dir(bridgeClasses)
+    outputs.dir(bridgeDex)
+    classpath = files("${android.sdkDirectory}/build-tools/34.0.0/lib/d8.jar")
+    mainClass = 'com.android.tools.r8.D8'
+    doFirst {
+        bridgeDex.get().asFile.mkdirs()
+        args = ['--lib', "${android.sdkDirectory}/platforms/android-34/android.jar",
+                '--min-api', '31', '--output', bridgeDex.get().asFile.absolutePath]
+        args += fileTree(bridgeClasses).matching { include '**/*.class' }.files.collect { it.absolutePath }
+    }
+}
+def packageBridge = tasks.register('packageWindowBridge', Zip) {
+    dependsOn dexBridge
+    from bridgeDex
+    include 'classes.dex'
+    archiveFileName = 'window_bridge.jar'
+    destinationDirectory = bridgeAssets
+    preserveFileTimestamps = false
+    reproducibleFileOrder = true
+}
+android.sourceSets.main.assets.srcDir(bridgeAssets)
+android.sourceSets.main.java.srcDir(rootProject.file('../windowbridge/shared'))
+tasks.named('preBuild').configure { dependsOn packageBridge }
