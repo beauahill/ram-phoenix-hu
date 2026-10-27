@@ -31,6 +31,11 @@ in [CAMERA-WAKE-2026-10-27.md](CAMERA-WAKE-2026-10-27.md).
   retained YouTube through five map pans and dock reflow, then FULL dismissed it.
   Final screenshot confirms full-width panes and a small corner chevron clear of
   the map's zoom button.
+- Physical reverse retest passed on launcher **0.5.15 / camera 0.3.5**: Beau
+  confirmed a working camera picture in Reverse, dismissal in Park and YouTube
+  remaining up afterward. This follows the earlier force-stopped-camera failure
+  and the installed monitor recovery. The initial manual zero-frame attempt did
+  not persist as a failure during this reverse test.
 - Explicitly approved app-owned local debugging trust. Helper restart after a
   verified helper-only termination passed in1.1s without Crimson bootstrapping.
   Shell stream is retained until startup readiness; helper directory0700, token/
@@ -38,11 +43,8 @@ in [CAMERA-WAKE-2026-10-27.md](CAMERA-WAKE-2026-10-27.md).
 
 ## Still pending
 
-- Physical0.5.14 test: Beau confirmed YouTube stays during map use, but camera
-  never opened. Camera was vendor-force-stopped. Installed monitor recovery in
-  launcher 0.5.15/camera 0.3.5; live foreground-service restoration verified. Initial
-  manual video attempt produced zero frames. Usable picture, physical camera
-  button and Reverse/Park with the recovery build remain pending.
+- Dedicated physical camera button and recovery through another vendor sleep/wake
+  cycle. Physical Reverse/Park with the recovery build is now user-confirmed above.
 - One explicitly approved Empty5 psi command completed and post-write readback
   remained35 kPa (target was already5 psi). No higher profile applied. Changed-target
   response/settling, app handoff and interruption checks remain pending.

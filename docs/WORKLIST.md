@@ -137,11 +137,13 @@ targets. Both launcher and climate are part of the same visual system.
 - [ ] Confirm camera ownership after repeated reverse cycles, boot while in R and
   manual camera use followed by R/Park. Mark each only after the actual test.
 - [x] Beau confirmed Reverse/Park takeover/dismissal with SPLIT on launcher 0.5.3.
-- [ ] Repeat physical Reverse/Park with a native managed app on launcher 0.5.5;
-  the always-on-top backend needs its own camera-priority check. Beau's 0.5.14
-  test confirmed app persistence but camera did not open. Camera package was
-  vendor-force-stopped. Installed 0.5.15/Camera 0.3.5 monitor recovery; fresh physical
-  retest and usable video remain pending. See [CAMERA-WAKE-2026-10-27.md](CAMERA-WAKE-2026-10-27.md).
+- [x] Repeat physical Reverse/Park with a native managed app: Beau confirmed a
+  working camera picture in Reverse, dismissal in Park and YouTube remaining up
+  on launcher 0.5.15 / camera 0.3.5. This followed the 0.5.14 failure caused by a
+  vendor-force-stopped camera and the installed monitor recovery.
+  See [CAMERA-WAKE-2026-10-27.md](CAMERA-WAKE-2026-10-27.md).
+- [ ] Verify the dedicated physical camera button and another vendor sleep/wake
+  cycle independently of the confirmed Reverse/Park result.
 - [x] Physical factory view-button response confirmed by Beau on 2026-10-26.
   Earlier remote taps were inconclusive; the parked user test takes precedence.
 - [ ] Measure time from physical reverse signal to displayed usable image.

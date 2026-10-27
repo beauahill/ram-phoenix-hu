@@ -18,8 +18,9 @@ seeded0. The activity appeared fullscreen, but its preview watchdog timed out.
 `dumpsys media.camera` showed Phoenix as the only device 14 client, native 720×504
 and **zero frames produced**. No competing camera client or stale size override
 was observed. The UI correctly showed “Camera unavailable · reconnecting…”.
-This is a separate video-input problem; restoring the monitor does not prove a
-usable image. A physical Reverse/Park retest was requested and remains pending.
+That manual attempt did not establish a usable picture. The later physical
+Reverse/Park test below confirmed a working picture during reverse; the timeout
+is retained as evidence rather than treated as a continuing reverse failure.
 
 ## Installed recovery
 
@@ -54,3 +55,14 @@ Camera APK SHA-256:
 The physical button's exact show/hide route still needs a live trace. An earlier
 note's CAN 1013 `U_CAMERA_MODE` is insufficient: inspected factory code uses it for
 view/layout controls, so it was not guessed to be a manual launch trigger.
+
+## User-confirmed physical retest
+
+With launcher **0.5.15** and camera **0.3.5** installed, Beau confirmed that the
+camera connects and shows a working picture in Reverse, dismisses in Park, and
+YouTube stays up afterward. This verifies physical reverse takeover/dismissal
+with the managed native app window. No further camera reset or video setting
+change was needed for that result.
+
+The dedicated physical camera button, a subsequent vendor sleep/wake cycle and
+a real cold boot remain separate checks; this result does not establish them.

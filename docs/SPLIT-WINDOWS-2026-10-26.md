@@ -3,11 +3,13 @@
 Branch `codex/split-windows-2026-10-26`, based on `064d879`.
 Launcher **0.5.5 / code 12**; camera remains **0.3.4 / code 7**. Main is unchanged.
 
-**Deployment update, 2026-10-27:** cumulative launcher **0.5.14 / code 21** is
-installed. Native task/gesture/resize/software-reverse/Home checks passed on this
-build. The helper-only restart test passed in 1.1 seconds using the app's own
-approved key. A real cold boot and physical Reverse/Park with this backend remain
-pending. The original branch/version above records the implementation's origin.
+**Deployment update, 2026-10-27:** cumulative launcher **0.5.15 / code 22** and
+camera **0.3.5 / code 8** are installed. Native task/gesture/resize/software-reverse/
+Home checks passed on 0.5.14; the helper-only restart test passed in 1.1 seconds
+using the app's own approved key. After the camera-monitor recovery, Beau confirmed
+a working picture in physical Reverse, dismissal in Park and YouTube remaining up.
+A real cold boot remains pending. The original branch/version above records the
+implementation's origin.
 
 ## User report and diagnosis
 
@@ -161,9 +163,9 @@ Device screenshots/logs remain outside Git under `/home/beauhill/ram-phoenix-res
 - The initial 0.5.5 integrated test was postponed because the display was off.
   The later cumulative build's live results are recorded above; no off-screen
   task state was counted as a visual pass.
-- 0.5.3 physical reverse takeover/dismissal and factory overlay removal are
-  user-confirmed. Those results do not establish camera priority for the new
-  always-on-top native backend.
+- 0.5.3 physical reverse takeover/dismissal and factory overlay removal were
+  user-confirmed earlier. Beau has now also confirmed camera priority and Park
+  dismissal with YouTube in the new native backend on launcher 0.5.15/camera 0.3.5.
 - Next parked checks: select YouTube and pan/tap the map repeatedly; interact with
   the app; use each corner picker; hide/show the dock and confirm the app expands
   without restarting; select FULL/Home/drawer apps; Reverse → Park with the native
