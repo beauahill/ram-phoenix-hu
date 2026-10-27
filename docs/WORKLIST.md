@@ -111,6 +111,10 @@ targets. Both launcher and climate are part of the same visual system.
   target 35 kPa; optional tank field absent. Air Lift model72708/firmware1.2.0.
 - [x] Inspect native card and pressure page on the panel: live measured pressure,
   separate target, 80/50/30/5 psi profiles and configured limits are visible.
+- [x] Launcher 0.5.16: long press any preset to edit its name and pressure, with
+  keyboard-safe Save/Cancel and kit-limit validation. Verified durable save,
+  Cancel, restart persistence and restored original values on the HU. Editing/
+  saving does not apply pressure; Set uses the saved definition. All 92 tests pass.
 - [ ] Check the setup keyboard/footer on the panel, then conduct an explicit parked
   pressure/handoff/disconnect/reverse test. One explicitly approved5 psi command
   completed with fresh35 kPa target readback; target was already5 psi, so a changed

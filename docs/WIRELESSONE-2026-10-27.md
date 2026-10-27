@@ -170,3 +170,34 @@ official-app handoff still need separate checks. Evidence outside Git:
 The manifold continues maintaining its existing setting after a client disconnect;
 Phoenix cannot undo an already accepted change by closing Bluetooth. An interrupted
 unconfirmed write is reported as uncertain and never retried automatically.
+
+## Long-press preset editing — launcher 0.5.16
+
+Holding any of the four load-profile tiles opens an editor for its name and
+whole-number pressure. A small “Hold to edit” hint appears beside the profiles.
+Names allow up to 40 characters; pressure must fit the configured kit limits
+(currently 5–100 psi). Existing names/80/50/30/minimum defaults remain until edited.
+
+Save/Cancel stay above the keyboard, and the keyboard Done action also saves.
+Back/Cancel discard edits. Saved definitions persist on the head unit as a name/
+pressure pair; no manufacturer preset slots are overwritten. Editing clears the
+current selection. Saving does not send a pressure command: applying requires
+selecting a tile and pressing Set, which now reads that tile's saved pressure.
+If kit limits later change, an out-of-range custom preset stays blocked instead
+of silently changing its target. Unsaved fields survive activity recreation.
+
+Verified on the actual HU: long press opens the editor, Save/Cancel fit above the
+real keyboard, invalid 0 psi retains the form and is not persisted, and a temporary
+name/79 psi definition saved durably and rendered correctly. Restored the original
+“Full Load & Trailer”/80 psi definition, verified Cancel discarded a temporary
+edit, and verified persistence after a launcher process restart. All four tiles
+expose long press; no target was selected automatically. **No suspension Set
+action was pressed and no pressure command was sent during these editor checks.**
+The camera foreground monitor remained running.
+
+All **92 launcher unit tests** passed; app and instrumentation APKs built.
+Backup: `/home/beauhill/ram-phoenix-backups/air-preset-editor-hmip65fm`.
+Private evidence: `air-preset-editor-live-20261027.txt`,
+`air-preset-editor-keyboard-20261027.png` and
+`air-preset-editor-final-20261027.png` under the research folder.
+APK SHA-256: `548708570ec571e84bf8f408c850a62fff6276a16e5afdb6fd761a47d6d5e7f6`.

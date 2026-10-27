@@ -1,9 +1,10 @@
 # Parked HU checks — 2026-10-27
 
-Installed launcher **0.5.15 / code 22**, camera **0.3.5 / code 8** after the physical
-camera failure reported below. All **92 launcher + 9 camera unit tests** and APK
-builds passed. No GitHub push. Current checksums and camera details are recorded
-in [CAMERA-WAKE-2026-10-27.md](CAMERA-WAKE-2026-10-27.md).
+Installed launcher **0.5.16 / code 23**, camera **0.3.5 / code 8**. The latest
+launcher build passed all **92 unit tests**; the unchanged camera previously
+passed its 9 tests. No GitHub push. Camera recovery details are recorded in
+[CAMERA-WAKE-2026-10-27.md](CAMERA-WAKE-2026-10-27.md); the current launcher checksum
+and preset-editor results are in [WIRELESSONE-2026-10-27.md](WIRELESSONE-2026-10-27.md).
 
 ## Verified
 
@@ -23,6 +24,10 @@ in [CAMERA-WAKE-2026-10-27.md](CAMERA-WAKE-2026-10-27.md).
   mode, no diagnostic flags, measured38kPa (~5.51psi), target35 kPa (~5.08psi), optional
   tank field absent. The native page displays pressure and 80/50/30/5 psi profiles.
   Setup contains the user-entered "Ram Kit" limits5–100psi; owner reports100psi max.
+- Long-press preset editing verified on 0.5.16: name/pressure changes persist,
+  invalid pressure is rejected, Cancel discards edits, and Save/Cancel remain
+  usable above the keyboard. Original preset values restored after QA. Definitions
+  survive a launcher restart; editing/saving does not send a pressure command.
 - Recognizable climate icons inspected on the actual panel in compact/expanded/
   full-page layouts. Power/Auto remain in the compact header. No HVAC commands
   pressed during visual QA; user acceptance of appearance is still pending.

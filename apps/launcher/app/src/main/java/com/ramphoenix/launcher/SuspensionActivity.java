@@ -23,6 +23,8 @@ public class SuspensionActivity extends Activity {
     private TextView actual, target, status, detail, apply, deviceChoice, error;
     private final TextView[] profiles = new TextView[4];
     private EditText kit, minimum, maximum;
+    private EditText presetName, presetPressure;
+    private int editingPreset = -1;
     private int selected = -1;
     private boolean setup;
     private String selectedAddress = "", selectedName = "";
@@ -30,7 +32,13 @@ public class SuspensionActivity extends Activity {
     @Override protected void attachBaseContext(Context base) { super.attachBaseContext(base);Ui.applyDensity(this); }
     @Override protected void onCreate(Bundle state) {
         super.onCreate(state);client = WirelessOneClient.get(this);
-        if(state!=null && state.getBoolean("setup")) {
+        int savedPreset=state==null?-1:state.getInt("editing_preset",-1);
+        SuspensionConfig config=new SuspensionConfig(this);
+        if(savedPreset>=0 && savedPreset<profiles.length && WirelessOneProtocol.validLimits(config.minimum,config.maximum)) {
+            showPresetEditor(savedPreset);
+            presetName.setText(state.getString("preset_name",presetName.getText().toString()));
+            presetPressure.setText(state.getString("preset_pressure",presetPressure.getText().toString()));
+        } else if(state!=null && state.getBoolean("setup")) {
             showSetup();selectedAddress=state.getString("address","");selectedName=state.getString("name","");
             kit.setText(state.getString("kit",""));minimum.setText(state.getString("minimum",""));maximum.setText(state.getString("maximum",""));
             deviceChoice.setText(selectedAddress.isEmpty()?"Choose paired WirelessOne":selectedName);
@@ -38,6 +46,11 @@ public class SuspensionActivity extends Activity {
     }
     @Override protected void onSaveInstanceState(Bundle state) {
         state.putBoolean("setup",setup);
+        state.putInt("editing_preset",editingPreset);
+        if(editingPreset>=0) {
+            state.putString("preset_name",presetName.getText().toString());
+            state.putString("preset_pressure",presetPressure.getText().toString());
+        }
         if(setup) {
             state.putString("address",selectedAddress);state.putString("name",selectedName);state.putString("kit",kit.getText().toString());
             state.putString("minimum",minimum.getText().toString());state.putString("maximum",maximum.getText().toString());
@@ -48,7 +61,7 @@ public class SuspensionActivity extends Activity {
     @Override protected void onStart() { super.onStart();client.listen(update);client.start(this);refresh(); }
     @Override protected void onResume() { super.onResume();MaintenanceUi.immersive(this); }
     @Override protected void onStop() { client.unlisten(update);client.stop(this);super.onStop(); }
-    @Override public void onBackPressed() { if(setup) showControls();else super.onBackPressed(); }
+    @Override public void onBackPressed() { if(setup || editingPreset>=0) showControls();else super.onBackPressed(); }
 
     private void page(String title) {
         root=column(this);root.setBackgroundColor(getColor(R.color.bg_base));
@@ -62,12 +75,15 @@ public class SuspensionActivity extends Activity {
         footer=column(this);root.addView(footer,match(-2));
     }
     private void showControls() {
-        setup=false;hideKeyboard();page("Air suspension");
+        setup=false;editingPreset=-1;hideKeyboard();page("Air suspension");
         LinearLayout hero=card(this);hero.addView(text(this,"MEASURED SPRING PRESSURE",10,R.color.text_tertiary));gap(hero,8);
         actual=text(this,"— psi",44,R.color.text_primary);hero.addView(actual);gap(hero,8);
         target=text(this,"Controller target —",14,R.color.text_secondary);hero.addView(target);gap(hero,6);
         status=text(this,"",12,R.color.text_secondary);hero.addView(status);body.addView(hero,match(-2));gap(body,14);
-        body.addView(text(this,"LOAD PROFILES",10,R.color.text_tertiary));gap(body,8);
+        LinearLayout profileHeading=row(this);
+        profileHeading.addView(text(this,"LOAD PROFILES",10,R.color.text_tertiary),new LinearLayout.LayoutParams(0,-2,1));
+        profileHeading.addView(text(this,"Hold to edit",12,R.color.text_tertiary));
+        body.addView(profileHeading,match(-2));gap(body,8);
         for(int rowIndex=0;rowIndex<2;rowIndex++) {
             LinearLayout row=row(this);
             for(int column=0;column<2;column++) {
@@ -76,6 +92,7 @@ public class SuspensionActivity extends Activity {
                 button.setGravity(Gravity.CENTER);button.setMinHeight(dp(this,94));button.setPadding(dp(this,8),dp(this,12),dp(this,8),dp(this,12));
                 button.setBackgroundResource(R.drawable.air_profile);button.setClickable(true);button.setFocusable(true);
                 button.setOnClickListener(v -> {selected=index;refresh();});
+                button.setOnLongClickListener(v -> {showPresetEditor(index);return true;});
                 LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(0,-2,1);if(column>0)p.leftMargin=dp(this,8);row.addView(button,p);
             }
             body.addView(row,match(-2));gap(body,8);
@@ -91,12 +108,12 @@ public class SuspensionActivity extends Activity {
         apply=action(this,"Select a load profile",0,true);apply.setOnClickListener(v -> {
             if(selected<0)return;
             SuspensionConfig config=new SuspensionConfig(this);
-            client.setPressure(WirelessOneProtocol.presetPsi(selected,config.minimum));refresh();
+            client.setPressure(config.presetPsi(selected));refresh();
         });footer.addView(apply,match(dp(this,52)));refresh();
     }
 
     private void refresh() {
-        if(setup || actual==null)return;
+        if(setup || editingPreset>=0 || actual==null)return;
         SuspensionConfig config=new SuspensionConfig(this);
         actual.setText(client.actualText()+" psi");target.setText("Controller target  "+client.targetText());
         String block=client.blocked();
@@ -106,14 +123,14 @@ public class SuspensionActivity extends Activity {
         if(block!=null && !message.contains(block)) message+="\n"+block;
         status.setText(message);
         for(int i=0;i<4;i++) {
-            int psi=WirelessOneProtocol.presetPsi(i,config.minimum);
-            String label=psi+" psi\n"+WirelessOneProtocol.NAMES[i];
+            int psi=config.presetPsi(i);
+            String label=psi+" psi\n"+config.presetName(i);
             android.text.SpannableString styled=new android.text.SpannableString(label);
             styled.setSpan(new android.text.style.RelativeSizeSpan(1.6f),0,label.indexOf('\n'),android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
             profiles[i].setText(styled);profiles[i].setSelected(selected==i);
-            profiles[i].setContentDescription(WirelessOneProtocol.NAMES[i]+", target "+psi+" psi");
+            profiles[i].setContentDescription(config.presetName(i)+", target "+psi+" psi. Touch and hold to edit.");
         }
-        int psi=selected<0?-1:WirelessOneProtocol.presetPsi(selected,config.minimum);
+        int psi=selected<0?-1:config.presetPsi(selected);
         boolean inRange=WirelessOneProtocol.validLimits(config.minimum,config.maximum) && psi>=config.minimum && psi<=config.maximum;
         apply.setText(selected<0?"Select a load profile":client.pending()?"Checking target…":"Set "+psi+" psi");
         apply.setEnabled(selected>=0 && block==null && inRange);apply.setAlpha(apply.isEnabled()?1f:0.45f);
@@ -130,7 +147,7 @@ public class SuspensionActivity extends Activity {
         body.addView(edit,match(dp(this,48)));gap(body,14);return edit;
     }
     private void showSetup() {
-        setup=true;page("Suspension setup");SuspensionConfig config=new SuspensionConfig(this);
+        setup=true;editingPreset=-1;page("Suspension setup");SuspensionConfig config=new SuspensionConfig(this);
         selectedAddress=config.address;selectedName=config.name;
         body.addView(text(this,"Pair the head unit with the manifold in WirelessOne first. Phoenix uses that same Bluetooth pairing.",14,R.color.text_secondary));gap(body,10);
         deviceChoice=action(this,config.address.isEmpty()?"Choose paired WirelessOne":config.name,R.drawable.ic_bluetooth,false);
@@ -146,6 +163,49 @@ public class SuspensionActivity extends Activity {
         cancel.setOnClickListener(v -> showControls());save.setOnClickListener(v -> saveSetup());
         buttons.addView(cancel,new LinearLayout.LayoutParams(0,dp(this,52),1));LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(0,dp(this,52),1);p.leftMargin=dp(this,8);buttons.addView(save,p);footer.addView(buttons,match(-2));
         TextView open=action(this,"Open WirelessOne for pairing",0,false);open.setOnClickListener(v -> openOfficial());gap(body,12);body.addView(open,match(dp(this,48)));
+    }
+    private void showPresetEditor(int index) {
+        SuspensionConfig config=new SuspensionConfig(this);
+        if(!WirelessOneProtocol.validLimits(config.minimum,config.maximum)) {
+            Toast.makeText(this,"Enter your kit pressure limits in Setup first",Toast.LENGTH_LONG).show();return;
+        }
+        selected=-1;setup=false;editingPreset=index;hideKeyboard();page("Edit preset");
+        presetName=field("Preset name",config.presetName(index),false);
+        presetName.setId(R.id.air_preset_name);
+        presetName.setFilters(new android.text.InputFilter[]{new android.text.InputFilter.LengthFilter(40)});
+        presetPressure=field("Target pressure (psi)",String.valueOf(config.presetPsi(index)),true);
+        presetPressure.setId(R.id.air_preset_pressure);
+        presetPressure.setImeOptions(EditorInfo.IME_ACTION_DONE|EditorInfo.IME_FLAG_NO_EXTRACT_UI|EditorInfo.IME_FLAG_NO_FULLSCREEN);
+        presetPressure.setOnEditorActionListener((v,action,event) -> {
+            if(action==EditorInfo.IME_ACTION_DONE){savePreset();return true;}return false;
+        });
+        body.addView(text(this,"Allowed targets: "+config.minimum+"–"+config.maximum
+                +" psi. Saving changes the preset only. Tap the preset and Set to apply it.",12,R.color.text_tertiary));
+        LinearLayout buttons=row(this);
+        TextView cancel=action(this,"Cancel",0,false),save=action(this,"Save preset",0,true);
+        cancel.setId(R.id.air_preset_cancel);save.setId(R.id.air_preset_save);
+        cancel.setOnClickListener(v -> showControls());save.setOnClickListener(v -> savePreset());
+        buttons.addView(cancel,new LinearLayout.LayoutParams(0,dp(this,52),1));
+        LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(0,dp(this,52),1);p.leftMargin=dp(this,8);
+        buttons.addView(save,p);footer.addView(buttons,match(-2));
+    }
+    private void savePreset() {
+        if(editingPreset<0)return;
+        String name=presetName.getText().toString().trim();
+        if(name.isEmpty()) {presetName.setError("Enter a preset name");presetName.requestFocus();return;}
+        int psi;
+        try {psi=Integer.parseInt(presetPressure.getText().toString().trim());}
+        catch(NumberFormatException invalid) {presetPressure.setError("Enter a whole-number pressure");return;}
+        SuspensionConfig config=new SuspensionConfig(this);
+        if(!WirelessOneProtocol.validLimits(config.minimum,config.maximum) || psi<config.minimum || psi>config.maximum) {
+            presetPressure.setError("Use a pressure within the kit limits ("+config.minimum+"–"+config.maximum+" psi)");return;
+        }
+        try {
+            SuspensionConfig.savePreset(this,editingPreset,name,psi);
+            showControls();
+        } catch(IllegalArgumentException | IllegalStateException failed) {
+            Toast.makeText(this,failed.getMessage(),Toast.LENGTH_LONG).show();
+        }
     }
     private void saveSetup() {
         try {

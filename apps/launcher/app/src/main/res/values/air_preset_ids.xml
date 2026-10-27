@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <item name="air_preset_name" type="id" />
+    <item name="air_preset_pressure" type="id" />
+    <item name="air_preset_save" type="id" />
+    <item name="air_preset_cancel" type="id" />
+</resources>
