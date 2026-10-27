@@ -83,11 +83,23 @@ hardware behavior still require the actual head unit.
 - **102 launcher tests and 9 camera tests passed**, including the eight-state
   native layout matrix and cached/expired reading scenarios.
 - Day/night idle, playing/expanded-climate and SPLIT previews inspected.
+- Isolated Android 13 emulator: both apps installed, no fatal runtime exceptions;
+  Day/Night switching and independent dimming verified (Day 32%, edited Night
+  61%, then switching back retained each). These were emulator preferences only.
+- With Appearance foreground on that emulator, force-stopping only Phoenix Camera
+  removed its service; the launcher restored the reverse monitor in 4.1 seconds.
+  The activity stayed in Appearance. This is one observed recovery, not a maximum
+  latency guarantee or a physical camera picture test.
+- After an Android reboot of that emulator, BOOT_COMPLETED started both foreground
+  services automatically. Vendor services/camera hardware are absent there; this
+  does not establish the HU's real boot or ACC sleep/wake behavior.
 - No suspension pressure commands sent during this pass.
 - HU installation, reverse/physical-button regression, fresh-source comparison,
   background-monitor fault recovery, real cold boot and vendor sleep/wake pending.
-- GitHub-hosted workflow result must be checked after pushing; local Gradle
-  success alone is not a hosted CI result.
+- [GitHub-hosted checks passed for both apps](https://github.com/beauahill/ram-phoenix-hu/actions/runs/40571459451)
+  at source commit `e6d25b07f5d5ba4b976ffd9a442551293ec7c828`. The runner is
+  pinned to Ubuntu 24.04 and resolves SDK tools explicitly rather than assuming
+  `sdkmanager` is on PATH.
 
 ## Parked acceptance checklist
 

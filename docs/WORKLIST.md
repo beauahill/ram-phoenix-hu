@@ -1,7 +1,8 @@
 # Active worklist
 
-Updated 2026-10-27. Tested development line: `codex/can-gauges-2026-10-27`, based
-on the reliability, TPMS and camera-alignment work. Installed baseline: launcher
+Updated 2026-10-27. Candidate development line:
+`codex/oem-polish-reliability-2026-10-27`, based on synced main `2437334`.
+Installed baseline: launcher
 0.5.21 / camera 0.3.6. See the current README and live checks for its verified scope.
 
 ## Completed and previously verified
@@ -28,7 +29,11 @@ on the reliability, TPMS and camera-alignment work. Installed baseline: launcher
   [candidate notes](OEM-POLISH-RELIABILITY-2026-10-27.md).
 - [ ] Install this candidate when the HU reconnects; complete the dated parked
   acceptance checklist. The installed baseline remains 0.5.21 / 0.3.6.
-- [ ] Verify the GitHub-hosted workflow after pushing the candidate.
+- [x] Both candidate builds passed the
+  [GitHub-hosted workflow](https://github.com/beauahill/ram-phoenix-hu/actions/runs/40571459451).
+- [x] Isolated Android emulator: appearance profiles/dimming, background camera
+  service recovery and BOOT_COMPLETED startup checked. Actual HU hardware tests
+  remain separate and pending.
 
 - [x] Launcher 0.5.21: map toolbar adapts to available height; all five controls
   fit with the dock/climate expanded and in FULL/SPLIT. Heat icons/bars red,
