@@ -19,7 +19,8 @@
         <item name="android:layout_marginEnd">3dp</item>
         <item name="android:gravity">center</item>
         <item name="android:background">@drawable/climate_tile</item>
-        <item name="android:textColor">@color/text_primary</item>
+        <item name="android:textColor">@color/control_icon</item>
+        <item name="android:drawableTint">@color/control_icon</item>
         <item name="android:textSize">9sp</item>
         <item name="android:letterSpacing">0.06</item>
         <item name="android:fontFamily">sans-serif-medium</item>
@@ -31,6 +32,7 @@
         <item name="android:focusable">true</item>
     </style>
     <style name="ClimateTileImg">
+        <item name="android:tint">@color/control_icon</item>
         <item name="android:layout_width">0dp</item>
         <item name="android:layout_height">match_parent</item>
         <item name="android:layout_weight">1</item>
@@ -48,14 +50,19 @@
         <item name="android:layout_weight">1</item>
         <item name="android:gravity">center</item>
         <item name="android:background">@drawable/climate_text_btn</item>
-        <item name="android:textColor">@color/text_primary</item>
-        <item name="android:textSize">15sp</item>
-        <item name="android:letterSpacing">0.08</item>
+        <item name="android:textColor">@color/control_icon</item>
+        <item name="android:textSize">13sp</item>
+        <item name="android:letterSpacing">0.02</item>
+        <item name="android:maxLines">1</item>
+        <item name="android:ellipsize">end</item>
+        <item name="android:layout_margin">4dp</item>
         <item name="android:fontFamily">sans-serif-medium</item>
         <item name="android:clickable">true</item>
         <item name="android:focusable">true</item>
     </style>
     <style name="ClimateTextBtnImg">
+        <item name="android:tint">@color/control_icon</item>
+        <item name="android:layout_margin">4dp</item>
         <item name="android:layout_width">0dp</item>
         <item name="android:layout_height">52dp</item>
         <item name="android:layout_weight">1</item>
@@ -66,6 +73,7 @@
         <item name="android:focusable">true</item>
     </style>
     <style name="ClimateRound">
+        <item name="android:tint">@color/control_icon</item>
         <item name="android:layout_width">40dp</item>
         <item name="android:layout_height">40dp</item>
         <item name="android:layout_marginStart">6dp</item>
@@ -73,6 +81,20 @@
         <item name="android:background">@drawable/glass_tile_selector</item>
         <item name="android:clickable">true</item>
         <item name="android:focusable">true</item>
+    </style>
+    <style name="ClimateModeText" parent="ClimateTile">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">56dp</item>
+        <item name="android:layout_weight">0</item>
+        <item name="android:layout_marginStart">0dp</item>
+        <item name="android:layout_marginEnd">0dp</item>
+        <item name="android:layout_marginBottom">8dp</item>
+        <item name="android:gravity">center_vertical</item>
+        <item name="android:paddingStart">14dp</item>
+        <item name="android:paddingEnd">10dp</item>
+        <item name="android:drawablePadding">10dp</item>
+        <item name="android:textSize">11sp</item>
+        <item name="android:letterSpacing">0.02</item>
     </style>
     <style name="ClimateStepper">
         <item name="android:layout_width">36dp</item>

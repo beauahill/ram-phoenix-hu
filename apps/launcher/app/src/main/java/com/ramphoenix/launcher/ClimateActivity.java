@@ -43,6 +43,9 @@ public class ClimateActivity extends Activity {
         View parent = (View) bar.getParent();
         int h = parent.getHeight();
         if (h <= 0) return;
+        boolean known = raw == -2 || raw == -3 || (raw >= 20 && raw <= 128);
+        bar.setVisibility(known ? View.VISIBLE : View.INVISIBLE);
+        if (!known) return;
         float f;
         if (raw == -2) f = 0f; else if (raw == -3) f = 1f;
         else if (raw < 20 || raw > 128) f = 0.5f;

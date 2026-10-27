@@ -2,31 +2,33 @@
 <resources>
     <!-- Base -->
     <color name="transparent">#00000000</color>
-    <color name="bg_base">#FF06070B</color>
+    <color name="bg_base">#FF090D12</color>
     <color name="map_bg">#FF121620</color>
 
     <!-- Text -->
-    <color name="text_primary">#FFF3F5FA</color>
-    <color name="text_secondary">#A6D4DAE6</color>
-    <color name="text_tertiary">#66C2CAD8</color>
+    <color name="text_primary">#FFEDF1F6</color>
+    <color name="text_secondary">#FFADB8C5</color>
+    <color name="text_tertiary">#FF81909F</color>
 
     <!-- Accent (Phoenix amber) + cool secondary glow -->
-    <color name="accent">#FFF2A94B</color>
-    <color name="accent_soft">#59F2A94B</color>
-    <color name="teal">#FF40E6CC</color>
+    <color name="accent">#FFE8AD63</color>
+    <color name="accent_soft">#30E8AD63</color>
+    <color name="teal">#FF91BBD6</color>
     <color name="ok_green">#FF3DD67A</color>
     <color name="warn_amber">#FFF2C43D</color>
     <color name="bad_red">#FFE53E3E</color>
-    <color name="glow_teal">#3340E6CC</color>
-    <color name="glow_amber">#38F2A94B</color>
+    <color name="glow_teal">#00000000</color>
+    <color name="glow_amber">#00000000</color>
 
     <!-- Glass -->
-    <color name="glass_fill">#14FFFFFF</color>
-    <color name="glass_fill_bright">#40FFFFFF</color>
-    <color name="glass_stroke">#2EFFFFFF</color>
-    <color name="glass_stroke_bright">#80F2A94B</color>
-    <color name="glass_highlight">#24FFFFFF</color>
-    <color name="pill_fill">#B80A0C12</color>
+    <color name="glass_fill">#FF1B232D</color>
+    <color name="glass_fill_bright">#FF293440</color>
+    <color name="glass_stroke">#FF2D3845</color>
+    <color name="glass_stroke_bright">#FFB98A51</color>
+    <color name="glass_highlight">#06FFFFFF</color>
+    <color name="pill_fill">#F0161D26</color>
+    <color name="surface_card">#FF141B23</color>
+    <color name="control_cool">#FF8DBEF1</color>
     <color name="scrim">#33000000</color>
 
     <!-- Dock icon tiles -->

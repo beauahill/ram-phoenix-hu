@@ -204,7 +204,7 @@ public class ClimateWidget {
     private void render() {
         card.setAlpha(connected ? 1f : 0.55f);
         boolean power = on(C_POWER);
-        txt(status, !connected ? "NO CAN BUS" : (power ? "" : "OFF"));
+        txt(status, !connected ? "NO CAN BUS" : v(C_POWER) < 0 ? "WAITING FOR VEHICLE" : (power ? "" : "OFF"));
 
         sel(this.power, power);
         toggle(auto, on(C_AUTO));
@@ -224,6 +224,8 @@ public class ClimateWidget {
         level(ventR, false, false, v(C_SEAT_VENT_R));
 
         int f = v(C_FAN);
+        TextView fanValue = card.findViewById(R.id.cl_fan_value);
+        txt(fanValue, f < 0 ? Fmt.NONE : on(C_AUTO) ? "AUTO" : Integer.toString(f));
         if (fan != null) {
             if (!fanDragging) fan.setProgress(Math.max(0, Math.min(7, f)));
             fan.setEnabled(f >= 0);
@@ -242,13 +244,18 @@ public class ClimateWidget {
         chip.setAlpha(1f);
     }
 
-    /** Seat chips: white line icon with three level dots under it. */
+    /** Seat controls use a short label and a readable level, with warm/cool state. */
     private static void level(TextView chip, boolean left, boolean heat, int lvl) {
         if (chip == null) return;
         int l = Math.max(0, Math.min(3, lvl));
-        StringBuilder d = new StringBuilder();
-        for (int i = 1; i <= 3; i++) d.append(i <= l ? '\u25CF' : '\u25CB');
-        chip.setText(d);
+        String label = heat ? "HEAT" : "VENT";
+        boolean compact = "compact".equals(chip.getTag());
+        chip.setText(compact ? (lvl < 0 ? Fmt.NONE : Integer.toString(l)) : l > 0 ? label + " " + l : label);
+        chip.setContentDescription((left ? "Driver" : "Passenger") + " seat "
+                + (heat ? "heat" : "ventilation") + (lvl < 0 ? " unavailable" : " level " + l));
+        int color = chip.getContext().getColor(l > 0 ? (heat ? R.color.accent : R.color.control_cool) : R.color.text_secondary);
+        chip.setCompoundDrawableTintList(android.content.res.ColorStateList.valueOf(color));
+        chip.setTextColor(color);
         chip.setSelected(l > 0);
         chip.setAlpha(l > 0 ? 1f : 0.8f);
     }

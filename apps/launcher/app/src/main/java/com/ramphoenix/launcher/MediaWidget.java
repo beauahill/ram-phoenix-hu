@@ -47,6 +47,8 @@ public class MediaWidget {
     private MediaController current;
     private boolean needsAccess;
     private final float density;
+    private boolean large, albumArt;
+    private int compactLevel;
     /** The unit's own audio source (radio / BT music / Android) over the SYU IPC. */
     private final AudioSource src;
     private final TextView pillBt, pillRadio, pillApps;
@@ -110,6 +112,14 @@ public class MediaWidget {
         pillRadio.setOnClickListener(v -> src.selectRadio());
         pillApps.setOnClickListener(v -> src.selectAndroid());
         tint(null);
+        card.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) -> {
+            float height = (b - t) / density;
+            int next = height > 0 && height < 136f ? 2 : height > 0 && height < 180f ? 1 : 0;
+            if (next != compactLevel) { compactLevel = next; applySizing(); }
+        });
+        art.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) -> {
+            if (!albumArt) fitFallbackArt();
+        });
     }
 
     public void onResume() {
@@ -206,15 +216,26 @@ public class MediaWidget {
 
     /** SPLIT pane (large) vs FULL-mode card (small): scale the text and controls. */
     public void setLarge(boolean large) {
+        this.large = large;
+        applySizing();
+    }
+
+    private void applySizing() {
+        boolean tight = compactLevel > 0 && !large;
+        artist.setVisibility(compactLevel > 1 && !large ? View.GONE : View.VISIBLE);
         // SPLIT pane: cap the art so the text and controls keep most of the width
         // (Beau, 2026-10-25: the BT glyph filled the whole pane).
         ViewGroup.LayoutParams ap = art.getLayoutParams();
         ap.height = large ? dp(150) : ViewGroup.LayoutParams.MATCH_PARENT;
         art.setLayoutParams(ap);
-        title.setTextSize(TypedValue.COMPLEX_UNIT_SP, large ? 30 : 22);
-        artist.setTextSize(TypedValue.COMPLEX_UNIT_SP, large ? 20 : 14);
-        srcName.setTextSize(TypedValue.COMPLEX_UNIT_SP, large ? 16 : 13);
-        int play = dp(large ? 68 : 50), side = dp(large ? 52 : 40);
+        title.setTextSize(TypedValue.COMPLEX_UNIT_SP, large ? 30 : tight ? 18 : 22);
+        artist.setTextSize(TypedValue.COMPLEX_UNIT_SP, large ? 20 : tight ? 11 : 14);
+        srcName.setTextSize(TypedValue.COMPLEX_UNIT_SP, large ? 16 : tight ? 10 : 13);
+        ViewGroup.MarginLayoutParams tp = (ViewGroup.MarginLayoutParams) title.getLayoutParams();
+        tp.topMargin = dp(tight ? 2 : 6); title.setLayoutParams(tp);
+        ViewGroup.MarginLayoutParams atp = (ViewGroup.MarginLayoutParams) artist.getLayoutParams();
+        atp.topMargin = dp(tight ? 2 : 3); artist.setLayoutParams(atp);
+        int play = dp(large ? 68 : tight ? 44 : 50), side = dp(large ? 52 : 40);
         ViewGroup.LayoutParams lp = btnPlay.getLayoutParams();
         lp.width = play; lp.height = play; btnPlay.setLayoutParams(lp);
         int pad = dp(large ? 14 : 10);
@@ -225,13 +246,14 @@ public class MediaWidget {
         }
         ViewGroup.MarginLayoutParams pp = (ViewGroup.MarginLayoutParams) progress.getLayoutParams();
         pp.topMargin = dp(large ? 22 : 8); pp.height = dp(large ? 6 : 4); progress.setLayoutParams(pp);
+        progress.setVisibility(tight ? View.GONE : View.VISIBLE);
         View controls = card.findViewById(R.id.media_controls);
         ViewGroup.MarginLayoutParams cp = (ViewGroup.MarginLayoutParams) controls.getLayoutParams();
-        cp.topMargin = dp(large ? 22 : 8); controls.setLayoutParams(cp);
+        cp.topMargin = dp(large ? 22 : tight ? 4 : 8); controls.setLayoutParams(cp);
         ViewGroup.MarginLayoutParams ip = (ViewGroup.MarginLayoutParams) card.findViewById(R.id.media_info).getLayoutParams();
         ip.leftMargin = dp(large ? 24 : 17); ip.rightMargin = dp(large ? 64 : 6);
         card.findViewById(R.id.media_info).setLayoutParams(ip);
-        int cpad = dp(large ? 24 : 14);
+        int cpad = dp(large ? 24 : tight ? 10 : 14);
         card.setPadding(cpad, cpad, cpad, cpad);
     }
 
@@ -252,16 +274,22 @@ public class MediaWidget {
 
     /** Album art fills the tile; a glyph (BT / radio / fallback) sits small in the middle of it. */
     private void setArt(Bitmap bmp, int glyphRes) {
+        albumArt = bmp != null;
         if (bmp != null) {
             art.setScaleType(android.widget.ImageView.ScaleType.CENTER_CROP);
             art.setPadding(0, 0, 0, 0);
             art.setImageBitmap(bmp);
         } else {
             art.setScaleType(android.widget.ImageView.ScaleType.FIT_CENTER);
-            int p = Math.max(dp(18), art.getHeight() / 3);
-            art.setPadding(p, p, p, p);
+            fitFallbackArt();
             art.setImageResource(glyphRes);
         }
+    }
+
+    private void fitFallbackArt() {
+        int side = Math.min(art.getWidth(), art.getHeight());
+        int p = Math.max(dp(12), side / 3);
+        if (art.getPaddingLeft() != p) art.setPadding(p, p, p, p);
     }
 
     private void renderPills() {

@@ -1,0 +1,10 @@
+Mode: built-in image_gen tool (imagegen skill), new asset.
+transparent_background: true
+Generated 2026-10-26. Original output: exec-6fe62741-583c-4431-8ff4-c0e9c5a70c9b.png
+PNG: 1024x1536, alpha preserved. Copied without image edits into both apps:
+apps/launcher/app/src/main/res/drawable-nodpi/truck_oem_v1.png
+apps/camera/app/src/main/res/drawable-nodpi/truck_oem_v1.png
+Illustrative artwork, not a vehicle photograph or a dimensionally calibrated model.
+
+Exact prompt:
+Use case: product-mockup. Asset type: transparent vehicle illustration for a premium modern OEM automotive dashboard, replacing a flat cartoon outline. Generate one highly realistic studio CGI top-down orthographic view of a white 2019 RAM 3500 crew-cab pickup, single rear wheels (SRW, NOT a dually), long open cargo bed, dark bed liner, dark glass, black tires, realistic towing mirrors, subtle metallic body highlights and panel seams. Nose points straight up; all four wheels aligned straight, bilateral symmetry. Strict 90 degree overhead view with absolutely no perspective, no visible front grille face, no ground plane. Portrait composition tightly framed around the entire vehicle including mirrors and both bumpers, minimal transparent padding, truck occupying almost the full image height. Subtle neutral soft studio lighting that reads clearly against a near-black dashboard, restrained photorealism, crisp silhouette at small display sizes. The background must be truly transparent alpha, with no cast shadow extending beyond the truck, no text, labels, pressure values, UI, decorative rings, badges or watermark. Avoid schematic line drawings, vector illustration, cartoon styling, exaggerated toy proportions, glowing outlines, isometric angles, double rear wheels, dual cabs or multiple vehicles. This is a production UI asset, not a complete screen mockup.

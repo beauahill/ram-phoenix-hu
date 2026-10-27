@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Phoenix OEM line symbol; native drawable, consistent 1.35-unit stroke. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="28dp" android:height="28dp" android:viewportWidth="24" android:viewportHeight="24">
+    <path android:fillColor="#00000000" android:strokeColor="#FFFFFFFF" android:strokeWidth="1.35" android:strokeLineCap="round" android:strokeLineJoin="round" android:pathData="M15 4L17 15H22M15 19H22M2 7H10M7 4L10 7L7 10M5 11V18M2 15L5 18L8 15" />
+</vector>
