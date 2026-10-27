@@ -52,6 +52,7 @@ public class ObdClient {
     private volatile String status = "OBD: idle";
 
     private volatile Float coolantC, oilTempC, transC, oilPsi, volts;
+    private volatile long publishedAt=ReadingAge.NONE;
     private volatile RamHdTpms.Snapshot tires;
     private volatile ObdMileage mileage;
     private final OdometerRepository odometer;
@@ -68,7 +69,7 @@ public class ObdClient {
     public String status() { return status; }
     /** Keep adapter/socket details in diagnostic logs, away from the dashboard. */
     public String displayStatus() {
-        if (connected) return "OBDLINK CONNECTED";
+        if (connected) return hasFreshReadings()?"OBDLINK CONNECTED":"OBD · WAITING FOR FRESH DATA";
         String current = status;
         if (current.equals("OBD: bluetooth off")) return "OBD · BLUETOOTH OFF";
         if (current.equals("OBD: no paired adapter")) return "OBD · PAIR ADAPTER";
@@ -77,11 +78,13 @@ public class ObdClient {
         if (current.equals("OBD: idle")) return "OBD · DISCONNECTED";
         return "OBD · UNAVAILABLE; RETRYING";
     }
-    public Float coolantC() { return coolantC; }
-    public Float oilTempC() { return oilTempC; }
-    public Float transC() { return transC; }
-    public Float oilPsi() { return oilPsiClamped(); }
-    public Float volts() { return volts; }
+    boolean hasFreshReadings(){return connected&&ReadingAge.fresh(publishedAt,android.os.SystemClock.elapsedRealtime(),ReadingAge.OBD_MS);}
+    String freshness(){return ReadingAge.elapsed(publishedAt,android.os.SystemClock.elapsedRealtime());}
+    public Float coolantC() { return hasFreshReadings()?coolantC:null; }
+    public Float oilTempC() { return hasFreshReadings()?oilTempC:null; }
+    public Float transC() { return hasFreshReadings()?transC:null; }
+    public Float oilPsi() { return hasFreshReadings()?oilPsiClamped():null; }
+    public Float volts() { return hasFreshReadings()?volts:null; }
     public Float tirePsi(int corner) {
         RamHdTpms.Snapshot snapshot = tires;
         return snapshot == null ? null : snapshot.tirePsi(corner, android.os.SystemClock.elapsedRealtime());
@@ -97,6 +100,7 @@ public class ObdClient {
 
     private void clearReadings() {
         connected = false;
+        publishedAt=ReadingAge.NONE;
         coolantC = oilTempC = transC = oilPsi = volts = null;
         tires = null;
         mileage = null;
@@ -213,6 +217,7 @@ public class ObdClient {
                         if(latestMileage!=null) Log.i(TAG,"Odometer "+latestMileage.source+" miles="+latestMileage.miles);
                     }
                     final ObdMileage nextMileage=latestMileage;
+                    final long sampledAt=android.os.SystemClock.elapsedRealtime();
                     header(in, out, "7DF");
                     Float nextCoolant = pidA(in, out, "0105", 0x05, a -> a - 40f);
                     Float ot = pidA(in, out, "015C", 0x5C, a -> a - 40f);
@@ -239,6 +244,8 @@ public class ObdClient {
                         if(polledMileage && nextMileage!=null) odometer.observe(nextMileage);
                         custom.clear(); custom.putAll(nextCustom);
                         customUnit.clear(); customUnit.putAll(nextUnits);
+                        // Slow extra PID reads must not make earlier gauge samples young again.
+                        publishedAt=sampledAt;
                         ui.post(listener::onObdChanged);
                     });
                     sleep(POLL_MS);
@@ -404,7 +411,7 @@ public class ObdClient {
         return Expr.eval(formula, a, b);
     }
 
-    public Float oilPsiClamped() { Float v = oilPsi; return v == null ? null : Math.max(0f, v); }
+    public Float oilPsiClamped() { Float v = oilPsi(); return v == null ? null : Math.max(0f, v); }
 
     private static Float parseVolts(String r) {
         try {

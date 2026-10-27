@@ -6,6 +6,7 @@ import android.graphics.ImageDecoder;
 import android.net.Uri;
 import android.util.AtomicFile;
 import com.ramphoenix.appearance.WallpaperScene;
+import com.ramphoenix.appearance.AppearanceProfile;
 import java.io.*;
 
 /** Import into bounded private storage: a wallpaper remains usable after USB removal. */
@@ -13,12 +14,19 @@ final class AppearanceStore {
     private static final java.util.concurrent.atomic.AtomicInteger requests=new java.util.concurrent.atomic.AtomicInteger();
     static final long MAX_BYTES=32L*1024*1024;
     static File image(Context c) {return new File(c.getFilesDir(),"wallpaper.webp");}
-    static int dim(Context c) {return Math.max(20,Math.min(80,c.getSharedPreferences("appearance",0).getInt("dim",38)));}
+    static String mode(Context c){return AppearanceProfile.mode(c.getSharedPreferences("appearance",0).getString("mode","auto"));}
+    static boolean night(Context c){return AppearanceProfile.night(mode(c),java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY));}
+    static void mode(Context c,String value){c.getSharedPreferences("appearance",0).edit().putString("mode",AppearanceProfile.mode(value)).apply();changed(c);}
+    static int dim(Context c) {
+        android.content.SharedPreferences p=c.getSharedPreferences("appearance",0);boolean dark=night(c);
+        int old=p.getInt("dim",dark?38:32);
+        return Math.max(20,Math.min(80,p.getInt(dark?"dim.night":"dim.day",dark?old+17:old)));
+    }
     static int softness(Context c) {return Math.max(0,Math.min(20,c.getSharedPreferences("appearance",0).getInt("softness",7)));}
     static void level(Context c,String key,int value) {
         if(!key.equals("dim") && !key.equals("softness"))throw new IllegalArgumentException("Appearance setting");
         int safe=key.equals("dim")?Math.max(20,Math.min(80,value)):Math.max(0,Math.min(20,value));
-        c.getSharedPreferences("appearance",0).edit().putInt(key,safe).apply();
+        c.getSharedPreferences("appearance",0).edit().putInt(key.equals("dim")?(night(c)?"dim.night":"dim.day"):key,safe).apply();
         changed(c);
     }
     static int beginImport() {return requests.incrementAndGet();}

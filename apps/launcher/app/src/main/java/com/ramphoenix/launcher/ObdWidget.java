@@ -39,7 +39,7 @@ public class ObdWidget {
         rows.add(new String[]{"OIL TEMP", f(temperature.value, true), temperature.label()});
         rows.add(new String[]{"VOLTS", Fmt.volts(obd.volts()), obd.volts() == null ? "—" : "OBD"});
         for (java.util.Map.Entry<String, String> e : obd.customUnit.entrySet()) {
-            Float v = obd.custom.get(e.getKey());
+            Float v = obd.hasFreshReadings()?obd.custom.get(e.getKey()):null;
             rows.add(new String[]{e.getKey().toUpperCase(Locale.US), v == null ? Fmt.NONE : String.format(Locale.US, "%.0f%s", v, e.getValue()), v == null ? "—" : "OBD"});
         }
         while (cells.size() < rows.size()) cells.add(addTile());
@@ -53,7 +53,7 @@ public class ObdWidget {
             else tile.setVisibility(View.GONE);
         }
         status.setText(GaugeReading.summary(coolant, trans, pressure, temperature) + " · "
-                + (obd.connected() ? "OBDLINK" : obd.displayStatus()));
+                + obd.displayStatus());
     }
 
     private TextView[] addTile() {

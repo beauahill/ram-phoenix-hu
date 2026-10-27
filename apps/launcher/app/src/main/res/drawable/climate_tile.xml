@@ -1,8 +1,2 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ripple xmlns:android="http://schemas.android.com/apk/res/android" android:color="@color/accent_soft">
-    <item android:id="@android:id/mask"><shape><corners android:radius="7dp" /><solid android:color="#FFFFFFFF" /></shape></item>
-    <item><selector>
-        <item android:state_selected="true"><shape><corners android:radius="7dp" /><gradient android:angle="270" android:startColor="#D44C4337" android:endColor="#C82D2B27" /><stroke android:width="0.75dp" android:color="#FFB98A51" /></shape></item>
-        <item><shape><corners android:radius="7dp" /><gradient android:angle="270" android:startColor="#C8354759" android:endColor="#B9192837" /><stroke android:width="0.5dp" android:color="@color/glass_stroke" /></shape></item>
-    </selector></item>
-</ripple>
+<drawable class="com.ramphoenix.appearance.GlassDrawable$Control" />

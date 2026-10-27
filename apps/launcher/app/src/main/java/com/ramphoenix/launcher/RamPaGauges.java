@@ -9,6 +9,7 @@ final class RamPaGauges {
     private int profile = -1;
     private final Integer[] raw = new Integer[4];
     private boolean pressureInitialized;
+    private long confirmedAt=ReadingAge.NONE;
 
     synchronized void profile(int value) {
         // Preserve initial registration callbacks received before the profile, but
@@ -17,17 +18,29 @@ final class RamPaGauges {
         profile = value;
     }
     synchronized void update(int code, int value) {
+        update(code,value,ReadingAge.NONE);
+    }
+    synchronized void update(int code,int value,long now) {
         if (code < COOLANT || code > OIL_PRESSURE) return;
+        Integer previous=raw[code-COOLANT];
         raw[code - COOLANT] = value;
+        // All four words are published by PA packet 82. Only a post-seed change
+        // proves another packet arrived; registration alone can replay old cache.
+        if(previous!=null && previous!=value && now>=0
+                && (code==OIL_PRESSURE?decodePressure(value):decodeTemperature(value))!=null)confirmedAt=now;
         if (code == OIL_PRESSURE) {
             Float pressure = decodePressure(value);
             if (pressure == null) pressureInitialized = false;
             else if (value != 0) pressureInitialized = true;
         }
     }
-    private void clearValues() { java.util.Arrays.fill(raw, null); pressureInitialized = false; }
+    private void clearValues() { java.util.Arrays.fill(raw, null); pressureInitialized = false;confirmedAt=ReadingAge.NONE; }
     synchronized void clear() { profile = -1; clearValues(); }
     synchronized boolean supported() { return profile == VERIFIED_PROFILE; }
+    synchronized Float liveValue(VehicleData.Gauge gauge,boolean connected,long now){
+        return ReadingAge.fresh(confirmedAt,now,ReadingAge.CAN_MS)?value(gauge,connected):null;
+    }
+    synchronized String freshness(long now){return ReadingAge.elapsed(confirmedAt,now);}
     static int code(VehicleData.Gauge gauge) {
         switch (gauge) {
             case COOLANT: return COOLANT;

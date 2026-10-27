@@ -21,8 +21,8 @@ android {
         applicationId 'com.ramphoenix.launcher'
         minSdk 31
         targetSdk 33
-        versionCode 28
-        versionName '0.5.21'
+        versionCode 29
+        versionName '0.5.22'
         testInstrumentationRunner 'com.ramphoenix.launcher.PaneWindowProbe'
         manifestPlaceholders = [MAPS_API_KEY: mapsKey]
     }
@@ -43,6 +43,7 @@ android {
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17
     }
+    testOptions {unitTests.includeAndroidResources=true;unitTests.all {maxHeapSize='2g'}}
 }
 
 dependencies {
@@ -50,6 +51,7 @@ dependencies {
     // pulls androidx.fragment/core transitively; that's the price of the real Google map.
     implementation 'com.google.android.gms:play-services-maps:18.2.0'
     testImplementation 'junit:junit:4.13.2'
+    testImplementation 'org.robolectric:robolectric:4.16.1'
     // Real JSON implementation for migration/round-trip tests; Android supplies runtime JSON.
     testImplementation 'org.json:json:20240303'
 }

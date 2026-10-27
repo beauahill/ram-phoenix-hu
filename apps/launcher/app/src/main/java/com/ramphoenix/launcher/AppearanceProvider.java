@@ -13,9 +13,9 @@ public final class AppearanceProvider extends ContentProvider {
     @Override public Cursor query(Uri uri,String[] projection,String selection,String[] args,String sort) {
         if(!"/settings".equals(uri.getPath()))throw new IllegalArgumentException("Appearance resource");
         File image=AppearanceStore.image(getContext());
-        MatrixCursor cursor=new MatrixCursor(new String[]{"dim","softness","version","custom"});
+        MatrixCursor cursor=new MatrixCursor(new String[]{"dim","softness","version","custom","night"});
         cursor.addRow(new Object[]{AppearanceStore.dim(getContext()),AppearanceStore.softness(getContext()),
-                image.lastModified(),image.isFile()?1:0});return cursor;
+                image.lastModified(),image.isFile()?1:0,AppearanceStore.night(getContext())?1:0});return cursor;
     }
     @Override public ParcelFileDescriptor openFile(Uri uri,String mode) throws FileNotFoundException {
         if(!"/wallpaper".equals(uri.getPath()) || !"r".equals(mode))throw new FileNotFoundException("Read-only wallpaper");

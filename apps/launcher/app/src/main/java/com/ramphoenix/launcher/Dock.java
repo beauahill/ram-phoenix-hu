@@ -6,7 +6,7 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
-import android.graphics.drawable.GradientDrawable;
+import android.content.res.ColorStateList;
 import android.provider.Settings;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -51,13 +51,10 @@ public final class Dock {
             ImageView b = new ImageView(act);
             b.setImageResource(it.icon);
             b.setScaleType(ImageView.ScaleType.FIT_CENTER);
-            int pad = Math.round(11 * d);
+            int pad = Math.round(12 * d);
             b.setPadding(pad, pad, pad, pad);
-            GradientDrawable bg = new GradientDrawable();
-            bg.setColor(act.getColor(it.color));
-            bg.setCornerRadius(14 * d);
-            if (it.color == R.color.dock_apps) bg.setStroke(Math.round(d), act.getColor(R.color.glass_stroke));
-            b.setBackground(bg);
+            b.setBackgroundResource(R.drawable.climate_tile);
+            b.setImageTintList(ColorStateList.valueOf(act.getColor(R.color.text_primary)));
             b.setContentDescription(act.getString(it.label));
             b.setClickable(true);
             b.setFocusable(true);
@@ -78,7 +75,7 @@ public final class Dock {
 
         new Thread(() -> {
             final Intent[] resolved = {null, cameraIntent(act), navIntent(act), phoneIntent(act),
-                    musicIntent(act), radioIntent(act), null};
+                    musicIntent(act), radioIntent(act), new Intent(Settings.ACTION_SETTINGS)};
             // user overrides (long-press) win over the built-in resolution
             final android.content.SharedPreferences prefs = act.getSharedPreferences("dock", Context.MODE_PRIVATE);
             for (int i = 1; i < ITEMS.length; i++) {
@@ -91,12 +88,14 @@ public final class Dock {
                 final int idx = i;
                 try {
                     final android.graphics.drawable.Drawable icon = act.getPackageManager().getActivityIcon(cn);
-                    act.runOnUiThread(() -> { if (dock.getChildCount() == ITEMS.length) { buttons[idx].setImageDrawable(icon); buttons[idx].setPadding(Math.round(8 * d), Math.round(8 * d), Math.round(8 * d), Math.round(8 * d)); } });
+                    act.runOnUiThread(() -> { if (dock.getChildAt(idx) == buttons[idx]) {
+                        buttons[idx].setImageTintList(null);buttons[idx].setImageDrawable(icon);
+                    } });
                 } catch (Exception ignored) {}
             }
             act.runOnUiThread(() -> {
-                if (dock.getChildCount() != ITEMS.length) return; // rebuilt meanwhile
-                for (int i = 1; i < 6; i++) set(buttons[i], resolved[i]);
+                if (dock.getChildAt(0) != buttons[0]) return; // rebuilt meanwhile
+                for (int i = 1; i < ITEMS.length; i++) set(buttons[i], resolved[i]);
             });
         }, "dock-resolve").start();
     }

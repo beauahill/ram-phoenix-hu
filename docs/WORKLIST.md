@@ -20,6 +20,16 @@ on the reliability, TPMS and camera-alignment work. Installed baseline: launcher
 
 ## Current refinement pass
 
+- [x] Implement 0.5.22 / 0.3.7 OEM polish and initial reliability changes on
+  `codex/oem-polish-reliability-2026-10-27`: day/night shared surfaces, neutral
+  dock, compact idle media, clearer vehicle information, bounded reading age,
+  background camera monitor recovery and automated native layout/build checks.
+  102 launcher + 9 camera tests pass on Crimson. See
+  [candidate notes](OEM-POLISH-RELIABILITY-2026-10-27.md).
+- [ ] Install this candidate when the HU reconnects; complete the dated parked
+  acceptance checklist. The installed baseline remains 0.5.21 / 0.3.6.
+- [ ] Verify the GitHub-hosted workflow after pushing the candidate.
+
 - [x] Launcher 0.5.21: map toolbar adapts to available height; all five controls
   fit with the dock/climate expanded and in FULL/SPLIT. Heat icons/bars red,
   cooling blue. Live level cycling verified for all four seat controls; settings

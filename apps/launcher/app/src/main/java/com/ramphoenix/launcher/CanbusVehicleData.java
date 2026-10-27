@@ -33,7 +33,6 @@ public class CanbusVehicleData implements VehicleData {
     private volatile boolean connected;
     private volatile Float outsideC, speedKph;
     private final RamPaGauges paGauges = new RamPaGauges();
-    private boolean gaugeRequested;
     private final Runnable gaugeRequest = this::requestGauges;
     private final boolean[] doors = new boolean[6];
 
@@ -42,7 +41,7 @@ public class CanbusVehicleData implements VehicleData {
         ipc = new SyuIpc(ctx);
         ipc.setConnectionListener(c -> {
             connected = c;
-            if (!c) { paGauges.clear(); gaugeRequested = false; ui.removeCallbacks(gaugeRequest); }
+            if (!c) { paGauges.clear();outsideC=speedKph=null;java.util.Arrays.fill(doors,false); ui.removeCallbacks(gaugeRequest); }
             changed();
             if (c) ui.postDelayed(gaugeRequest, 700);
         });
@@ -50,7 +49,7 @@ public class CanbusVehicleData implements VehicleData {
             ipc.subscribe(SyuIpc.MODULE_CANBUS, code, (c, ints, f, s) -> {
                 if (ints != null && ints.length > 0) {
                     if (c >= RamPaGauges.COOLANT && c <= RamPaGauges.OIL_PRESSURE) {
-                        paGauges.update(c, ints[0]);
+                        paGauges.update(c, ints[0],android.os.SystemClock.elapsedRealtime());
                         Log.i("PhoenixGauges", "PA gauge field=" + c + " raw=" + ints[0]
                                 + " decoded=" + (c == RamPaGauges.OIL_PRESSURE
                                 ? RamPaGauges.decodePressure(ints[0]) : RamPaGauges.decodeTemperature(ints[0])));
@@ -99,10 +98,13 @@ public class CanbusVehicleData implements VehicleData {
     private void changed() { ui.post(onChange); }
 
     private void requestGauges() {
-        if (!connected || gaugeRequested || !(paGauges.supported() || oilProbeEnabled())) return;
+        ui.removeCallbacks(gaugeRequest);
+        if (!connected || !(paGauges.supported() || oilProbeEnabled())) return;
         // Factory read/page request; does not change ECU settings or reset anything.
-        gaugeRequested = ipc.cmd(SyuIpc.MODULE_CANBUS, 4, new int[]{82});
-        Log.i("PhoenixGauges", "PA RAM gauge read request page 82: " + gaugeRequested);
+        boolean sent = ipc.cmd(SyuIpc.MODULE_CANBUS, 4, new int[]{82});
+        Log.i("PhoenixGauges", "PA RAM gauge read request page 82: " + sent);
+        // A request is not an acknowledgement and never renews the freshness lease.
+        ui.postDelayed(gaugeRequest,15000);
     }
 
     private static boolean oilProbeEnabled() {
@@ -119,13 +121,17 @@ public class CanbusVehicleData implements VehicleData {
 
     public void connect() { ipc.connect(); }
     public void disconnect() {
-        connected = false; paGauges.clear(); gaugeRequested = false;
+        connected = false; paGauges.clear();outsideC=speedKph=null;java.util.Arrays.fill(doors,false);
         ui.removeCallbacks(gaugeRequest); ipc.disconnect();
     }
 
-    int canGaugeMask() { return preferCanGauges() ? paGauges.availableMask(connected) : 0; }
+    int canGaugeMask() {
+        int mask=0;if(preferCanGauges())for(Gauge gauge:Gauge.values())
+            if(paGauges.liveValue(gauge,connected,android.os.SystemClock.elapsedRealtime())!=null)mask|=gauge.mask;
+        return mask;
+    }
     @Override public GaugeReading reading(Gauge gauge) {
-        Float factory = preferCanGauges() ? paGauges.value(gauge, connected) : null;
+        Float factory = preferCanGauges() ? paGauges.liveValue(gauge, connected,android.os.SystemClock.elapsedRealtime()) : null;
         if (factory != null) return GaugeReading.choose(factory, null);
         Float fallback = null;
         if (obd != null && obd.connected()) switch (gauge) {
@@ -151,5 +157,16 @@ public class CanbusVehicleData implements VehicleData {
     @Override public Float outsideC() { return outsideC; }
     @Override public Float speedKph() { return speedKph; }
     @Override public Float rpm() { return null; }
-    @Override public boolean available() { return (connected && (outsideC != null || canGaugeMask() != 0)) || (obd != null && obd.connected()); }
+    @Override public boolean available() { return (connected && (outsideC != null || canGaugeMask() != 0)) || (obd != null && obd.hasFreshReadings()); }
+    @Override public boolean hasWarnings(){
+        for(Gauge gauge:Gauge.values())if(reading(gauge).value!=null)return false;
+        return true;
+    }
+    @Override public String status(){
+        return "Factory link: "+(connected?"connected":"disconnected")
+                +"\nCAN update: "+paGauges.freshness(android.os.SystemClock.elapsedRealtime())
+                +"\nUnchanged CAN values expire after 2 minutes without a confirmed update."
+                +"\nOBD poll: "+(obd==null?"unavailable":obd.freshness())
+                +"\nExpired readings fall back to a fresh source or show a dash.";
+    }
 }

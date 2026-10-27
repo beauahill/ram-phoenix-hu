@@ -29,6 +29,12 @@ abstraction layer.
 > Historical session notes below may describe older builds; use the current
 > source and dated live checks when they differ.
 
+**New candidate:** launcher 0.5.22 / camera 0.3.7 adds day/night glass profiles,
+quieter dock icons, compact idle media, vehicle source details, stale-reading
+guards and background camera-monitor recovery. **102 launcher + 9 camera tests
+pass on Crimson.** HU installation and physical recovery tests remain pending;
+see [candidate notes and acceptance checklist](docs/OEM-POLISH-RELIABILITY-2026-10-27.md).
+
 ---
 
 ## 1. Hardware and access

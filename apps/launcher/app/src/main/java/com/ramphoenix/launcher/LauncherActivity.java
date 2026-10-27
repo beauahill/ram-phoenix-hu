@@ -53,6 +53,7 @@ public class LauncherActivity extends Activity implements Pane.Host {
     // shared widgets (inflated once, moved between containers)
     private View mapCard, mediaCard, driveRow, climateCard;
     private MapWidget map;
+    private MapToolsLayout mapTools;
     private MediaWidget media;
     private VehicleCardView vehicleCard;
     private ClimateWidget climate;
@@ -146,9 +147,7 @@ public class LauncherActivity extends Activity implements Pane.Host {
         ViewGroup content = findViewById(R.id.content);
         LayoutInflater li = LayoutInflater.from(this);
         mapCard = li.inflate(R.layout.widget_map, content, false);
-        mapCard.addOnLayoutChangeListener((v,l,t,r,b,oldL,oldT,oldR,oldB) -> {
-            if(r-l!=oldR-oldL || b-t!=oldB-oldT)fitMapTools();
-        });
+        mapTools=new MapToolsLayout(mapCard);
         mediaCard = li.inflate(R.layout.widget_media, content, false);
         driveRow = li.inflate(R.layout.widget_drive, content, false);
         climateCard = li.inflate(R.layout.widget_climate, content, false);
@@ -185,6 +184,7 @@ public class LauncherActivity extends Activity implements Pane.Host {
         });
 
         media = new MediaWidget(this, mediaCard);
+        media.setLayoutListener(() -> mediaCard.post(this::fitMediaHeight));
 
         vehicleCard = driveRow.findViewById(R.id.vehicle_card);
         climate = new ClimateWidget(this, climateCard);
@@ -242,10 +242,7 @@ public class LauncherActivity extends Activity implements Pane.Host {
                 View v = cardFor(key);
                 if (v == null) continue;
                 Pane.detach(v);
-                float w = CardsConfig.weight(key);
-                LinearLayout.LayoutParams lp = w > 0
-                        ? new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, w)
-                        : new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+                LinearLayout.LayoutParams lp = DashboardSizing.card(key,media.isIdle(),d,getResources().getConfiguration().fontScale);
                 lp.topMargin = first ? 0 : Math.round(12 * d);
                 first = false;
                 fullContainer.addView(v, lp);
@@ -254,32 +251,18 @@ public class LauncherActivity extends Activity implements Pane.Host {
         }
     }
 
+    /** Resize only this card; leave native panes and the other widgets attached. */
+    private void fitMediaHeight(){
+        if(!MODE_FULL.equals(mode)||mediaCard.getParent()!=fullContainer)return;
+        LinearLayout.LayoutParams lp=(LinearLayout.LayoutParams)mediaCard.getLayoutParams();
+        LinearLayout.LayoutParams desired=DashboardSizing.card(CardsConfig.MEDIA,media.isIdle(),getResources().getDisplayMetrics().density,getResources().getConfiguration().fontScale);
+        int height=desired.height;float weight=desired.weight;
+        if(lp.height!=height||lp.weight!=weight){lp.height=height;lp.weight=weight;mediaCard.setLayoutParams(lp);}
+    }
+
     /** Keep every map control reachable as the dock and dashboard cards change height. */
     private void fitMapTools() {
-        LinearLayout tools = mapCard.findViewById(R.id.map_tools);
-        float d = getResources().getDisplayMetrics().density;
-        int preferredTop = Math.round((MODE_SPLIT.equals(mode) ? 54 : 14) * d);
-        int edge = Math.round(14*d), button = Math.round(44*d), divider = Math.round(d);
-        boolean horizontal = mapCard.getHeight()>0
-                && mapCard.getHeight()<preferredTop+5*button+2*divider+edge;
-        int height = horizontal ? button : 5*button+2*divider;
-        FrameLayout.LayoutParams lp = (FrameLayout.LayoutParams)tools.getLayoutParams();
-        int top = mapCard.getHeight()>0 ? Math.max(0,Math.min(preferredTop,mapCard.getHeight()-height-edge)) : preferredTop;
-        int width = horizontal ? ViewGroup.LayoutParams.WRAP_CONTENT : button;
-        int orientation = horizontal ? LinearLayout.HORIZONTAL : LinearLayout.VERTICAL;
-        if(tools.getOrientation()!=orientation)tools.setOrientation(orientation);
-        if(lp.topMargin!=top || lp.width!=width) {lp.topMargin=top;lp.width=width;tools.setLayoutParams(lp);}
-        for(int i=0;i<tools.getChildCount();i++) {
-            View child=tools.getChildAt(i);
-            boolean control=child instanceof TextView || child instanceof ImageView;
-            int cw=control ? button : horizontal ? divider : Math.round(24*d);
-            int ch=control ? button : horizontal ? Math.round(24*d) : divider;
-            LinearLayout.LayoutParams item=(LinearLayout.LayoutParams)child.getLayoutParams();
-            int gravity=android.view.Gravity.CENTER;
-            if(item.width!=cw || item.height!=ch || item.gravity!=gravity) {
-                item.width=cw;item.height=ch;item.gravity=gravity;child.setLayoutParams(item);
-            }
-        }
+        mapTools.split(MODE_SPLIT.equals(mode));
     }
 
     private void clearFull() {
@@ -336,7 +319,8 @@ public class LauncherActivity extends Activity implements Pane.Host {
     @Override
     protected void onStart() {
         super.onStart();
-        cameraRecovery.visible(true);
+        RecoveryService.start(this);
+        cameraRecovery.ensureMonitor();
         WindowBridge.get(this).visible(true);
         paneA.visible(true); paneB.visible(true);
         map.onStart();
@@ -386,7 +370,6 @@ public class LauncherActivity extends Activity implements Pane.Host {
 
     @Override
     protected void onStop() {
-        cameraRecovery.visible(false);
         WindowBridge.get(this).visible(false);
         paneA.visible(false); paneB.visible(false);
         map.onStop();

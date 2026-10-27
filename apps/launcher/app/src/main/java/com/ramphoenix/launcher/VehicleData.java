@@ -45,6 +45,8 @@ public interface VehicleData {
     Float rpm();
     /** True when the source is live at all. */
     boolean available();
+    default String status(){return available()?"Vehicle readings are available.":"Vehicle data is unavailable.";}
+    default boolean hasWarnings(){return !available();}
 
     VehicleData STUB = new VehicleData() {
         @Override public Float tirePsi(int corner) { return null; }

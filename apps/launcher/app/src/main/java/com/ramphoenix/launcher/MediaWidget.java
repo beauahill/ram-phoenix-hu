@@ -48,7 +48,12 @@ public class MediaWidget {
     private boolean needsAccess;
     private final float density;
     private boolean large, albumArt;
+    private boolean idle;
+    private Runnable layoutListener;
+    private final View main, idleRow;
+    private final TextView idleBt,idleRadio,idleApps,idleTitle;
     private int compactLevel;
+    private boolean measuredRoomy;
     /** The unit's own audio source (radio / BT music / Android) over the SYU IPC. */
     private final AudioSource src;
     private final TextView pillBt, pillRadio, pillApps;
@@ -73,6 +78,9 @@ public class MediaWidget {
     public MediaWidget(Activity act, View card) {
         this.act = act;
         this.card = card;
+        main=card.findViewById(R.id.media_main);idleRow=card.findViewById(R.id.media_idle);
+        idleTitle=card.findViewById(R.id.media_idle_title);
+        idleBt=card.findViewById(R.id.media_idle_bt);idleRadio=card.findViewById(R.id.media_idle_radio);idleApps=card.findViewById(R.id.media_idle_apps);
         density = act.getResources().getDisplayMetrics().density;
         art = card.findViewById(R.id.media_art);
         srcIcon = card.findViewById(R.id.media_src_icon);
@@ -111,11 +119,13 @@ public class MediaWidget {
         pillBt.setOnClickListener(v -> src.selectBt());
         pillRadio.setOnClickListener(v -> src.selectRadio());
         pillApps.setOnClickListener(v -> src.selectAndroid());
+        idleBt.setOnClickListener(v -> src.selectBt());idleRadio.setOnClickListener(v -> src.selectRadio());idleApps.setOnClickListener(v -> src.selectAndroid());
+        card.findViewById(R.id.media_idle_play).setOnClickListener(v -> togglePlay());
         tint(null);
         card.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) -> {
             float height = (b - t) / density;
-            int next = height > 0 && height < 136f ? 2 : height > 0 && height < 180f ? 1 : 0;
-            if (next != compactLevel) { compactLevel = next; applySizing(); }
+            int next = height > 0 && height < 140f ? 2 : height > 0 && height < 210f ? 1 : 0;
+            if (next != compactLevel || measuredRoomy!=(large&&height>=400)) { compactLevel = next; applySizing(); }
         });
         art.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) -> {
             if (!albumArt) fitFallbackArt();
@@ -219,42 +229,51 @@ public class MediaWidget {
         this.large = large;
         applySizing();
     }
+    public boolean isIdle(){return idle;}
+    public void setLayoutListener(Runnable listener){layoutListener=listener;}
+    private void idle(boolean value){
+        boolean changed=idle!=value;idle=value;
+        main.setVisibility(value?View.GONE:View.VISIBLE);idleRow.setVisibility(value?View.VISIBLE:View.GONE);
+        if(changed&&layoutListener!=null)layoutListener.run();
+    }
 
     private void applySizing() {
-        boolean tight = compactLevel > 0 && !large;
-        artist.setVisibility(compactLevel > 1 && !large ? View.GONE : View.VISIBLE);
+        boolean roomy=large&&card.getHeight()/density>=400;
+        measuredRoomy=roomy;
+        boolean tight = compactLevel > 0 && !roomy;
+        artist.setVisibility(compactLevel > 1 && !roomy ? View.GONE : View.VISIBLE);
         // SPLIT pane: cap the art so the text and controls keep most of the width
         // (Beau, 2026-10-25: the BT glyph filled the whole pane).
         ViewGroup.LayoutParams ap = art.getLayoutParams();
-        ap.height = large ? dp(150) : ViewGroup.LayoutParams.MATCH_PARENT;
+        ap.height = large ? dp(roomy?150:120) : ViewGroup.LayoutParams.MATCH_PARENT;
         art.setLayoutParams(ap);
-        title.setTextSize(TypedValue.COMPLEX_UNIT_SP, large ? 30 : tight ? 18 : 22);
-        artist.setTextSize(TypedValue.COMPLEX_UNIT_SP, large ? 20 : tight ? 11 : 14);
-        srcName.setTextSize(TypedValue.COMPLEX_UNIT_SP, large ? 16 : tight ? 10 : 13);
+        title.setTextSize(TypedValue.COMPLEX_UNIT_SP, roomy ? 30 : tight ? 18 : 22);
+        artist.setTextSize(TypedValue.COMPLEX_UNIT_SP, roomy ? 20 : tight ? 11 : 14);
+        srcName.setTextSize(TypedValue.COMPLEX_UNIT_SP, roomy ? 16 : tight ? 10 : 13);
         ViewGroup.MarginLayoutParams tp = (ViewGroup.MarginLayoutParams) title.getLayoutParams();
         tp.topMargin = dp(tight ? 2 : 6); title.setLayoutParams(tp);
         ViewGroup.MarginLayoutParams atp = (ViewGroup.MarginLayoutParams) artist.getLayoutParams();
         atp.topMargin = dp(tight ? 2 : 3); artist.setLayoutParams(atp);
-        int play = dp(large ? 68 : tight ? 44 : 50), side = dp(large ? 52 : 40);
+        int play = dp(roomy ? 68 : tight ? 44 : 50), side = dp(roomy ? 52 : 44);
         ViewGroup.LayoutParams lp = btnPlay.getLayoutParams();
         lp.width = play; lp.height = play; btnPlay.setLayoutParams(lp);
-        int pad = dp(large ? 14 : 10);
+        int pad = dp(roomy ? 14 : 10);
         btnPlay.setPadding(pad, pad, pad, pad);
         for (ImageView b : new ImageView[]{btnPrev, btnNext}) {
             ViewGroup.LayoutParams p = b.getLayoutParams();
             p.width = side; p.height = side; b.setLayoutParams(p);
         }
         ViewGroup.MarginLayoutParams pp = (ViewGroup.MarginLayoutParams) progress.getLayoutParams();
-        pp.topMargin = dp(large ? 22 : 8); pp.height = dp(large ? 6 : 4); progress.setLayoutParams(pp);
+        pp.topMargin = dp(roomy ? 22 : 8); pp.height = dp(roomy ? 6 : 4); progress.setLayoutParams(pp);
         progress.setVisibility(tight ? View.GONE : View.VISIBLE);
         View controls = card.findViewById(R.id.media_controls);
         ViewGroup.MarginLayoutParams cp = (ViewGroup.MarginLayoutParams) controls.getLayoutParams();
-        cp.topMargin = dp(large ? 22 : tight ? 4 : 8); controls.setLayoutParams(cp);
+        cp.topMargin = dp(roomy ? 22 : tight ? 4 : 8); controls.setLayoutParams(cp);
         ViewGroup.MarginLayoutParams ip = (ViewGroup.MarginLayoutParams) card.findViewById(R.id.media_info).getLayoutParams();
         ip.leftMargin = dp(large ? 24 : 17); ip.rightMargin = dp(large ? 64 : 6);
         card.findViewById(R.id.media_info).setLayoutParams(ip);
-        int cpad = dp(large ? 24 : tight ? 10 : 14);
-        card.setPadding(cpad, cpad, cpad, cpad);
+        int cpad = dp(roomy ? 24 : tight ? 10 : 14);
+        main.setPadding(cpad, cpad, cpad, cpad);
     }
 
     private int dp(int v) { return Math.round(v * density); }
@@ -294,10 +313,11 @@ public class MediaWidget {
 
     private void renderPills() {
         boolean ipc = src.isConnected();
-        for (TextView p : new TextView[]{pillBt, pillRadio, pillApps}) p.setAlpha(ipc ? 1f : 0.4f);
+        for (TextView p : new TextView[]{pillBt, pillRadio, pillApps,idleBt,idleRadio,idleApps}) p.setAlpha(ipc ? 1f : 0.4f);
         pillBt.setSelected(src.isBtMusic());
         pillRadio.setSelected(src.isRadio());
         pillApps.setSelected(ipc && !src.isHardwareSource());
+        idleBt.setSelected(src.isBtMusic());idleRadio.setSelected(src.isRadio());idleApps.setSelected(ipc&&!src.isHardwareSource());
     }
 
     /** Bluetooth music from the phone: metadata and transport come over the BT module, not a MediaSession. */
@@ -332,6 +352,8 @@ public class MediaWidget {
 
     private void render() {
         renderPills();
+        boolean empty=!needsAccess&&!src.isRadio()&&(!src.isBtMusic()?current==null:!src.btConnected());
+        idle(empty);idleTitle.setText(src.isBtMusic()?R.string.bt_not_connected:R.string.nothing_playing);
         if (src.isBtMusic()) { renderBt(); return; }
         if (src.isRadio()) { renderRadio(); return; }
         if (needsAccess) { renderNeedsAccess(); return; }

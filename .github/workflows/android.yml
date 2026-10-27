@@ -1,0 +1,51 @@
+name: Android checks
+
+on:
+  push:
+    branches: [main, 'codex/**']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: android-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        app: [launcher, camera]
+    defaults:
+      run:
+        working-directory: apps/${{ matrix.app }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: gradle
+          cache-dependency-path: |
+            apps/**/gradle-wrapper.properties
+            apps/**/*.gradle
+      - name: Prepare Android SDK
+        run: sdkmanager 'platforms;android-34' 'build-tools;34.0.0'
+      - name: Unit tests, native layout checks and build
+        run: bash ./gradlew --no-daemon --console=plain testDebugUnitTest assembleDebug
+      # These are reports, not deployment APKs: CI uses a different debug signer.
+      - name: Test reports and synthetic layout previews
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: ${{ matrix.app }}-checks
+          path: |
+            apps/${{ matrix.app }}/app/build/reports/tests/
+            apps/${{ matrix.app }}/app/build/test-results/
+            apps/${{ matrix.app }}/app/build/reports/layout-previews/
+          retention-days: 14

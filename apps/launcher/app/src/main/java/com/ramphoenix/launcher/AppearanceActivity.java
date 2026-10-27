@@ -13,6 +13,10 @@ public final class AppearanceActivity extends Activity {
     private static final int PICK=71;
     private final ExecutorService io=Executors.newSingleThreadExecutor();
     private TextView choose,reset,status;
+    private TextView profileStatus;
+    private SeekBar dimBar;
+    private final android.os.Handler clock=new android.os.Handler(android.os.Looper.getMainLooper());
+    private final Runnable refreshProfile=new Runnable(){public void run(){refreshProfile();clock.postDelayed(this,60000);}};
     private boolean busy;
     @Override protected void attachBaseContext(Context base) {super.attachBaseContext(base);Ui.applyDensity(this);}
     @Override protected void onCreate(Bundle saved) {
@@ -46,14 +50,29 @@ public final class AppearanceActivity extends Activity {
         status=text(this,"",13,R.color.text_secondary);status.setId(R.id.appearance_status);options.addView(status,match(-2));gap(options,10);
         options.addView(text(this,"Choose a photo saved on the head unit. For USB photos, copy them to Pictures first. Images fill the screen from the center.",12,R.color.text_tertiary));
         body.addView(options,match(-2));gap(body,16);
+        LinearLayout profiles=card(this);profiles.addView(text(this,"APPEARANCE",11,R.color.text_tertiary));gap(profiles,8);
+        Spinner mode=new Spinner(this);String[] modes={"auto","day","night"};
+        mode.setContentDescription("Day and night appearance");
+        mode.setAdapter(new ArrayAdapter<>(this,android.R.layout.simple_spinner_dropdown_item,new String[]{"Automatic · 7 am–7 pm day","Day · brighter graphite","Night · softer glass"}));
+        mode.setSelection(java.util.Arrays.asList(modes).indexOf(AppearanceStore.mode(this)));
+        profiles.addView(mode,match(dp(this,48)));
+        profileStatus=text(this,"",13,R.color.text_secondary);profiles.addView(profileStatus,match(-2));
+        mode.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener(){
+            public void onItemSelected(AdapterView<?> p,android.view.View view,int position,long id){
+                if(!modes[position].equals(AppearanceStore.mode(AppearanceActivity.this)))AppearanceStore.mode(AppearanceActivity.this,modes[position]);
+                refreshProfile();
+            }
+            public void onNothingSelected(AdapterView<?> p){}
+        });body.addView(profiles,match(-2));gap(body,16);
         LinearLayout levels=card(this);
         slider(levels,"Wallpaper dimming", "dim",20,80,AppearanceStore.dim(this),R.id.appearance_dim);
         gap(levels,14);slider(levels,"Wallpaper softness","softness",0,20,AppearanceStore.softness(this),R.id.appearance_softness);
-        body.addView(levels,match(-2));refreshStatus();
+        body.addView(levels,match(-2));refreshStatus();refreshProfile();
     }
     private void slider(LinearLayout parent,String title,String key,int low,int high,int initial,int id) {
         TextView label=text(this,title+" · "+initial+(key.equals("dim")?"%":""),14,R.color.text_primary);parent.addView(label);
         SeekBar bar=new SeekBar(this);bar.setId(id);bar.setContentDescription(title);bar.setMax(high-low);bar.setProgress(initial-low);
+        if(key.equals("dim"))dimBar=bar;
         parent.addView(bar,match(dp(this,48)));
         bar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             public void onProgressChanged(SeekBar v,int progress,boolean user) {
@@ -65,7 +84,12 @@ public final class AppearanceActivity extends Activity {
         });
     }
     private void refreshStatus() {status.setText(AppearanceStore.image(this).isFile()?"Custom wallpaper saved":"Default wallpaper");}
-    @Override protected void onResume() {super.onResume();MaintenanceUi.immersive(this);}
+    private void refreshProfile(){
+        if(profileStatus!=null)profileStatus.setText((AppearanceStore.night(this)?"Night":"Day")+" profile · dimming is saved separately for each");
+        if(dimBar!=null)dimBar.setProgress(AppearanceStore.dim(this)-20);
+    }
+    @Override protected void onResume() {super.onResume();MaintenanceUi.immersive(this);clock.removeCallbacks(refreshProfile);clock.post(refreshProfile);}
+    @Override protected void onPause(){clock.removeCallbacks(refreshProfile);super.onPause();}
     @Override protected void onActivityResult(int request,int result,Intent data) {
         super.onActivityResult(request,result,data);
         if(request!=PICK || result!=RESULT_OK || data==null || data.getData()==null || busy)return;

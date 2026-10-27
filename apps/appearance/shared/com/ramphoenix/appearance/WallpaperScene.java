@@ -30,6 +30,7 @@ public final class WallpaperScene extends View {
     private Bitmap image;
     private int dim=38, softness=7, generation;
     private final Runnable reload=this::load;
+    private final Runnable clock=new Runnable(){public void run(){load();postDelayed(this,60000);}};
     private final ContentObserver observer=new ContentObserver(main) {
         @Override public void onChange(boolean selfChange) {removeCallbacks(reload);postDelayed(reload,50);}
     };
@@ -49,10 +50,10 @@ public final class WallpaperScene extends View {
     @Override protected void onAttachedToWindow() {
         super.onAttachedToWindow();
         try {getContext().getContentResolver().registerContentObserver(ROOT,true,observer);} catch(RuntimeException ignored) {}
-        load();
+        load();postDelayed(clock,60000);
     }
     @Override protected void onDetachedFromWindow() {
-        generation++;removeCallbacks(reload);
+        generation++;removeCallbacks(reload);removeCallbacks(clock);
         getContext().getContentResolver().unregisterContentObserver(observer);
         super.onDetachedFromWindow();
     }
@@ -60,6 +61,7 @@ public final class WallpaperScene extends View {
         final int request=++generation;final Context context=getContext().getApplicationContext();
         IO.execute(() -> {
             int darkness=38,blur=7;long version=0;boolean custom=false;
+            boolean dark=AppearanceProfile.night("auto",java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY));
             try {
                 android.content.pm.ProviderInfo provider=context.getPackageManager().resolveContentProvider(AUTHORITY,0);
                 if(provider==null || !"com.ramphoenix.launcher".equals(provider.packageName)
@@ -71,14 +73,17 @@ public final class WallpaperScene extends View {
                         blur=cursor.getInt(cursor.getColumnIndexOrThrow("softness"));
                         version=cursor.getLong(cursor.getColumnIndexOrThrow("version"));
                         custom=cursor.getInt(cursor.getColumnIndexOrThrow("custom"))==1;
+                        int mode=cursor.getColumnIndex("night");if(mode>=0)dark=cursor.getInt(mode)==1;
                     }
                 }
             } catch(RuntimeException ignored) { /* A missing companion never blocks the camera. */ }
             final int safeDim=Math.max(20,Math.min(80,darkness)),safeBlur=Math.max(0,Math.min(20,blur));
             final Bitmap picture=bitmap(context,custom,version);
+            final boolean night=dark;
             post(() -> {
                 if(request!=generation || !isAttachedToWindow())return;
                 image=picture;dim=safeDim;softness=safeBlur;
+                GlassDrawable.night(night);
                 float radius=softness*getResources().getDisplayMetrics().density;
                 setRenderEffect(radius==0?null:RenderEffect.createBlurEffect(radius,radius,Shader.TileMode.CLAMP));
                 invalidate();

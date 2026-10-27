@@ -31,6 +31,7 @@ public class VehicleCardView extends FrameLayout {
     private String serviceText, obdStatus;
     private final WirelessOneClient air;
     private final ImageButton airButton;
+    private final ImageButton statusButton;
     private final Runnable airUpdate = this::refreshAir;
     private String airPressure = "—";
 
@@ -65,6 +66,14 @@ public class VehicleCardView extends FrameLayout {
         airButton.setTooltipText("Air Lift controls");
         airButton.setOnClickListener(v -> c.startActivity(new Intent(c,SuspensionActivity.class)));
         addView(airButton,new FrameLayout.LayoutParams(size,size,Gravity.TOP|Gravity.RIGHT));
+        statusButton=new ImageButton(c);statusButton.setId(R.id.vehicle_data_status);
+        statusButton.setImageResource(R.drawable.ic_vehicle_status);statusButton.setPadding(pad,pad,pad,pad);
+        statusButton.setPadding(pad,MaintenanceUi.dp(c,5),pad,MaintenanceUi.dp(c,21));
+        statusButton.setBackground(new RippleDrawable(ColorStateList.valueOf(0x33FFFFFF),null,mask.getConstantState().newDrawable()));
+        statusButton.setContentDescription("Vehicle data status and sources");statusButton.setTooltipText("Vehicle data status");
+        statusButton.setOnClickListener(v -> new android.app.AlertDialog.Builder(c).setTitle("Vehicle data")
+                .setMessage(details()).setPositiveButton("Close",null).show());
+        addView(statusButton,new FrameLayout.LayoutParams(size,size,Gravity.TOP|Gravity.LEFT));
         refreshAir();
     }
 
@@ -85,12 +94,36 @@ public class VehicleCardView extends FrameLayout {
         FrameLayout.LayoutParams lp = (FrameLayout.LayoutParams)airButton.getLayoutParams();
         lp.rightMargin = Math.round(w * 0.02f);
         lp.topMargin = Math.max(0,Math.min(h-lp.height,Math.round(h * 0.86f - 4 * unit - lp.height/2f)));
+        // In a compressed card the full tap target must remain inside the card;
+        // shift only the small artwork down to stay beside the pressure row.
+        int pad=MaintenanceUi.dp(getContext(),13);
+        int shift=Math.max(-pad,Math.min(pad,Math.round(h*.86f-4*unit-(lp.topMargin+lp.height/2f))));
+        airButton.setPadding(pad,pad+shift,pad,pad-shift);
         airButton.setLayoutParams(lp);
+        FrameLayout.LayoutParams info=(FrameLayout.LayoutParams)statusButton.getLayoutParams();
+        info.leftMargin=Math.round(w*.31f-info.width/2f);info.topMargin=0;
+        statusButton.setLayoutParams(info);
     }
 
-    public void setData(VehicleData v) { data = v == null ? VehicleData.STUB : v; invalidate(); }
+    public void setData(VehicleData v) {
+        data = v == null ? VehicleData.STUB : v;
+        statusButton.setImageTintList(ColorStateList.valueOf(data.hasWarnings()?accent:tertiary));invalidate();
+    }
     public void setServiceText(String text) { serviceText = text; invalidate(); }
     public void setObdStatus(String text) { obdStatus = text; invalidate(); }
+    private String details(){
+        StringBuilder text=new StringBuilder();
+        for(VehicleData.Gauge gauge:VehicleData.Gauge.values()) {
+            GaugeReading reading=data.reading(gauge);
+            String name=gauge==VehicleData.Gauge.COOLANT?"Coolant":gauge==VehicleData.Gauge.TRANSMISSION?"Transmission":gauge==VehicleData.Gauge.OIL_PRESSURE?"Oil pressure":"Oil temperature";
+            String formatted=reading.value==null?Fmt.NONE:gauge==VehicleData.Gauge.OIL_PRESSURE?String.format(Locale.US,"%.0f psi",reading.value):Fmt.tempF(reading.value)+"F";
+            text.append(name).append("  ").append(formatted).append(" · ").append(reading.label()).append('\n');
+        }
+        text.append("\n").append(data.status());
+        if(obdStatus!=null)text.append("\n").append(obdStatus);
+        if(serviceText!=null)text.append("\n\nNext service: ").append(serviceText);
+        return text.toString();
+    }
 
     @Override protected void onDraw(Canvas c) {
         float w = getWidth(), h = getHeight();
@@ -114,7 +147,7 @@ public class VehicleCardView extends FrameLayout {
             float x = cx + (left ? -1 : 1) * truckW * 0.44f;
             float y = top + truckH * (i < 2 ? 0.20f : 0.79f);
             value.setTextAlign(left ? Paint.Align.RIGHT : Paint.Align.LEFT);
-            value.setTextSize(17f * unit);
+            value.setTextSize(18f * unit);
             value.setColor(psi == null ? secondary : psi < 30f ? red : psi > 85f ? accent : primary);
             c.drawText(Fmt.psi(psi), x, y, value);
             label.setTextAlign(value.getTextAlign());
@@ -140,27 +173,16 @@ public class VehicleCardView extends FrameLayout {
         row(c, rx, right, h * 0.515f, "DOORS", data.doorsOpen() < 0 ? Fmt.NONE : data.doorsOpen() == 0 ? "CLOSED" : data.doorsOpen() + " OPEN", unit);
         row(c, rx, right, h * 0.64f, "SERVICE", serviceText == null ? Fmt.NONE : serviceText, unit);
         row(c, rx, right - MaintenanceUi.dp(getContext(),46), h * 0.86f, "AIR LIFT", airPressure + " psi", unit);
-        label.setTextSize(7.5f * unit);
-        label.setTextAlign(Paint.Align.RIGHT);
-        String source = data.available() ? GaugeReading.summary(coolant, trans, oilPressure, oilTemperature) : "NO VEHICLE DATA";
-        boolean allCan = coolant.source == GaugeReading.Source.CAN && trans.source == GaugeReading.Source.CAN
-                && oilPressure.source == GaugeReading.Source.CAN && oilTemperature.source == GaugeReading.Source.CAN;
-        if (!allCan && obdStatus != null) source += " · " + obdStatus;
-        label.setLetterSpacing(0f);
-        float sourceRight = w * 0.715f;
-        source = TextUtils.ellipsize(source, label, sourceRight - w * 0.35f, TextUtils.TruncateAt.END).toString();
-        c.drawText(source, sourceRight, h * 0.97f, label);
-        label.setLetterSpacing(0.06f);
     }
 
     private void metric(Canvas c, float x, float y, float w, float h, String title, String text,
                         Float reading, float min, float max, float unit) {
         label.setTextAlign(Paint.Align.LEFT);
-        label.setTextSize(8f * unit);
+        label.setTextSize(9.5f * unit);
         c.drawText(title, x, y + 10 * unit, label);
         value.setTextAlign(Paint.Align.LEFT);
         value.setColor(reading == null ? secondary : primary);
-        value.setTextSize(22f * unit);
+        value.setTextSize(24f * unit);
         c.drawText(text, x, y + h * 0.69f, value);
         ink.setColor(stroke);
         rect.set(x, y + h - 3 * unit, x + w, y + h);
@@ -173,10 +195,10 @@ public class VehicleCardView extends FrameLayout {
     }
 
     private void row(Canvas c, float x, float right, float y, String title, String text, float unit) {
-        label.setTextSize(8.5f * unit);
+        label.setTextSize(9f * unit);
         label.setTextAlign(Paint.Align.LEFT);
         c.drawText(title, x, y, label);
-        value.setTextSize(12f * unit);
+        value.setTextSize(13f * unit);
         value.setTextAlign(Paint.Align.RIGHT);
         value.setColor(primary);
         // Service text can be user supplied: keep it inside its existing column.
