@@ -112,7 +112,9 @@ targets. Both launcher and climate are part of the same visual system.
 - [x] Inspect native card and pressure page on the panel: live measured pressure,
   separate target, 80/50/30/5 psi profiles and configured limits are visible.
 - [ ] Check the setup keyboard/footer on the panel, then conduct an explicit parked
-  pressure/handoff/disconnect/reverse test. No live actuation tested.
+  pressure/handoff/disconnect/reverse test. One explicitly approved5 psi command
+  completed with fresh35 kPa target readback; target was already5 psi, so a changed
+  pressure/settling transition and higher profiles remain unverified.
 
 ## Remaining reliability work
 
@@ -136,7 +138,10 @@ targets. Both launcher and climate are part of the same visual system.
   manual camera use followed by R/Park. Mark each only after the actual test.
 - [x] Beau confirmed Reverse/Park takeover/dismissal with SPLIT on launcher 0.5.3.
 - [ ] Repeat physical Reverse/Park with a native managed app on launcher 0.5.5;
-  the always-on-top backend needs its own camera-priority check.
+  the always-on-top backend needs its own camera-priority check. Beau's 0.5.14
+  test confirmed app persistence but camera did not open. Camera package was
+  vendor-force-stopped. Installed 0.5.15/Camera 0.3.5 monitor recovery; fresh physical
+  retest and usable video remain pending. See [CAMERA-WAKE-2026-10-27.md](CAMERA-WAKE-2026-10-27.md).
 - [x] Physical factory view-button response confirmed by Beau on 2026-10-26.
   Earlier remote taps were inconclusive; the parked user test takes precedence.
 - [ ] Measure time from physical reverse signal to displayed usable image.

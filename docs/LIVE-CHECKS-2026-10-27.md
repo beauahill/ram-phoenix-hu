@@ -1,8 +1,9 @@
 # Parked HU checks — 2026-10-27
 
-Installed launcher **0.5.14 / code21**. Camera remains **0.3.4 / code7**.
-All **92 unit tests** and debug app/instrumentation builds passed. No GitHub push.
-APK SHA-256: `66c6611ac159703897609512a2bd7b485565ea4f4e2f8a7ef727dafba43311d2`.
+Installed launcher **0.5.15 / code 22**, camera **0.3.5 / code 8** after the physical
+camera failure reported below. All **92 launcher + 9 camera unit tests** and APK
+builds passed. No GitHub push. Current checksums and camera details are recorded
+in [CAMERA-WAKE-2026-10-27.md](CAMERA-WAKE-2026-10-27.md).
 
 ## Verified
 
@@ -19,8 +20,8 @@ APK SHA-256: `66c6611ac159703897609512a2bd7b485565ea4f4e2f8a7ef727dafba43311d2`.
   continuous. The approximate 71,000 estimate was never stored as a measurement.
 - Installed WirelessOne 2.3.0/code100305 matches the reference signer. Read-only
   GATT check passed against the paired Air Lift model72708/firmware1.2.0: normal
-  mode, no diagnostic flags, measured38kPa (~5.51psi), target35kPa (~5.08psi), optional
-  tank field absent. The native page displays pressure and 80/50/30/5psi profiles.
+  mode, no diagnostic flags, measured38kPa (~5.51psi), target35 kPa (~5.08psi), optional
+  tank field absent. The native page displays pressure and 80/50/30/5 psi profiles.
   Setup contains the user-entered "Ram Kit" limits5–100psi; owner reports100psi max.
 - Recognizable climate icons inspected on the actual panel in compact/expanded/
   full-page layouts. Power/Auto remain in the compact header. No HVAC commands
@@ -37,10 +38,14 @@ APK SHA-256: `66c6611ac159703897609512a2bd7b485565ea4f4e2f8a7ef727dafba43311d2`.
 
 ## Still pending
 
-- Beau's physical Reverse/Park test with the final managed native app window.
-- Suspension target-write/acknowledgment test, measured response and app handoff.
-  Read compatibility does not establish command compatibility. No pressure command
-  has been sent by Codex at the time of this record.
+- Physical0.5.14 test: Beau confirmed YouTube stays during map use, but camera
+  never opened. Camera was vendor-force-stopped. Installed monitor recovery in
+  launcher 0.5.15/camera 0.3.5; live foreground-service restoration verified. Initial
+  manual video attempt produced zero frames. Usable picture, physical camera
+  button and Reverse/Park with the recovery build remain pending.
+- One explicitly approved Empty5 psi command completed and post-write readback
+  remained35 kPa (target was already5 psi). No higher profile applied. Changed-target
+  response/settling, app handoff and interruption checks remain pending.
 - Exact cluster odometer agreement, remaining maintenance/history/export checks.
 - Running oil-pressure CAN agreement, warm-temperature comparisons, independent
   upstream CAN freshness and oil-life remaining (owner previously reported96%).

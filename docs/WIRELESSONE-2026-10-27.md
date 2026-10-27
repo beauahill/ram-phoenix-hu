@@ -129,7 +129,24 @@ Evidence: `/home/beauhill/ram-phoenix-research/wirelessone-readonly-20261027.txt
 APK capture under `wirelessone/installed-20261027/`. This establishes live read
 compatibility with the observed fields. Actual inflation/deflation, target-write
 acknowledgment, handoff behavior, keyboard behavior and final panel layout remain
-unverified. **No suspension command has been sent.**
+unverified at the time of that initial read-only capture.
+
+### Explicit 5 psi test
+
+Beau subsequently authorized one parked 5 psi test. With launcher 0.5.15, the product
+page showed a fresh5 psi controller target, measured about6 psi, normal mode and no
+fault flags. Selected Empty, checked the enabled “Set5 psi” action, and pressed it
+**once**, without retry. The GATT write completed and the required post-write
+FC10 read returned `230000` (35 kPa/manual preset0). The UI reported “Target accepted”;
+measured39 kPa remained about5.66 psi, rounded6. Higher profiles were not applied.
+
+Because the reported target was already35 kPa, this verifies the single-write/
+readback path at the existing minimum, not that a changed target is obeyed or a
+pressure transition settles. Higher-pressure load tests, BLE loss/reverse and
+official-app handoff still need separate checks. Evidence outside Git:
+`wirelessone-before-5 psi-test-20261027.png`,
+`wirelessone-after-5 psi-test-20261027.{png,xml}` and
+`wirelessone-5 psi-test-20261027.log` in the private research folder.
 
 1. Obtain the kit model/part number and its allowed pressures. Beau has been asked;
    do not substitute the truck model or an assumed LoadLifter kit.

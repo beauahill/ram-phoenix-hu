@@ -70,6 +70,7 @@ public class LauncherActivity extends Activity implements Pane.Host {
     private CanbusVehicleData vehicle;
     private ObdClient obd;
     private SyuIpc windowGuard;
+    private CameraRecovery cameraRecovery;
     private MaintenanceStore maintenance;
 
     private final Handler ui = new Handler(Looper.getMainLooper());
@@ -100,6 +101,7 @@ public class LauncherActivity extends Activity implements Pane.Host {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_launcher);
+        cameraRecovery = new CameraRecovery(this);
         PaneWindows.closeAll(this);
         goImmersive();
         windowGuard = new SyuIpc(this);
@@ -108,6 +110,7 @@ public class LauncherActivity extends Activity implements Pane.Host {
                 boolean reverse = ints[0] == 1;
                 ui.post(() -> { if (!isDestroyed()) {
                     PaneWindows.reverse(this, reverse);
+                    if (reverse) cameraRecovery.ensureMonitor();
                     WirelessOneClient.get(this).reverse(reverse);
                     if (paneA != null) paneA.updateControls();
                     if (paneB != null) paneB.updateControls();
@@ -308,6 +311,7 @@ public class LauncherActivity extends Activity implements Pane.Host {
     @Override
     protected void onStart() {
         super.onStart();
+        cameraRecovery.visible(true);
         WindowBridge.get(this).visible(true);
         paneA.visible(true); paneB.visible(true);
         map.onStart();
@@ -357,6 +361,7 @@ public class LauncherActivity extends Activity implements Pane.Host {
 
     @Override
     protected void onStop() {
+        cameraRecovery.visible(false);
         WindowBridge.get(this).visible(false);
         paneA.visible(false); paneB.visible(false);
         map.onStop();
