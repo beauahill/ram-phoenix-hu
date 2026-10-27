@@ -49,6 +49,16 @@ public class ReverseService extends Service {
     private final Handler main = new Handler(Looper.getMainLooper());
     private ReverseMonitor monitor;
     private static volatile ReverseService sInstance;
+    private volatile boolean reverseEngaged;
+    private volatile long reverseSession;
+    private Runnable verifyLaunch;
+    private PendingIntent pendingShow;
+
+    /** Reject SHOW intents left over from an earlier shift or service instance. */
+    public static boolean isReverseSessionCurrent(long session) {
+        ReverseService s = sInstance;
+        return s != null && s.reverseEngaged && session == s.reverseSession;
+    }
 
     /** Send a raw ToolkitService command through the service's IPC. False if the service
      *  or its IPC is down. Used by MainActivity to forward taps on the factory OSD. */
@@ -79,16 +89,7 @@ public class ReverseService extends Service {
             registerReceiver(debugRx, new android.content.IntentFilter(ACTION_IPC_CMD),
                     android.content.Context.RECEIVER_EXPORTED);
         }
-        monitor = new ReverseMonitor(this, engaged -> {
-            Log.i(TAG, "service reverse -> " + engaged);
-            if (engaged) {
-                showCamera();
-            } else {
-                // Same process: no intent to a resumed activity (that cycled
-                // pause/newIntent/resume and re-opened cam 14 for ~7 s, live 2026-10-21).
-                MainActivity.requestHide();
-            }
-        });
+        monitor = new ReverseMonitor(this, this::onReverseChanged);
         monitor.start();
         // Review C2: the monitor only fires on a CHANGE, so if the unit boots (or
         // this service restarts) with the truck already in R — backing out of
@@ -96,8 +97,26 @@ public class ReverseService extends Service {
         // the stock app's GET_BOOT_REVERSE_STATUS by acting on the seed state.
         if (monitor.isEngaged()) {
             Log.i(TAG, "reverse already engaged at service start -> showing camera");
-            showCamera();
+            onReverseChanged(true);
         }
+    }
+
+    private void onReverseChanged(boolean engaged) {
+        Log.i(TAG, "service reverse -> " + engaged);
+        if (engaged && !reverseEngaged) reverseSession = android.os.SystemClock.elapsedRealtimeNanos();
+        reverseEngaged = engaged;
+        if (engaged) showCamera();
+        else {
+            cancelPendingShow();
+            MainActivity.requestHide();
+        }
+    }
+
+    private void cancelPendingShow() {
+        if (verifyLaunch != null) { main.removeCallbacks(verifyLaunch); verifyLaunch = null; }
+        if (pendingShow != null) { pendingShow.cancel(); pendingShow = null; }
+        NotificationManager nm = getSystemService(NotificationManager.class);
+        if (nm != null) nm.cancel(FULLSCREEN_ID);
     }
 
     @Override public int onStartCommand(Intent intent, int flags, int startId) {
@@ -124,35 +143,42 @@ public class ReverseService extends Service {
     }
 
     private void showCamera() {
+        cancelPendingShow();
+        final long session = reverseSession;
         final Intent show = new Intent(this, MainActivity.class)
                 .setAction(MainActivity.ACTION_SHOW)
                 .putExtra(MainActivity.EXTRA_REVERSE, true)
+                .putExtra(MainActivity.EXTRA_REVERSE_SESSION, session)
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK
                         | Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
 
         if (MainActivity.isVisible()) {
             // Already in front: switch it directly, no intent round-trip.
-            MainActivity.requestShowRear();
+            MainActivity.requestShowRear(session);
             return;
         }
 
         // Path 1: direct start. Works when SYSTEM_ALERT_WINDOW is granted or we are
         // priv-app. Silently dropped otherwise, so verify below.
-        startActivity(show);
-        main.postDelayed(() -> {
-            if (MainActivity.isVisible()) return;
+        try { startActivity(show); }
+        catch (RuntimeException e) { Log.e(TAG, "camera start failed", e); }
+        verifyLaunch = () -> {
+            verifyLaunch = null;
+            if (!isReverseSessionCurrent(session) || MainActivity.isVisible()) return;
             Log.e(TAG, "camera did not come to front within " + VERIFY_MS
                     + "ms: background start blocked by ActivityTaskManager.");
             logLaunchCapability();
             // Path 2: full-screen intent. Only launches while screen off / keyguard
             // showing; otherwise a heads-up notification. Best effort.
             postFullScreenIntent(show);
-        }, VERIFY_MS);
+        };
+        main.postDelayed(verifyLaunch, VERIFY_MS);
     }
 
     private void postFullScreenIntent(Intent show) {
         PendingIntent pi = PendingIntent.getActivity(this, 0, show,
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+        pendingShow = pi;
         Notification n = new Notification.Builder(this, CH_ID)
                 .setSmallIcon(android.R.drawable.ic_menu_camera)
                 .setContentTitle("Reverse camera")
@@ -195,6 +221,8 @@ public class ReverseService extends Service {
 
     @Override public void onDestroy() {
         super.onDestroy();
+        reverseEngaged = false;
+        cancelPendingShow();
         sInstance = null;
         if (debuggable()) { try { unregisterReceiver(debugRx); } catch (Exception ignored) {} }
         main.removeCallbacksAndMessages(null);

@@ -284,6 +284,12 @@ public class LauncherActivity extends Activity implements Pane.Host {
     // ---- lifecycle ----
 
     @Override
+    protected void onStart() {
+        super.onStart();
+        map.onStart();
+    }
+
+    @Override
     protected void onResume() {
         super.onResume();
         goImmersive();
@@ -322,6 +328,12 @@ public class LauncherActivity extends Activity implements Pane.Host {
         obd.stop();
         media.onPause();
         map.onPause();
+    }
+
+    @Override
+    protected void onStop() {
+        map.onStop();
+        super.onStop();
     }
 
     @Override

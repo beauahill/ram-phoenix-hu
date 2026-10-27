@@ -46,8 +46,7 @@ public class ObdClient {
     private final Context ctx;
     private final Listener listener;
     private final Handler ui = new Handler(Looper.getMainLooper());
-    private Thread worker;
-    private volatile boolean running;
+    private final ObdWorker worker = new ObdWorker(this::loop);
     private volatile boolean connected;
     private volatile String status = "OBD: idle";
 
@@ -66,66 +65,57 @@ public class ObdClient {
     public Float oilPsi() { return oilPsiClamped(); }
     public Float volts() { return volts; }
 
-    /**
-     * One worker at a time. The old code set running=false then immediately true in
-     * stop()/start() on every pause/resume, so the previous worker never exited and
-     * two threads fought over the single RFCOMM link (live 2026-10-26: that was every
-     * "connects then drops"). Each worker now owns a generation number and bows out
-     * when it is no longer the current one.
-     */
-    private volatile int generation;
-
-    public synchronized void start() {
-        if (worker != null && worker.isAlive()) return;     // already running, keep the link
-        running = true;
-        final int gen = ++generation;
-        worker = new Thread(() -> loop(gen), "obd-" + gen);
-        worker.start();
-    }
+    public synchronized void start() { worker.start(); }
 
     public synchronized void stop() {
-        running = false;
-        generation++;                                        // retires the current worker
-        if (worker != null) worker.interrupt();
-        worker = null;
+        worker.stop();
+        clearReadings();
+        set("OBD: idle");
     }
 
-    private boolean alive(int gen) { return running && gen == generation; }
+    private void clearReadings() {
+        connected = false;
+        coolantC = oilTempC = transC = oilPsi = volts = null;
+        custom.clear();
+        customUnit.clear();
+    }
 
     private void set(String st) { status = st; Log.i(TAG, st); ui.post(listener::onObdChanged); }
 
     @SuppressLint("MissingPermission")
-    private BluetoothDevice findAdapter() {
+    private BluetoothDevice findAdapter(ObdWorker.Session session) {
         try {
             BluetoothAdapter ad = BluetoothAdapter.getDefaultAdapter();
-            if (ad == null || !ad.isEnabled()) { set("OBD: bluetooth off"); return null; }
+            if (ad == null || !ad.isEnabled()) { session.publish(() -> set("OBD: bluetooth off")); return null; }
             String want = prop("persist.phoenix.obd.name", "OBD").toLowerCase(Locale.US);
             for (BluetoothDevice d : ad.getBondedDevices()) {
                 String n = d.getName();
                 if (n != null && n.toLowerCase(Locale.US).contains(want)) return d;
             }
-            set("OBD: no paired adapter");
+            session.publish(() -> set("OBD: no paired adapter"));
         } catch (SecurityException e) {
-            set("OBD: no bluetooth permission");
+            session.publish(() -> set("OBD: no bluetooth permission"));
         }
         return null;
     }
 
     @SuppressLint("MissingPermission")
-    private void loop(final int gen) {
-        while (alive(gen)) {
+    private void loop(ObdWorker.Session session) {
+        while (session.active()) {
             BluetoothSocket sock = null;
             try {
-                BluetoothDevice dev = findAdapter();
+                BluetoothDevice dev = findAdapter(session);
                 if (dev == null) { sleep(RETRY_MS); continue; }
-                set("OBD: connecting " + dev.getName());
-                sock = openSpp(dev);
+                session.publish(() -> set("OBD: connecting " + dev.getName()));
+                sock = openSpp(dev, session);
                 InputStream in = sock.getInputStream();
                 OutputStream out = sock.getOutputStream();
                 init(in, out);
-                connected = true;
                 curHeader = "";
-                set("OBD: connected " + dev.getName());
+                if (!session.publish(() -> {
+                    connected = true;
+                    set("OBD: connected " + dev.getName());
+                })) break;
                 // Defaults are community-reported Chrysler/RAM mode-22 PIDs on the engine
                 // header (ramforum / promasterforum, 2026-10-25 search): trans temp 22 B010
                 // = ((A*256)+B)/64 °F (converted to °C here), oil pressure 22 022A (scale
@@ -149,9 +139,9 @@ public class ObdClient {
                 // One-shot DID scan for finding the Cummins/68RFE identifiers that are not
                 // published anywhere: setprop persist.phoenix.obd.scan "7E1:B000-B0FF"
                 // then watch `logcat -s PhoenixObd` for "scan HIT". Cleared after it runs.
-                while (alive(gen)) {
+                while (session.active()) {
                     String scan = prop("persist.phoenix.obd.scan", "");
-                    if (!scan.isEmpty()) { setProp("persist.phoenix.obd.scan", ""); scanDids(in, out, scan); }
+                    if (!scan.isEmpty()) { setProp("persist.phoenix.obd.scan", ""); scanDids(in, out, scan, session); }
                     // live watch for identification: persist.phoenix.obd.watch = "7E0:A0CA,A0CB,...;7E1:A034"
                     String watch = prop("persist.phoenix.obd.watch", "");
                     if (!watch.isEmpty()) {
@@ -168,31 +158,40 @@ public class ObdClient {
                         Log.i(TAG, wb.toString());
                     }
                     header(in, out, "7DF");
-                    coolantC = pidA(in, out, "0105", 0x05, a -> a - 40f);
+                    Float nextCoolant = pidA(in, out, "0105", 0x05, a -> a - 40f);
                     Float ot = pidA(in, out, "015C", 0x5C, a -> a - 40f);
                     if (ot == null && !oilTCfg.isEmpty()) ot = custom(in, out, oilTCfg);
-                    oilTempC = ot;
-                    volts = parseVolts(cmd(in, out, "ATRV"));
-                    if (!transCfg.isEmpty()) transC = custom(in, out, transCfg);
-                    if (!oilCfg.isEmpty()) oilPsi = custom(in, out, oilCfg);
+                    final Float nextOilTemp = ot;
+                    Float nextVolts = parseVolts(cmd(in, out, "ATRV"));
+                    Float nextTrans = transCfg.isEmpty() ? null : custom(in, out, transCfg);
+                    Float nextOilPsi = oilCfg.isEmpty() ? null : custom(in, out, oilCfg);
+                    java.util.Map<String, Float> nextCustom = new java.util.LinkedHashMap<>();
+                    java.util.Map<String, String> nextUnits = new java.util.LinkedHashMap<>();
                     for (String[] x : extras) {
                         Float v = custom(in, out, x[1].trim() + "," + x[2].trim());
-                        if (v != null) custom.put(x[0].trim(), v); else custom.remove(x[0].trim());
-                        customUnit.put(x[0].trim(), x.length > 3 ? x[3].trim() : "");
+                        if (v != null) nextCustom.put(x[0].trim(), v);
+                        nextUnits.put(x[0].trim(), x.length > 3 ? x[3].trim() : "");
                     }
-                    ui.post(listener::onObdChanged);
+                    session.publish(() -> {
+                        coolantC = nextCoolant;
+                        oilTempC = nextOilTemp;
+                        volts = nextVolts;
+                        transC = nextTrans;
+                        oilPsi = nextOilPsi;
+                        custom.clear(); custom.putAll(nextCustom);
+                        customUnit.clear(); customUnit.putAll(nextUnits);
+                        ui.post(listener::onObdChanged);
+                    });
                     sleep(POLL_MS);
                 }
             } catch (InterruptedException e) {
                 break;
             } catch (Exception e) {
-                set("OBD: " + e.getMessage());
+                session.publish(() -> set("OBD: " + e.getMessage()));
             } finally {
-                if (gen == generation) connected = false;
-                coolantC = oilTempC = transC = oilPsi = volts = null;
-                custom.clear();
                 try { if (sock != null) sock.close(); } catch (Exception ignored) {}
-                ui.post(listener::onObdChanged);
+                session.release(sock);
+                session.publish(() -> { clearReadings(); ui.post(listener::onObdChanged); });
             }
             try { sleep(RETRY_MS); } catch (InterruptedException e) { break; }
         }
@@ -205,10 +204,11 @@ public class ObdClient {
      * needed. Tries each in turn and reports which one worked.
      */
     @SuppressLint({"MissingPermission", "DiscouragedPrivateApi"})
-    private BluetoothSocket openSpp(BluetoothDevice dev) throws Exception {
+    private BluetoothSocket openSpp(BluetoothDevice dev, ObdWorker.Session session) throws Exception {
         Exception last = null;
         String[] names = {"secure SDP", "insecure SDP", "channel 1", "channel 2"};
         for (int attempt = 0; attempt < names.length; attempt++) {
+            if (!session.active()) throw new InterruptedException();
             BluetoothSocket s = null;
             try {
                 switch (attempt) {
@@ -219,13 +219,17 @@ public class ObdClient {
                         s = (BluetoothSocket) m.invoke(dev, attempt - 1);
                     }
                 }
+                session.attach(s);
                 s.connect();
+                if (!session.active()) throw new InterruptedException();
                 Log.i(TAG, "OBD: SPP up via " + names[attempt]);
                 return s;
             } catch (Exception e) {
                 last = e;
                 Log.w(TAG, "OBD: " + names[attempt] + " failed: " + e.getMessage());
                 try { if (s != null) s.close(); } catch (Exception ignored) {}
+                session.release(s);
+                if (e instanceof InterruptedException || !session.active()) throw new InterruptedException();
                 Thread.sleep(400);
             }
         }
@@ -257,7 +261,7 @@ public class ObdClient {
     /** "<request>,<formula with A and B>" e.g. "221E1C,A-40" or "2206C1,(A*256+B)/4". */
     private String curHeader = "";
 
-    private void scanDids(InputStream in, OutputStream out, String spec) throws Exception {
+    private void scanDids(InputStream in, OutputStream out, String spec, ObdWorker.Session session) throws Exception {
         try {
             String hdr = spec.substring(0, spec.indexOf(':'));
             String[] range = spec.substring(spec.indexOf(':') + 1).split("-");
@@ -268,7 +272,7 @@ public class ObdClient {
             if (open) { cmd(in, out, "ATCRA"); cmd(in, out, "ATH1"); curHeader = ""; }   // show every reply, with its id
             cmd(in, out, "ATST10");                       // short per-request timeout (16 x 4 ms)
             int hits = 0;
-            for (int did = from; did <= to && running; did++) {
+            for (int did = from; did <= to && session.active(); did++) {
                 String req = String.format("22%04X", did);
                 String r = cmd(in, out, req);
                 if (r.startsWith("62") || (open && r.contains("62"))) { hits++; Log.i(TAG, "scan HIT " + hdr + " " + req + " -> " + r); }
@@ -278,6 +282,8 @@ public class ObdClient {
             Log.i(TAG, "scan done " + spec + ": " + hits + " hits");
             cmd(in, out, "ATST32");
             if (open) cmd(in, out, "ATH0");
+        } catch (InterruptedException | java.io.IOException e) {
+            throw e; // A missing prompt must retire the socket, including during a scan.
         } catch (Exception e) {
             Log.w(TAG, "scan aborted: " + e.getMessage());
         }
@@ -309,7 +315,8 @@ public class ObdClient {
         } else {
             cmd(in, out, "ATSH" + h);
             if (h.equalsIgnoreCase("7DF")) cmd(in, out, "ATCRA"); else {
-                try { int rx = Integer.parseInt(h, 16) + 8; cmd(in, out, "ATCRA" + String.format("%03X", rx)); } catch (Exception ignored) {}
+                int rx = Integer.parseInt(h, 16) + 8;
+                cmd(in, out, "ATCRA" + String.format("%03X", rx));
             }
         }
         curHeader = h;
@@ -344,23 +351,13 @@ public class ObdClient {
 
     /** Send one command, collect until the '>' prompt, strip echo/noise. */
     private String cmd(InputStream in, OutputStream out, String c) throws Exception {
-        out.write((c + "\r").getBytes());
+        if (Thread.currentThread().isInterrupted()) throw new InterruptedException();
+        out.write((c + "\r").getBytes(java.nio.charset.StandardCharsets.US_ASCII));
         out.flush();
-        StringBuilder sb = new StringBuilder();
-        long deadline = System.currentTimeMillis() + 4000;
-        boolean prompt = false;
-        while (System.currentTimeMillis() < deadline) {
-            if (in.available() == 0) { Thread.sleep(20); continue; }
-            int ch = in.read();
-            if (ch < 0) throw new Exception("socket closed");
-            if (ch == '>') { prompt = true; break; }
-            if (ch != '\r' && ch != '\n' && ch != ' ' && ch != 0) sb.append((char) ch);
-            // a protocol search can take a while: never cut it off, never resend into it
-            if (sb.indexOf("SEARCHING") >= 0) deadline = Math.max(deadline, System.currentTimeMillis() + 12000);
-        }
-        String r = sb.toString();
+        String r = ElmResponseReader.read(in, 4000, 12000);
         if (r.startsWith(c)) r = r.substring(c.length());
-        Log.d(TAG, c + " -> " + r + (prompt ? "" : " (no prompt)"));
+        r = r.replace("SEARCHING...", "").replace("SEARCHING", "");
+        Log.d(TAG, c + " -> " + r);
         if (r.contains("UNABLETOCONNECT") || r.contains("CANERROR") || r.contains("BUSINIT")) {
             throw new Exception(r);
         }
@@ -368,7 +365,7 @@ public class ObdClient {
             retrying = true;
             try { Thread.sleep(600); return cmd(in, out, c); } finally { retrying = false; }
         }
-        if (r.contains("NODATA") || r.contains("?") || r.contains("SEARCHING")) return "";
+        if (r.contains("NODATA") || r.contains("?")) return "";
         return r;
     }
 

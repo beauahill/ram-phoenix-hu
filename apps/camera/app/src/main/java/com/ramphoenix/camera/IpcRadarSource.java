@@ -39,6 +39,18 @@ public final class IpcRadarSource implements ParkingSensorSource {
     private static final float[] held   = new float[ZONE_COUNT];
     private static final long[]  heldAt = new long[ZONE_COUNT];
     private static volatile boolean seen;
+    private static int seenMask;
+
+    /** No last-known reading may look live after the vendor transport is lost. */
+    public static void reset() {
+        synchronized (lock) {
+            java.util.Arrays.fill(cur, 0f);
+            java.util.Arrays.fill(held, 0f);
+            java.util.Arrays.fill(heldAt, 0L);
+            seen = false;
+            seenMask = 0;
+        }
+    }
 
     /** Zone index for a MAIN update code, or -1 if the code is not a sensor. */
     public static int zoneFor(int code) {
@@ -56,8 +68,9 @@ public final class IpcRadarSource implements ParkingSensorSource {
         synchronized (lock) {
             cur[z] = p;
             if (p > 0f) { held[z] = p; heldAt[z] = SystemClock.uptimeMillis(); }
+            seenMask |= 1 << z;
+            seen = seenMask == (1 << ZONE_COUNT) - 1;
         }
-        seen = true;
     }
 
     @Override public float[] proximity() {

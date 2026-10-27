@@ -15,13 +15,6 @@ import java.util.Set;
 /** Queries the system for every launchable app and builds the sorted drawer list. */
 public class AppRepository {
 
-    /** Our own package + the stock launcher we are replacing — hidden from the drawer. */
-    private static final Set<String> HIDE = new LinkedHashSet<>();
-    static {
-        HIDE.add("com.ramphoenix.launcher");
-        HIDE.add("com.android.launcher6");
-    }
-
     public static List<AppInfo> loadLaunchable(Context ctx) {
         PackageManager pm = ctx.getPackageManager();
         Set<String> seen = new LinkedHashSet<>();
@@ -34,7 +27,8 @@ public class AppRepository {
             List<ResolveInfo> ris = pm.queryIntentActivities(main, 0);
             for (ResolveInfo ri : ris) {
                 String pkg = ri.activityInfo.packageName;
-                if (HIDE.contains(pkg)) continue;
+                if ("com.android.launcher6".equals(pkg)
+                        || LauncherActivity.class.getName().equals(ri.activityInfo.name)) continue;
                 ComponentName cn = new ComponentName(pkg, ri.activityInfo.name);
                 String key = cn.flattenToShortString();
                 if (!seen.add(key)) continue;

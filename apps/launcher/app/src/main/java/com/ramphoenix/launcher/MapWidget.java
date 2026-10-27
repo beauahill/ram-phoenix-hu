@@ -417,6 +417,10 @@ public class MapWidget {
     public void zoomIn()  { if (gmap != null) gmap.animateCamera(CameraUpdateFactory.zoomIn()); }
     public void zoomOut() { if (gmap != null) gmap.animateCamera(CameraUpdateFactory.zoomOut()); }
 
+    public void onStart() { view.onStart(); }
+
+    public void onStop() { view.onStop(); }
+
     public void onResume() {
         resumed = true;
         view.onResume();

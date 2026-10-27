@@ -51,10 +51,15 @@ public class ReverseMonitor {
         running = true;
         sysfsState = Sysfs.isReverseEngaged();
         lastState = sysfsState;
+        IpcRadarSource.reset();
 
         ipc = new SyuIpc(ctx);
         ipc.setConnectionListener(connected -> {
             Log.i(TAG, "reverse ipc " + (connected ? "up" : "down"));
+            if (!connected) {
+                ipcSeeded = false;
+                IpcRadarSource.reset();
+            }
             if (connected && !ipcSeeded) {
                 // register(update=1) should push the current value; if the
                 // service does not, read it once so boot-in-reverse still works.
@@ -104,6 +109,7 @@ public class ReverseMonitor {
 
     public void stop() {
         running = false;
+        IpcRadarSource.reset();
         if (bg != null) bg.removeCallbacks(poll);
         if (thread != null) thread.quitSafely();
         bg = null;

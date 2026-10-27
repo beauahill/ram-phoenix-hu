@@ -71,9 +71,12 @@ public class ClimateWidget {
         for (int code : CODES) {
             ipc.subscribe(SyuIpc.MODULE_CANBUS, code, (c, ints, flts, strs) -> {
                 if (ints != null && ints.length > 0) {
-                    if (state.get(c, Integer.MIN_VALUE) != ints[0]) Log.i(TAG, "climate update " + c + " -> " + ints[0]);
-                    state.put(c, ints[0]);
-                    ui.post(this::render);
+                    final int value = ints[0];
+                    ui.post(() -> {
+                        if (state.get(c, Integer.MIN_VALUE) != value) Log.i(TAG, "climate update " + c + " -> " + value);
+                        state.put(c, value);
+                        render();
+                    });
                 }
             });
         }
@@ -160,17 +163,27 @@ public class ClimateWidget {
 
     /** The bus only has fan +/- buttons: walk from the current level to the target. */
     private void stepFan(int target) {
+        cancelFanSteps();
         int cur = v(C_FAN);
         if (cur < 0) return;
         int delta = target - cur;
         int btn = delta > 0 ? B_FAN_UP : B_FAN_DN;
         for (int i = 0; i < Math.abs(delta); i++) {
-            ui.postDelayed(() -> press(btn), i * 180L);
+            Runnable step = () -> press(btn);
+            fanSteps.add(step);
+            ui.postDelayed(step, i * 180L);
         }
     }
 
+    private final java.util.List<Runnable> fanSteps = new java.util.ArrayList<>();
+
+    private void cancelFanSteps() {
+        for (Runnable step : fanSteps) ui.removeCallbacks(step);
+        fanSteps.clear();
+    }
+
     public void onResume() { ipc.connect(); }
-    public void onPause() { ipc.disconnect(); connected = false; render(); }
+    public void onPause() { cancelFanSteps(); ipc.disconnect(); connected = false; render(); }
 
     /** One packet per press, exactly what the stock PA panel sends. */
     private void press(final int button) {

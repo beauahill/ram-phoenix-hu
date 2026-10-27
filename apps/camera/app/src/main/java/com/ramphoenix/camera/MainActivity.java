@@ -45,6 +45,7 @@ public class MainActivity extends AppCompatActivity {
     public static final String ACTION_SHOW   = "com.ramphoenix.camera.SHOW";
     public static final String ACTION_HIDE   = "com.ramphoenix.camera.HIDE";
     public static final String EXTRA_REVERSE = "reverse";
+    public static final String EXTRA_REVERSE_SESSION = "reverse_session";
 
     /** The resumed instance, if any. ReverseService drives a visible activity
      *  through this instead of intents (see class doc). */
@@ -53,23 +54,28 @@ public class MainActivity extends AppCompatActivity {
 
     public static boolean isVisible() { return sResumed != null; }
 
-    /** Reverse engaged while we are on screen: switch to REAR, mark reverse-initiated. */
-    public static void requestShowRear() {
-        sMain.post(() -> {
+    /** A manually opened camera remains manual when the truck enters reverse. */
+    public static void requestShowRear(long session) {
+        runOnMain(() -> {
             MainActivity a = sResumed;
-            if (a == null) return;
-            a.reverseInitiated = true;
+            if (a == null || !ReverseService.isReverseSessionCurrent(session)) return;
+            if (a.reverseInitiated) a.reverseSession = session;
             a.setMode(CameraMode.REAR);
         });
     }
 
     /** Reverse released: step back only if reverse brought us up. */
     public static void requestHide() {
-        sMain.post(() -> {
+        runOnMain(() -> {
             MainActivity a = sResumed;
             if (a == null) return;
-            if (a.reverseInitiated) { a.reverseInitiated = false; a.moveTaskToBack(true); }
+            if (a.reverseInitiated && !ReverseService.isReverseSessionCurrent(a.reverseSession)) a.hideReverseSession();
         });
+    }
+
+    private static void runOnMain(Runnable action) {
+        if (Looper.myLooper() == Looper.getMainLooper()) action.run();
+        else sMain.post(action);
     }
 
     private FrameLayout feedBox;
@@ -88,6 +94,8 @@ public class MainActivity extends AppCompatActivity {
     private boolean mainSurfaceReady, auxSurfaceReady, permGranted;
     /** True when the current foregrounding was caused by shifting into reverse. */
     private boolean reverseInitiated;
+    private long reverseSession;
+    private boolean resumed;
 
     private final Handler ui = new Handler(Looper.getMainLooper());
     private Runnable sensorTicker;
@@ -154,13 +162,31 @@ public class MainActivity extends AppCompatActivity {
     private void handleIntent(Intent intent) {
         if (intent == null) return;
         if (ACTION_HIDE.equals(intent.getAction())) {
-            if (reverseInitiated) { reverseInitiated = false; moveTaskToBack(true); }
+            if (reverseInitiated) hideReverseSession();
             return;
         }
         if (intent.getBooleanExtra(EXTRA_REVERSE, false)) {
-            reverseInitiated = true;
-            setMode(CameraMode.REAR);
+            long session = intent.getLongExtra(EXTRA_REVERSE_SESSION, -1);
+            if (sResumed != this) {
+                reverseInitiated = true;
+                reverseSession = session;
+            } else if (reverseInitiated && ReverseService.isReverseSessionCurrent(session)) {
+                reverseSession = session;
+            }
+            if (ReverseService.isReverseSessionCurrent(session)) setMode(CameraMode.REAR);
+        } else {
+            reverseInitiated = false;
         }
+    }
+
+    private void hideReverseSession() {
+        reverseInitiated = false;
+        resumed = false;
+        if (sResumed == this) sResumed = null;
+        stopSensorTicker();
+        camMain.close();
+        camAux.close();
+        moveTaskToBack(true);
     }
 
     /** Compute the letterbox height for the feed's native aspect from the real
@@ -276,7 +302,7 @@ public class MainActivity extends AppCompatActivity {
     /** Idempotent: binds cameras + overlays to whatever the current mode is.
      *  CameraController.open() is itself a no-op for an unchanged id/surface. */
     private void applyMode() {
-        if (!permGranted || !mainSurfaceReady) return;
+        if (!resumed || !permGranted || !mainSurfaceReady) return;
 
         switch (mode) {
             case REAR:
@@ -364,6 +390,13 @@ public class MainActivity extends AppCompatActivity {
 
     @Override protected void onResume() {
         super.onResume();
+        // A quick R -> D may happen before this activity reaches onResume().
+        // requestHide() cannot see us then, so reconcile before opening a camera.
+        if (reverseInitiated && !ReverseService.isReverseSessionCurrent(reverseSession)) {
+            hideReverseSession();
+            return;
+        }
+        resumed = true;
         sResumed = this;
         hideSystemBars();
         startSensorTicker();
@@ -372,6 +405,7 @@ public class MainActivity extends AppCompatActivity {
 
     @Override protected void onPause() {
         super.onPause();
+        resumed = false;
         if (sResumed == this) sResumed = null;
         stopSensorTicker();
         camMain.close();
