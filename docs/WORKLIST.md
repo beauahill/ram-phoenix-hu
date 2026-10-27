@@ -1,6 +1,6 @@
 # Active worklist
 
-Updated 2026-10-26. Current branch: `codex/refinement-2026-10-26`, based on the
+Updated 2026-10-26. Current branch: `codex/oil-data-2019-3500`, based on the
 tested reliability, TPMS and camera-alignment branches. Main is unchanged.
 
 ## Completed and previously verified
@@ -45,7 +45,8 @@ targets. Both launcher and climate are part of the same visual system.
   6.06 s, reconnect overlay, native-size restoration and successful recovery.
   Override cleared. Mid-stream timeout is covered by unit tests; a physical
   analog-source freeze is not detected by capture-result callbacks alone.
-- [ ] Physical reverse cycle and factory camera-button response after these updates.
+- [x] Beau confirmed the parked test on the refreshed apps: reverse, factory
+  camera view buttons and climate temperature/fan changes all work.
 
 ## Remaining reliability work
 
@@ -54,12 +55,18 @@ targets. Both launcher and climate are part of the same visual system.
   Static enable paths are now traced in [REFINEMENT-2026-10-26.md](REFINEMENT-2026-10-26.md).
 - [ ] Confirm camera ownership after repeated reverse cycles, boot while in R and
   manual camera use followed by R/Park. Mark each only after the actual test.
-- [ ] Diagnose factory view-button response: IPC commands are sent, but the
-  2026-10-26 remote taps did not visibly change the image. Do not call this passed.
+- [x] Physical factory view-button response confirmed by Beau on 2026-10-26.
+  Earlier remote taps were inconclusive; the parked user test takes precedence.
 - [ ] Measure time from physical reverse signal to displayed usable image.
 - [ ] Shared IPC/profile definitions across apps; retire contradictory old constants.
 - [ ] Search cancellation/provider handling and freshness of remaining vehicle data.
 - [ ] Check optional phone/apps/OBD cards against the updated visual system.
+- [x] Oil temperature: factory PA RAM CANBUS field 235, verified at 91°F against
+  Beau's current cluster reading. Installed launcher 0.5.1; both vehicle-data
+  cards use this source. See [OIL-DATA-2019-RAM3500.md](OIL-DATA-2019-RAM3500.md).
+- [ ] Oil life remaining: Beau reports 96%; no verified data source yet.
+  Save rejected identifiers and bounded read-only scan evidence in the oil-data
+  record. Do not infer a percentage from an unidentified counter.
 
 See [RELIABILITY-2026-10-26.md](RELIABILITY-2026-10-26.md),
 [TPMS-2019-RAM3500.md](TPMS-2019-RAM3500.md), and

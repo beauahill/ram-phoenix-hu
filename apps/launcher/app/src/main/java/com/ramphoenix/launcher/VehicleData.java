@@ -3,12 +3,11 @@ package com.ramphoenix.launcher;
 /**
  * Vehicle sensor snapshot for the dashboard. {@code null} = not available.
  *
- * On this unit these values ride the SYU canbus LSEC IPC (the shared
- * {@code Main.DATA[]} array published by com.syu.canbus; see
- * docs/CAMERA-MILESTONE-1.md). The exact indexes for tire pressure, fuel,
- * coolant, battery, outside temp and speed are not pinned yet, so the
- * dashboard ships with {@link #STUB} and renders dashes. A CanbusVehicleData
- * implementation replaces it once the indexes are captured live.
+ * CanbusVehicleData combines verified SYU ToolkitService fields with ObdClient
+ * readings. Outside and oil temperature use the factory IPC; coolant, voltage,
+ * transmission temperature, oil pressure and TPMS use verified OBD routes.
+ * See docs/TPMS-2019-RAM3500.md and docs/OIL-DATA-2019-RAM3500.md. Unsupported
+ * fields remain null. STUB is an unavailable placeholder, not the live source.
  */
 public interface VehicleData {
 

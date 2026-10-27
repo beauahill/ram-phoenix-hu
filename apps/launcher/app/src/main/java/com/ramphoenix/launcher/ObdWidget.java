@@ -11,18 +11,19 @@ import java.util.List;
 import java.util.Locale;
 
 /**
- * OBD data card: coolant, trans, oil pressure, oil temp, voltage, plus any extra
+ * Vehicle data card: coolant, trans, oil pressure, factory/OBD oil temp, voltage, plus any extra
  * PIDs configured as persist.phoenix.obd.custom1..4 ("LABEL,request,formula,unit").
  */
 public class ObdWidget {
     private final Activity act;
     private final ObdClient obd;
+    private final VehicleData vehicle;
     private final LinearLayout tiles;
     private final TextView status;
     private final List<TextView[]> cells = new ArrayList<>();
 
-    public ObdWidget(Activity act, View card, ObdClient obd) {
-        this.act = act; this.obd = obd;
+    public ObdWidget(Activity act, View card, ObdClient obd, VehicleData vehicle) {
+        this.act = act; this.obd = obd; this.vehicle = vehicle;
         tiles = card.findViewById(R.id.obd_tiles);
         status = card.findViewById(R.id.obd_status);
         render();
@@ -33,7 +34,7 @@ public class ObdWidget {
         rows.add(new String[]{"COOLANT", f(obd.coolantC(), true)});
         rows.add(new String[]{"TRANS", f(obd.transC(), true)});
         rows.add(new String[]{"OIL PSI", obd.oilPsi() == null ? Fmt.NONE : String.format(Locale.US, "%.0f", obd.oilPsi())});
-        rows.add(new String[]{"OIL TEMP", f(obd.oilTempC(), true)});
+        rows.add(new String[]{"OIL TEMP", f(vehicle.oilTempC(), true)});
         rows.add(new String[]{"VOLTS", Fmt.volts(obd.volts())});
         for (java.util.Map.Entry<String, String> e : obd.customUnit.entrySet()) {
             Float v = obd.custom.get(e.getKey());

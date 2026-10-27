@@ -8,16 +8,15 @@ import android.util.Log;
 /**
  * Vehicle data from the SYU ToolkitService and the truck's verified OBD profiles.
  *
- * What this unit's MCU/canbus layer actually decodes for CAR_455_LZ_Dodge_RAM1500
- * (decompile of com.syu.ms k0.vr.U2 + com.syu.canbus Callback_0455, 2026-10-25):
+ * This HU reports PA_RAM_22_Low (2163062) through CANBUS subscription 1000.
+ * The factory PA accessory-gauge decoder supplies oil temperature on CANBUS 235;
+ * see docs/OIL-DATA-2019-RAM3500.md for the packet layout and live verification.
  *   MAIN 40    outside temperature: (v & 0xFFFF) is tenths of a degree + 1000,
  *              bit 28 set = Fahrenheit (live: 268437096 -> 1640 -> 64 F, matched the cluster)
- *   CANBUS 1031 speed, raw byte from frame 0x35 (units unverified, probably km/h)
- *   CANBUS 0..5 doors: hood, FL, FR, RL, RR, tailgate (1 = open)
- *   CANBUS 1052 every raw frame from the canbus box (logged at debug for discovery)
- * Fuel level, coolant, battery voltage, TPMS, odometer and RPM are not decoded by
- * this vendor profile. Available engine/pressure values are delegated to ObdClient;
- * unsupported values remain null.
+ * Door/speed subscriptions and optional raw-frame logging are retained from the
+ * older LZ investigation; speed units and PA raw-frame delivery remain unverified.
+ * Other verified engine and tire-pressure values are delegated to ObdClient.
+ * Unsupported values remain null.
  */
 public class CanbusVehicleData implements VehicleData {
 
@@ -32,6 +31,7 @@ public class CanbusVehicleData implements VehicleData {
     private final Runnable onChange;
     private volatile boolean connected;
     private volatile Float outsideC, speedKph;
+    private final RamPaOil paOil = new RamPaOil();
     private final boolean[] doors = new boolean[6];
 
     public CanbusVehicleData(Context ctx, Runnable onChange) {
@@ -39,11 +39,33 @@ public class CanbusVehicleData implements VehicleData {
         ipc = new SyuIpc(ctx);
         ipc.setConnectionListener(c -> {
             connected = c; changed();
+            if (!c) paOil.clear();
             if (c) ui.postDelayed(() -> {
-                int[] id = ipc.getInts(SyuIpc.MODULE_CANBUS, 1000);
-                Log.i(TAG, "canbus profile id (DATA[1000]) = " + (id != null && id.length > 0 ? id[0] : -1));
-            }, 500);
+                if (connected && (paOil.supported() || oilProbeEnabled())) {
+                    // Same read/page request as the factory accessory-gauge activity.
+                    Log.i(TAG, "PA RAM gauge read request page 82: "
+                            + ipc.cmd(SyuIpc.MODULE_CANBUS, 4, new int[]{82}));
+                }
+            }, 700);
         });
+        for (int code : new int[]{234, 235, 236, 237, 238, 301, 372, 373, 374, 395, 1000}) {
+            ipc.subscribe(SyuIpc.MODULE_CANBUS, code, (c, ints, f, s) -> {
+                if (ints != null && ints.length > 0) {
+                    if (c == RamPaOil.TEMPERATURE_CODE) {
+                        paOil.temperature(ints[0]);
+                        Log.i(TAG, "PA RAM oil temperature raw=" + ints[0]
+                                + " Celsius=" + RamPaOil.decodeTemperature(ints[0]));
+                        changed();
+                    } else if (c == 1000) {
+                        paOil.profile(ints[0]);
+                        Log.i(TAG, "CAN profile from subscription=" + ints[0]);
+                        changed();
+                    }
+                }
+                if (oilProbeEnabled()) Log.i(TAG, "CAN oilprobe " + c + " -> "
+                        + java.util.Arrays.toString(ints));
+            });
+        }
         ipc.subscribe(SyuIpc.MODULE_MAIN, U_TEMP_OUT, (code, ints, f, s) -> {
             if (ints == null || ints.length == 0) return;
             int v = ints[0];
@@ -76,8 +98,16 @@ public class CanbusVehicleData implements VehicleData {
 
     private void changed() { ui.post(onChange); }
 
+    private static boolean oilProbeEnabled() {
+        try {
+            return "1".equals(Class.forName("android.os.SystemProperties")
+                    .getMethod("get", String.class, String.class)
+                    .invoke(null, "persist.phoenix.can.oilprobe", ""));
+        } catch (Exception e) { return false; }
+    }
+
     public void connect() { ipc.connect(); }
-    public void disconnect() { ipc.disconnect(); connected = false; }
+    public void disconnect() { connected = false; paOil.clear(); ipc.disconnect(); }
 
     public boolean doorOpen(int idx) { return idx >= 0 && idx < 6 && doors[idx]; }
     public boolean anyDoorOpen() { for (boolean d : doors) if (d) return true; return false; }
@@ -88,7 +118,10 @@ public class CanbusVehicleData implements VehicleData {
     @Override public Float batteryVolts() { return obd != null ? obd.volts() : null; }
     @Override public Float transC() { return obd != null ? obd.transC() : null; }
     @Override public Float oilPsi() { return obd != null ? obd.oilPsi() : null; }
-    @Override public Float oilTempC() { return obd != null ? obd.oilTempC() : null; }
+    @Override public Float oilTempC() {
+        Float factory = paOil.temperatureC(connected);
+        return factory != null ? factory : obd != null ? obd.oilTempC() : null;
+    }
     @Override public int doorsOpen() { if (!connected) return -1; int n = 0; for (boolean d : doors) if (d) n++; return n; }
     @Override public Float outsideC() { return outsideC; }
     @Override public Float speedKph() { return speedKph; }

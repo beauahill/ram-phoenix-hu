@@ -145,6 +145,21 @@ public class ObdClient {
                 // published anywhere: setprop persist.phoenix.obd.scan "7E1:B000-B0FF"
                 // then watch `logcat -s PhoenixObd` for "scan HIT". Cleared after it runs.
                 while (session.active()) {
+                    String probe = prop("persist.phoenix.obd.probe", "");
+                    if (!probe.isEmpty()) {
+                        setProp("persist.phoenix.obd.probe", "");
+                        java.util.List<ObdProbe.Request> requests;
+                        try { requests = ObdProbe.parse(probe); }
+                        catch (IllegalArgumentException invalid) {
+                            Log.w(TAG, "probe rejected: " + invalid.getMessage());
+                            requests = java.util.Collections.emptyList();
+                        }
+                        for (ObdProbe.Request request : requests) {
+                            if (!session.active()) throw new InterruptedException();
+                            header(in, out, request.route);
+                            Log.i(TAG, "probe " + request.route + " " + request.hex + " -> " + cmd(in, out, request.hex));
+                        }
+                    }
                     String scan = prop("persist.phoenix.obd.scan", "");
                     if (!scan.isEmpty()) { setProp("persist.phoenix.obd.scan", ""); scanDids(in, out, scan, session); }
                     // live watch for identification: persist.phoenix.obd.watch = "7E0:A0CA,A0CB,...;7E1:A034"

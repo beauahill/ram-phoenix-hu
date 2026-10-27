@@ -78,8 +78,9 @@ unavailable; sensor mapping and proximity thresholds are unchanged.
   Windows workspace's `artifacts/` directory; location-bearing map captures are
   kept out of the Git repository.
 
-Physical reverse/button/climate checks for these versions are pending Beau's
-report. SPLIT still needs attention for the saved external Chrome window's vendor
+Beau confirmed the parked physical test on the refreshed apps: reverse, factory
+camera view buttons and climate temperature/fan changes all work. SPLIT still
+needs attention for the saved external Chrome window's vendor
 system bars and the pane selector sharing space with map tools. See the
 [active worklist](WORKLIST.md) for the remaining tasks.
 

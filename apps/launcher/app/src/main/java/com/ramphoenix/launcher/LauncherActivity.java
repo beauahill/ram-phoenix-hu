@@ -172,7 +172,7 @@ public class LauncherActivity extends Activity implements Pane.Host {
         obd = new ObdClient(this, this::updateVehicle);
         vehicle.setObd(obd);
         phone = new PhoneWidget(this, phoneCard);
-        obdWidget = new ObdWidget(this, obdCard, obd);
+        obdWidget = new ObdWidget(this, obdCard, obd, vehicle);
         appsWidget = new AppsWidget(this, appsCard);
         btnLayout.setOnLongClickListener(v -> { CardsConfig.showDialog(this, this::applyMode); return true; });
 
