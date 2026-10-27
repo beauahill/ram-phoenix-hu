@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <item name="appearance_choose" type="id" />
+    <item name="appearance_reset" type="id" />
+    <item name="appearance_status" type="id" />
+    <item name="appearance_dim" type="id" />
+    <item name="appearance_softness" type="id" />
+</resources>

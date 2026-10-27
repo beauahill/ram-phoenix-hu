@@ -21,8 +21,8 @@ android {
         applicationId 'com.ramphoenix.launcher'
         minSdk 31
         targetSdk 33
-        versionCode 23
-        versionName '0.5.16'
+        versionCode 26
+        versionName '0.5.19'
         testInstrumentationRunner 'com.ramphoenix.launcher.PaneWindowProbe'
         manifestPlaceholders = [MAPS_API_KEY: mapsKey]
     }
@@ -91,4 +91,5 @@ def packageBridge = tasks.register('packageWindowBridge', Zip) {
 }
 android.sourceSets.main.assets.srcDir(bridgeAssets)
 android.sourceSets.main.java.srcDir(rootProject.file('../windowbridge/shared'))
+android.sourceSets.main.java.srcDir(rootProject.file('../appearance/shared'))
 tasks.named('preBuild').configure { dependsOn packageBridge }

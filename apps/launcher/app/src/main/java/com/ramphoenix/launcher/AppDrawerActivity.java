@@ -29,7 +29,7 @@ public class AppDrawerActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_drawer);
+        com.ramphoenix.appearance.WallpaperScene.content(this,R.layout.activity_drawer);
         goImmersive();
         GridView grid = findViewById(R.id.app_grid);
         adapter = new AppGridAdapter(this, apps);

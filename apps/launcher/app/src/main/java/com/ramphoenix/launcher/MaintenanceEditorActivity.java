@@ -44,7 +44,7 @@ public class MaintenanceEditorActivity extends Activity {
         milesEdited=saved!=null?saved.getBoolean("milesEdited"):record!=null;
         if(saved!=null){pendingSource=saved.getString("pendingSource","");pendingMiles=saved.getInt("pendingMiles",-1);}
         getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
-        LinearLayout root=column(this);root.setBackgroundColor(getColor(R.color.bg_base));root.setPadding(dp(this,20),dp(this,16),dp(this,20),dp(this,12));setContentView(root);
+        LinearLayout root=column(this);root.setPadding(dp(this,20),dp(this,16),dp(this,20),dp(this,12));com.ramphoenix.appearance.WallpaperScene.content(this,root);
         LinearLayout heading=row(this);ImageView back=iconButton(this,R.drawable.ic_m_keyboard_arrow_down,"Cancel editing");back.setOnClickListener(v->cancel());heading.addView(back,new LinearLayout.LayoutParams(dp(this,44),dp(this,44)));
         String title=mode.equals("odometer")?"Mileage source":mode.equals("record")?(record==null?"Record service":"Edit service record"):item==null?"New reminder":"Edit reminder";
         TextView caption=text(this,title,20,R.color.text_primary);caption.setPadding(dp(this,14),0,0,0);heading.addView(caption,new LinearLayout.LayoutParams(0,-2,1));root.addView(heading,match(dp(this,56)));gap(root,10);

@@ -23,7 +23,7 @@ public class ClimateActivity extends Activity {
 
     @Override protected void onCreate(Bundle b) {
         super.onCreate(b);
-        setContentView(R.layout.activity_climate);
+        com.ramphoenix.appearance.WallpaperScene.content(this,R.layout.activity_climate);
         View root = findViewById(R.id.climate_card);
         climate = new ClimateWidget(this, root);
         barL = findViewById(R.id.cl_bar_l);

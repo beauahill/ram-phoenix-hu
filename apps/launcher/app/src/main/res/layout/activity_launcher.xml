@@ -12,20 +12,6 @@
     android:layout_height="match_parent"
     android:background="@color/bg_base">
 
-    <ImageView
-        android:id="@+id/wallpaper"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:scaleType="centerCrop"
-        android:src="@drawable/bg_wallpaper"
-        android:importantForAccessibility="no"
-        android:contentDescription="@null" />
-
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:background="@color/scrim" />
-
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"

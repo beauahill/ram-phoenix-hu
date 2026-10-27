@@ -64,8 +64,8 @@ public class SuspensionActivity extends Activity {
     @Override public void onBackPressed() { if(setup || editingPreset>=0) showControls();else super.onBackPressed(); }
 
     private void page(String title) {
-        root=column(this);root.setBackgroundColor(getColor(R.color.bg_base));
-        root.setPadding(dp(this,16),dp(this,12),dp(this,16),dp(this,12));setContentView(root);
+        root=column(this);
+        root.setPadding(dp(this,16),dp(this,12),dp(this,16),dp(this,12));com.ramphoenix.appearance.WallpaperScene.content(this,root);
         LinearLayout header=row(this);ImageView back=iconButton(this,R.drawable.ic_m_keyboard_arrow_down,"Back");
         back.setOnClickListener(v -> onBackPressed());header.addView(back,new LinearLayout.LayoutParams(dp(this,44),dp(this,44)));
         TextView heading=text(this,title,21,R.color.text_primary);heading.setPadding(dp(this,12),0,0,0);

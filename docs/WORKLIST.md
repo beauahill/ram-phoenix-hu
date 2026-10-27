@@ -19,6 +19,14 @@ tested reliability, TPMS and camera-alignment branches. Main is unchanged.
 
 ## Current refinement pass
 
+- [x] Install subtle glass surfaces and a persistent wallpaper picker across
+  Phoenix screens (launcher 0.5.19 / camera 0.3.6). Actual system picker, image
+  import, dimming/softness, restart persistence and reset verified on the HU;
+  default appearance restored. Maintenance keyboard regression passed. See
+  [GLASS-WALLPAPER-2026-10-27.md](GLASS-WALLPAPER-2026-10-27.md).
+- [ ] Physical Reverse/Park retest after camera 0.3.6 visual changes; prior physical
+  takeover/dismissal and camera-button success apply to 0.3.5.
+
 Beau selected: **Modern OEM — graphite surfaces, subtle depth, realistic truck
 artwork, refined climate symbols.** Preserve the overall layout and usable touch
 targets. Both launcher and climate are part of the same visual system.

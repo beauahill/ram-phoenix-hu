@@ -5,6 +5,7 @@
         android:protectionLevel="signature" />
 
     <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="com.ramphoenix.launcher.permission.APPEARANCE" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
@@ -14,6 +15,7 @@
 
     <queries>
         <package android:name="com.syu.ms" />
+        <package android:name="com.ramphoenix.launcher" />
     </queries>
 
     <application

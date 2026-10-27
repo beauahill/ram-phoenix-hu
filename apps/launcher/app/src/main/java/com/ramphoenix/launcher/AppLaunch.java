@@ -53,7 +53,10 @@ final class AppLaunch {
         if (hostable(activity, intent)) {
             PaneWindows.open(activity, "external", intent, null);
         } else {
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED);
+            // Internal pages belong above Home. NEW_TASK can resolve this shared affinity
+            // back to the singleTask HOME root on the head unit and swallow the launch.
+            if (!activity.getPackageName().equals(intent.getComponent().getPackageName()))
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED);
             activity.startActivity(intent, PaneWindows.options(null).toBundle());
         }
     }

@@ -100,7 +100,7 @@ public class LauncherActivity extends Activity implements Pane.Host {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_launcher);
+        com.ramphoenix.appearance.WallpaperScene.content(this,R.layout.activity_launcher);
         cameraRecovery = new CameraRecovery(this);
         PaneWindows.closeAll(this);
         goImmersive();
@@ -456,7 +456,12 @@ public class LauncherActivity extends Activity implements Pane.Host {
     }
 
     private void openSettings() {
-        launchOrToast(new Intent(Settings.ACTION_SETTINGS));
+        new android.app.AlertDialog.Builder(this).setTitle("Settings")
+                .setItems(new String[]{"Appearance & wallpaper","Dashboard cards","Android settings"},(dialog,which) -> {
+                    if(which==0)launchOrToast(new Intent(this,AppearanceActivity.class));
+                    else if(which==1)CardsConfig.showDialog(this,this::applyMode);
+                    else launchOrToast(new Intent(Settings.ACTION_SETTINGS));
+                }).setNegativeButton("Close",null).show();
     }
 
     private void goImmersive() {

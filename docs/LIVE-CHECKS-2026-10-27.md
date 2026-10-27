@@ -1,10 +1,10 @@
 # Parked HU checks — 2026-10-27
 
-Installed launcher **0.5.16 / code 23**, camera **0.3.5 / code 8**. The latest
-launcher build passed all **92 unit tests**; the unchanged camera previously
-passed its 9 tests. No GitHub push. Camera recovery details are recorded in
-[CAMERA-WAKE-2026-10-27.md](CAMERA-WAKE-2026-10-27.md); the current launcher checksum
-and preset-editor results are in [WIRELESSONE-2026-10-27.md](WIRELESSONE-2026-10-27.md).
+Installed launcher **0.5.19 / code 26**, camera **0.3.6 / code 9**. All **92 launcher
++ 9 camera unit tests** passed. No GitHub push. Current appearance changes and
+wallpaper checks are recorded in [GLASS-WALLPAPER-2026-10-27.md](GLASS-WALLPAPER-2026-10-27.md).
+Camera recovery details are in [CAMERA-WAKE-2026-10-27.md](CAMERA-WAKE-2026-10-27.md);
+preset-editor results are in [WIRELESSONE-2026-10-27.md](WIRELESSONE-2026-10-27.md).
 
 ## Verified
 

@@ -56,12 +56,11 @@
     <!-- This HAL's SurfaceView can paint beyond a parent's clipped bounds.
          Draw opaque letterboxing after the feed to cover its lower overhang.
          Parking sensors and the optional selector draw above this mask. -->
-    <View
+    <com.ramphoenix.appearance.WallpaperScene
         android:id="@+id/feed_mask"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_gravity="top"
-        android:background="#000000" />
+        android:layout_gravity="top" />
 
     <!-- View selector buttons, right edge, just below the feed(s); the top
          margin is set at runtime by MainActivity.placeFeeds -->
@@ -76,6 +75,7 @@
     <!-- Park-assist display (cluster style), fills the space under the feed -->
     <com.ramphoenix.camera.ParkingSensorView
         android:id="@+id/sensors"
+        android:background="@drawable/parking_glass"
         android:layout_width="match_parent"
         android:layout_height="460dp"
         android:layout_gravity="bottom" />

@@ -118,7 +118,7 @@ public class MainActivity extends AppCompatActivity {
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON
                 | WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED
                 | WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON);
-        setContentView(R.layout.activity_camera);
+        com.ramphoenix.appearance.WallpaperScene.content(this,R.layout.activity_camera);
 
         feedBox     = findViewById(R.id.feed_box);
         auxBox      = findViewById(R.id.aux_box);

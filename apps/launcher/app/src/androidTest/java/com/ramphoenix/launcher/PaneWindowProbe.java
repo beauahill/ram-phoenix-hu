@@ -44,6 +44,7 @@ public final class PaneWindowProbe extends Instrumentation {
         Bundle result=new Bundle();result.putString("stage",stage);result.putInt("task",id);result.putString("native",task(id));sendStatus(0,result);
     }
     @Override public void onStart() {
+        if(operation.equals("appearance")){new AppearanceProbe(this).run();return;}
         if(operation.equals("maintenance")){new MaintenanceProbe(this).run();return;}
         if(operation.startsWith("device-")){new DeviceReadProbe(this).run(operation);return;}
         Bundle result=new Bundle();

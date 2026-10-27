@@ -28,7 +28,7 @@ public class MaintenanceActivity extends Activity {
     @Override protected void onCreate(Bundle state) {
         super.onCreate(state);store=new MaintenanceStore(this);obd=new ObdClient(this,this::updateMileage);
         history=state!=null && state.getBoolean("history");
-        root=column(this);root.setBackgroundColor(getColor(R.color.bg_base));root.setPadding(dp(this,16),dp(this,16),dp(this,16),dp(this,12));setContentView(root);
+        root=column(this);root.setPadding(dp(this,16),dp(this,16),dp(this,16),dp(this,12));com.ramphoenix.appearance.WallpaperScene.content(this,root);
         LinearLayout header=row(this);ImageView back=iconButton(this,R.drawable.ic_m_keyboard_arrow_down,"Back to dashboard");
         back.setId(R.id.maint_back);back.setOnClickListener(v->finish());header.addView(back,new LinearLayout.LayoutParams(dp(this,44),dp(this,44)));
         TextView title=text(this,"Maintenance",21,R.color.text_primary);title.setPadding(dp(this,14),0,0,0);header.addView(title,new LinearLayout.LayoutParams(0,-2,1));
