@@ -1,6 +1,6 @@
 # Active worklist
 
-Updated 2026-10-26. Current branch: `codex/oil-data-2019-3500`, based on the
+Updated 2026-10-26. Current branch: `codex/climate-clarity-2026-10-26`, based on the
 tested reliability, TPMS and camera-alignment branches. Main is unchanged.
 
 ## Completed and previously verified
@@ -47,6 +47,12 @@ targets. Both launcher and climate are part of the same visual system.
   analog-source freeze is not detected by capture-result callbacks alone.
 - [x] Beau confirmed the parked test on the refreshed apps: reverse, factory
   camera view buttons and climate temperature/fan changes all work.
+- [x] Climate clarity follow-up, launcher 0.5.2: Beau found the new symbols
+  confusing. Replace them with explicit text labels, wider seat controls and
+  fan minus/plus. Keep Power, Auto and Sync visible in the collapsed card.
+  Visually inspect collapsed, expanded and full-page layouts on the actual HU.
+  Existing CAN command mappings are retained; no HVAC controls pressed during QA.
+  See [CLIMATE-CLARITY-2026-10-26.md](CLIMATE-CLARITY-2026-10-26.md).
 
 ## Remaining reliability work
 

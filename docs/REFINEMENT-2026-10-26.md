@@ -35,6 +35,12 @@ Final assets:
 The [exact prompt and provenance](assets/truck-oem-v1-prompt.txt) are saved alongside
 this record. Control glyphs are native drawable code, not generated bitmaps.
 
+## Climate follow-up
+
+The climate symbols above were superseded in launcher **0.5.2** after Beau
+reported that their meaning was unclear. The [climate clarity follow-up](CLIMATE-CLARITY-2026-10-26.md)
+uses explicit labels and keeps Power/Auto visible when the card is collapsed.
+
 ## Camera health
 
 After the native output surface is ready, a background watchdog allows six seconds

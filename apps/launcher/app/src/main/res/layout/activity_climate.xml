@@ -8,7 +8,7 @@
         <ImageView android:id="@+id/climate_back" android:layout_width="48dp" android:layout_height="48dp" android:padding="14dp" android:src="@drawable/ic_m_keyboard_arrow_down" android:background="@drawable/glass_circle" android:contentDescription="Back to dashboard" />
         <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:layout_marginStart="16dp" android:text="@string/climate" android:textColor="@color/text_primary" android:textSize="13sp" android:letterSpacing="0.1" android:fontFamily="sans-serif-medium" />
         <TextView android:id="@+id/climate_status" android:layout_width="wrap_content" android:layout_height="wrap_content" android:maxWidth="180dp" android:maxLines="1" android:ellipsize="end" android:layout_marginEnd="12dp" android:textColor="@color/text_tertiary" android:textSize="10sp" />
-        <ImageView style="@style/ClimateRound" android:id="@+id/cl_power" android:layout_width="48dp" android:layout_height="48dp" android:src="@drawable/ic_m_power_settings_new_sm" android:contentDescription="@string/cl_power" />
+        <TextView style="@style/ClimateLabelTile" android:id="@+id/cl_power" android:layout_width="90dp" android:layout_height="48dp" android:layout_weight="0" android:text="@string/cl_power" android:contentDescription="Climate power" />
     </LinearLayout>
 
     <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginTop="24dp" android:gravity="center_vertical">
@@ -16,9 +16,9 @@
         <TextView android:id="@+id/cl_fan_value" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textSize="12sp" android:textColor="@color/text_secondary" android:fontFamily="sans-serif-medium" />
     </LinearLayout>
     <LinearLayout android:layout_width="match_parent" android:layout_height="64dp" android:gravity="center_vertical" android:orientation="horizontal">
-        <ImageView android:id="@+id/cl_fan_dn" android:layout_width="48dp" android:layout_height="48dp" android:padding="14dp" android:src="@drawable/ic_oem_fan" android:background="@drawable/climate_tile" android:contentDescription="Decrease fan speed" />
+        <TextView style="@style/ClimateStepper" android:id="@+id/cl_fan_dn" android:layout_width="48dp" android:layout_height="48dp" android:text="@string/minus" android:contentDescription="Decrease fan speed" />
         <SeekBar android:id="@+id/cl_fan" android:layout_width="0dp" android:layout_height="48dp" android:layout_weight="1" android:layout_marginStart="16dp" android:layout_marginEnd="16dp" android:max="7" android:progressDrawable="@drawable/climate_slider_track" android:thumb="@drawable/climate_slider_thumb" android:splitTrack="false" android:contentDescription="Fan speed" />
-        <ImageView android:id="@+id/cl_fan_up" android:layout_width="48dp" android:layout_height="48dp" android:padding="10dp" android:src="@drawable/ic_oem_fan" android:background="@drawable/climate_tile" android:contentDescription="Increase fan speed" />
+        <TextView style="@style/ClimateStepper" android:id="@+id/cl_fan_up" android:layout_width="48dp" android:layout_height="48dp" android:text="@string/plus" android:contentDescription="Increase fan speed" />
     </LinearLayout>
 
     <LinearLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:layout_marginTop="20dp" android:orientation="horizontal">
@@ -32,8 +32,8 @@
             </FrameLayout>
             <TextView style="@style/ClimateStepper" android:id="@+id/cl_tl_dn" android:layout_width="48dp" android:layout_height="48dp" android:text="@string/minus" android:textColor="@color/control_cool" />
             <LinearLayout android:layout_width="match_parent" android:layout_height="64dp" android:layout_marginTop="12dp" android:orientation="horizontal">
-                <TextView style="@style/ClimateTile" android:id="@+id/cl_heat_l" android:background="@null" android:drawableTop="@drawable/ic_oem_seat_heat" android:textSize="8sp" />
-                <TextView style="@style/ClimateTile" android:id="@+id/cl_vent_l" android:background="@null" android:drawableTop="@drawable/ic_oem_seat_vent" android:textSize="8sp" />
+                <TextView style="@style/ClimateSeatLabel" android:id="@+id/cl_heat_l" android:textSize="11sp" />
+                <TextView style="@style/ClimateSeatLabel" android:id="@+id/cl_vent_l" android:textSize="11sp" />
             </LinearLayout>
         </LinearLayout>
 
@@ -41,11 +41,11 @@
             <TextView android:id="@+id/cl_auto" android:layout_width="match_parent" android:layout_height="48dp" android:layout_marginBottom="16dp" android:gravity="center" android:text="@string/cl_auto" android:textColor="@color/control_icon" android:textSize="13sp" android:letterSpacing="0.08" android:fontFamily="sans-serif-medium" android:background="@drawable/climate_tile" />
             <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:background="@drawable/glass_card" android:padding="12dp">
                 <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="12dp" android:text="AIRFLOW" android:textColor="@color/text_tertiary" android:textSize="9sp" android:letterSpacing="0.12" />
-                <TextView style="@style/ClimateModeText" android:id="@+id/cl_fdef" android:drawableStart="@drawable/ic_oem_defrost" android:text="@string/cl_fdef" />
-                <TextView style="@style/ClimateModeText" android:id="@+id/cl_mode_face" android:drawableStart="@drawable/ic_oem_air_face" android:text="@string/cl_face" />
-                <TextView style="@style/ClimateModeText" android:id="@+id/cl_mode_facefeet" android:drawableStart="@drawable/ic_oem_air_both" android:text="FACE + FEET" />
-                <TextView style="@style/ClimateModeText" android:id="@+id/cl_mode_feet" android:drawableStart="@drawable/ic_oem_air_feet" android:text="@string/cl_feet" />
-                <TextView style="@style/ClimateModeText" android:id="@+id/cl_mode_feetdef" android:drawableStart="@drawable/ic_oem_air_glass_feet" android:text="FEET + GLASS" android:layout_marginBottom="0dp" />
+                <TextView style="@style/ClimateModeText" android:id="@+id/cl_fdef" android:text="FRONT DEFROST" />
+                <TextView style="@style/ClimateModeText" android:id="@+id/cl_mode_face" android:text="@string/cl_face" />
+                <TextView style="@style/ClimateModeText" android:id="@+id/cl_mode_facefeet" android:text="FACE + FEET" />
+                <TextView style="@style/ClimateModeText" android:id="@+id/cl_mode_feet" android:text="@string/cl_feet" />
+                <TextView style="@style/ClimateModeText" android:id="@+id/cl_mode_feetdef" android:text="FEET + DEFROST" android:layout_marginBottom="0dp" />
             </LinearLayout>
         </LinearLayout>
 
@@ -59,8 +59,8 @@
             </FrameLayout>
             <TextView style="@style/ClimateStepper" android:id="@+id/cl_tr_dn" android:layout_width="48dp" android:layout_height="48dp" android:text="@string/minus" android:textColor="@color/control_cool" />
             <LinearLayout android:layout_width="match_parent" android:layout_height="64dp" android:layout_marginTop="12dp" android:orientation="horizontal">
-                <TextView style="@style/ClimateTile" android:id="@+id/cl_vent_r" android:background="@null" android:drawableTop="@drawable/ic_oem_seat_vent" android:textSize="8sp" />
-                <TextView style="@style/ClimateTile" android:id="@+id/cl_heat_r" android:background="@null" android:drawableTop="@drawable/ic_oem_seat_heat" android:textSize="8sp" />
+                <TextView style="@style/ClimateSeatLabel" android:id="@+id/cl_vent_r" android:textSize="11sp" />
+                <TextView style="@style/ClimateSeatLabel" android:id="@+id/cl_heat_r" android:textSize="11sp" />
             </LinearLayout>
         </LinearLayout>
     </LinearLayout>
@@ -71,8 +71,8 @@
         <TextView style="@style/ClimateTextBtn" android:id="@+id/cl_acmax" android:text="@string/cl_acmax" />
     </LinearLayout>
     <LinearLayout android:layout_width="match_parent" android:layout_height="64dp" android:orientation="horizontal">
-        <TextView style="@style/ClimateTextBtn" android:id="@+id/cl_recirc" android:drawableStart="@drawable/ic_oem_recirc" android:drawableTint="@color/control_icon" android:drawablePadding="4dp" android:paddingStart="10dp" android:paddingEnd="10dp" android:text="RECIRC" android:textSize="10sp" />
-        <TextView style="@style/ClimateTextBtn" android:id="@+id/cl_rdef" android:drawableStart="@drawable/ic_oem_rear_defrost" android:drawableTint="@color/control_icon" android:drawablePadding="4dp" android:paddingStart="10dp" android:paddingEnd="10dp" android:text="REAR" android:textSize="10sp" />
-        <TextView style="@style/ClimateTextBtn" android:id="@+id/cl_wheel" android:drawableStart="@drawable/ic_oem_wheel" android:drawableTint="@color/control_icon" android:drawablePadding="4dp" android:paddingStart="10dp" android:paddingEnd="10dp" android:text="WHEEL" android:textSize="10sp" />
+        <TextView style="@style/ClimateTextBtn" android:id="@+id/cl_recirc" android:text="RECIRCULATE" android:textSize="10sp" />
+        <TextView style="@style/ClimateTextBtn" android:id="@+id/cl_rdef" android:text="REAR DEFROST" android:textSize="10sp" />
+        <TextView style="@style/ClimateTextBtn" android:id="@+id/cl_wheel" android:text="HEATED WHEEL" android:textSize="10sp" />
     </LinearLayout>
 </LinearLayout>

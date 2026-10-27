@@ -144,6 +144,7 @@ public class ClimateWidget {
         if (expanded == null) return;
         expanded.setVisibility(open ? View.VISIBLE : View.GONE);
         expandBtn.setImageResource(open ? R.drawable.ic_m_keyboard_arrow_down : R.drawable.ic_m_keyboard_arrow_up);
+        expandBtn.setContentDescription(open ? "Hide extra climate controls" : "Show more climate controls");
     }
 
     private TextView chip(int id, final int button) {
@@ -249,8 +250,7 @@ public class ClimateWidget {
         if (chip == null) return;
         int l = Math.max(0, Math.min(3, lvl));
         String label = heat ? "HEAT" : "VENT";
-        boolean compact = "compact".equals(chip.getTag());
-        chip.setText(compact ? (lvl < 0 ? Fmt.NONE : Integer.toString(l)) : l > 0 ? label + " " + l : label);
+        chip.setText(label + "\n" + (lvl < 0 ? Fmt.NONE : l == 0 ? "OFF" : Integer.toString(l)));
         chip.setContentDescription((left ? "Driver" : "Passenger") + " seat "
                 + (heat ? "heat" : "ventilation") + (lvl < 0 ? " unavailable" : " level " + l));
         int color = chip.getContext().getColor(l > 0 ? (heat ? R.color.accent : R.color.control_cool) : R.color.text_secondary);
