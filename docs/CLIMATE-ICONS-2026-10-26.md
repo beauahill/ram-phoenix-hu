@@ -50,9 +50,13 @@ The new seat view does not send commands or invent a level when tapped.
   not live vehicle readings; fonts/layout are an illustration, not an Android
   runtime screenshot. Files remain outside Git under the Windows workspace's
   `artifacts/climate-icons-0.5.6-preview.{svg,png}`.
-- The HU stayed offline. **No new HU layout inspection or HVAC actuation test**
-  is claimed. Pending: install, inspect collapsed/expanded/full climate at actual
-  density/font scale, and verify operation during a parked session.
+- On 2026-10-27 the corrected icon family was inspected on the actual HU in
+  compact, expanded and full-page layouts in the cumulative build. Power/Auto
+  remained visible in the compact header, and all full-page controls fit.
+  No HVAC commands were pressed during this inspection. Actual screenshots are
+  `launcher-0.5.10-main.png`, `climate-icons-expanded-live-20261027.png` and
+  `climate-icons-full-live-20261027.png` in the private research folder, outside Git.
+  Beau's judgment of this corrected appearance remains pending.
 - This build includes the pending 0.5.5 native split-window work. Its one-time local
   ADB approval and parked camera/app/chevron tests remain on the worklist.
 

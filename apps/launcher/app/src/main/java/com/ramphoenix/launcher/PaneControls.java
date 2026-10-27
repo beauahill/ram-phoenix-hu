@@ -28,9 +28,9 @@ final class PaneControls {
         if(!show || !Settings.canDrawOverlays(activity)) { hide(); return; }
         WindowManager.LayoutParams p=params(dp(44),dp(44),bounds.right-dp(44),bounds.top);
         if(chevron==null) {
-            chevron=new ImageView(activity); chevron.setPadding(dp(11),dp(11),dp(11),dp(11));
+            chevron=new ImageView(activity); chevron.setPadding(dp(13),dp(13),dp(13),dp(13));
             chevron.setImageResource(R.drawable.ic_m_keyboard_arrow_down);
-            chevron.setBackgroundResource(R.drawable.glass_circle);
+            chevron.setBackground(new android.graphics.drawable.InsetDrawable(activity.getDrawable(R.drawable.glass_circle),dp(8)));
             chevron.setContentDescription("Choose pane content"); chevron.setOnClickListener(v -> choose.run());
             windows.addView(chevron,p);
         } else windows.updateViewLayout(chevron,p);

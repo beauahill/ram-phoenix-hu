@@ -73,7 +73,8 @@ final class WindowBridge {
     }
     private void credential() throws Exception {
         if(token!=null) return;
-        File file=new File(context.getNoBackupFilesDir(),"window-token");
+        // Rotate the early token when migrating to directory-protected staging.
+        File file=new File(context.getNoBackupFilesDir(),"window-token-private");
         if(file.exists()) token=new String(Files.readAllBytes(file.toPath()),StandardCharsets.US_ASCII).trim();
         else {
             byte[] random=new byte[32]; new SecureRandom().nextBytes(random); StringBuilder hex=new StringBuilder();
@@ -108,16 +109,43 @@ final class WindowBridge {
         if(!visible || reverse || SystemClock.uptimeMillis()<nextBootstrap) return;
         nextBootstrap=SystemClock.uptimeMillis()+15000;
         try { credential(); bootstrap(false); request(); }
-        catch(Exception e) { status="Split app windows need one-time setup"; }
+        catch(Exception e) {
+            status="Split app windows need setup or reconnection";
+            Log.w("PhoenixWindows","Local window startup failed",e);
+        }
     }
     private void bootstrap(boolean allowApproval) throws Exception {
         if(reverse) return;
         try(LocalAdb adb=new LocalAdb(context,allowApproval)) {
+            // adbd may widen sync file permissions. Protect the directory before
+            // transferring a credential, and verify actual ownership/modes.
+            String directory="/data/local/tmp/phoenix-windows";
+            String mode=adb.shell("mkdir -p "+directory+" && chmod 700 "+directory
+                    +" && stat -c '%u %a' "+directory).trim();
+            if(!mode.equals("2000 700")) throw new IOException("Window directory is not private");
             byte[] jar;
             try(InputStream input=context.getAssets().open("window_bridge.jar")) { jar=input.readAllBytes(); }
-            adb.push("/data/local/tmp/phoenix-window-bridge.jar",jar);
-            adb.push("/data/local/tmp/phoenix-window-token",token.getBytes(StandardCharsets.US_ASCII));
-            adb.shell("nohup sh -c 'CLASSPATH=/data/local/tmp/phoenix-window-bridge.jar app_process / --nice-name=phoenix-window-bridge com.ramphoenix.windowbridge.Server /data/local/tmp/phoenix-window-token' </dev/null >/data/local/tmp/phoenix-window-bridge.log 2>&1 &");
+            adb.push(directory+"/bridge.jar",jar);
+            adb.push(directory+"/token",token.getBytes(StandardCharsets.US_ASCII));
+            mode=adb.shell("chmod 600 "+directory+"/bridge.jar "+directory+"/token && stat -c '%u %a' "
+                    +directory+"/bridge.jar "+directory+"/token").trim();
+            if(!mode.equals("2000 600\n2000 600")) throw new IOException("Window files are not private");
+            String startedLog=adb.shell("CLASSPATH="+directory+"/bridge.jar nohup setsid app_process / --nice-name=phoenix-window-bridge "
+                    +"com.ramphoenix.windowbridge.Server "+directory+"/token </dev/null >"+directory+"/server.log 2>&1 &\n"
+                    +"for attempt in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30; do "
+                    +"if grep -q '^Phoenix window bridge v2 ready$' "+directory+"/server.log; then printf READY; exit 0; fi; sleep 0.1; done; printf FAILED");
+            if(!startedLog.trim().equals("READY")) throw new IOException("Window startup did not report readiness");
+            // Keep the shell stream itself alive until setsid and the child have
+            // started. An open ADB transport alone does not retain an exited
+            // shell's process group on this firmware.
+            boolean started=false;
+            for(int attempt=0;attempt<25;attempt++) {
+                if(request()) { started=true; break; }
+                Thread.sleep(100);
+            }
+            if(!started) throw new IOException("Window companion did not start");
         }
+        Thread.sleep(150);
+        if(!request()) throw new IOException("Window companion stopped after bootstrap");
     }
 }

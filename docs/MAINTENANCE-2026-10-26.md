@@ -130,8 +130,18 @@ The device-only `MaintenanceProbe` compiles. It requires an awake display and no
 existing new-reminder draft. It opens the real editor/keyboard, checks that Save
 and Cancel are entirely above the IME, verifies invalid input stays open, saves a
 uniquely named temporary reminder through the Done action, verifies persistence,
-and removes only that QA reminder/draft before reporting completion. It has **not
-run on the HU** and is not a substitute for normal user testing.
+and removes only that QA reminder/draft before reporting completion.
+
+On 2026-10-27 this probe **passed on the awake HU with cumulative launcher 0.5.9**:
+Save/Cancel were visible above the real keyboard, invalid input retained the form,
+and Done durably saved the correct values. Its temporary reminder was removed.
+Existing preferences were backed up before installation. Evidence:
+`/home/beauhill/ram-phoenix-research/maintenance-live-probe-20261027.txt`.
+Other editor/history/export flows still need normal device checks.
+
+After the OBD connection recovered, the standard 7E0:01A6 response repeatedly
+decoded to **73,730.6629 miles**. Cluster comparison has been requested; the earlier
+approximate 71,000-mile estimate is not used as a verified baseline.
 
 The desktop design preview uses the app's actual icon assets and palette, but
 illustrative values/layout and a simulated keyboard. It is not an Android screenshot:

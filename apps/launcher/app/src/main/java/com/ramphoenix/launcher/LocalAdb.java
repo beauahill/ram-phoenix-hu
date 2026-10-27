@@ -33,7 +33,7 @@ final class LocalAdb implements Closeable {
             boolean signed=false;
             while (true) {
                 Packet p=read();
-                if (p.cmd==command("CNXN")) return;
+                if (p.cmd==command("CNXN")) { socket.setSoTimeout(5000); return; }
                 if (p.cmd!=command("AUTH") || p.a!=1) throw new IOException("Unexpected ADB handshake");
                 if (signed) {
                     if (!requestApproval) throw new IOException("Android debugging approval required");
@@ -90,15 +90,29 @@ final class LocalAdb implements Closeable {
         if (sum!=checksum) throw new IOException("ADB checksum"); return p;
     }
     private void open(String service) throws IOException {
+        received.reset();
         local++; send("OPEN",local,0,(service+'\0').getBytes(StandardCharsets.UTF_8));
-        Packet p=read(); if(p.cmd!=command("OKAY") || p.b!=local) throw new IOException("ADB stream rejected"); remote=p.a;
+        Packet p=streamPacket();
+        if(p.cmd!=command("OKAY")) throw new IOException("ADB stream rejected: command="+Integer.toHexString(p.cmd)+" stream="+p.b);
+        remote=p.a;
+    }
+    private Packet streamPacket() throws IOException {
+        for(int skipped=0;skipped<32;skipped++) {
+            Packet p=read();
+            if(p.b==local) return p;
+            // Android can finish a prior stream after its peer has opened the
+            // next one. A delayed close/ack must not reject that new stream.
+            if(p.b>0 && p.b<local && (p.cmd==command("CLSE") || p.cmd==command("OKAY"))) continue;
+            throw new IOException("Unexpected ADB stream "+p.b+" while opening/using "+local);
+        }
+        throw new IOException("Too many retired ADB stream packets");
     }
     private void write(byte[] data) throws IOException {
         for(int offset=0;offset<data.length;offset+=4096) {
             byte[] chunk=java.util.Arrays.copyOfRange(data,offset,Math.min(data.length,offset+4096));
             send("WRTE",local,remote,chunk);
             while(true) {
-                Packet p=read();
+                Packet p=streamPacket();
                 if(p.cmd==command("OKAY")) break;
                 if(p.cmd!=command("WRTE")) throw new IOException("ADB write rejected");
                 received.write(p.data); send("OKAY",local,remote,new byte[0]);
@@ -114,7 +128,7 @@ final class LocalAdb implements Closeable {
         // Sync replies can arrive while writes are being acknowledged. Send one small frame at a time.
         write(frames.toByteArray());
         while(received.size()<8) {
-            Packet result=read();
+            Packet result=streamPacket();
             if(result.cmd!=command("WRTE")) throw new IOException("ADB sync failed");
             received.write(result.data); send("OKAY",local,remote,new byte[0]);
         }
@@ -123,7 +137,7 @@ final class LocalAdb implements Closeable {
         received.reset();
         ByteArrayOutputStream quit=new ByteArrayOutputStream(); frame(quit,"QUIT",new byte[0]); write(quit.toByteArray());
         while(true) {
-            Packet p=read();
+            Packet p=streamPacket();
             if(p.cmd==command("CLSE")) { send("CLSE",local,remote,new byte[0]); break; }
             if(p.cmd==command("WRTE")) send("OKAY",local,remote,new byte[0]);
         }
@@ -131,12 +145,16 @@ final class LocalAdb implements Closeable {
     private static void frame(OutputStream out,String cmd,byte[] data) throws IOException {
         out.write(ByteBuffer.allocate(8).order(ByteOrder.LITTLE_ENDIAN).putInt(command(cmd)).putInt(data.length).array()); out.write(data);
     }
-    void shell(String fixedCommand) throws IOException {
+    String shell(String fixedCommand) throws IOException {
         open("shell:"+fixedCommand);
+        ByteArrayOutputStream reply=new ByteArrayOutputStream();
         while(true) {
-            Packet p=read();
-            if(p.cmd==command("CLSE")) { send("CLSE",local,remote,new byte[0]); return; }
-            if(p.cmd==command("WRTE")) send("OKAY",local,remote,new byte[0]);
+            Packet p=streamPacket();
+            if(p.cmd==command("CLSE")) { send("CLSE",local,remote,new byte[0]); return reply.toString("UTF-8"); }
+            if(p.cmd==command("WRTE")) {
+                if(reply.size()+p.data.length>65536) throw new IOException("ADB shell response too large");
+                reply.write(p.data); send("OKAY",local,remote,new byte[0]);
+            }
         }
     }
     @Override public void close() throws IOException { socket.close(); }

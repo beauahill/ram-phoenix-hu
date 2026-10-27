@@ -27,6 +27,7 @@
         android:contentDescription="@string/recenter" />
 
     <LinearLayout
+        android:id="@+id/map_tools"
         android:layout_width="42dp"
         android:layout_height="wrap_content"
         android:layout_gravity="top|end"

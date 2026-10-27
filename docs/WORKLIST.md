@@ -36,12 +36,21 @@ targets. Both launcher and climate are part of the same visual system.
 - [x] Implement SPLIT 0.5.5: native task management, in-place resize, full-width
   panes and corner chevrons. Native always-on-top proof passed; 37 unit tests pass.
   See [SPLIT-WINDOWS-2026-10-26.md](SPLIT-WINDOWS-2026-10-26.md).
-- [ ] Install the latest cumulative 0.5.9 revision (includes 0.5.5–0.5.8). An earlier candidate is on the HU; the
-  final installation was prevented by the HU going offline (`No route to host`).
-- [ ] Run integrated native split-backend parked map/app/chevron/dock/FULL/Home tests. Display
-  switched off; Beau opted to test later. Do not call this visually verified.
-- [ ] Complete the app's one-time local ADB approval and test helper restart and
-  real cold boot. Current session uses the helper started through Crimson.
+- [x] Install cumulative 0.5.9 (includes 0.5.5–0.5.8) and subsequent live refinements.
+  Back up the prior APK/shared preferences before installation and schema migration.
+- [x] Native regression on 0.5.10: map gestures, task-preserving resize, software
+  reverse guard and Home dismissal passed. Actual picker → YouTube → five map pans,
+  dock expand/collapse and FULL dismissal also passed with task 179 retained during
+  interaction/resize. Screenshots confirm full-width panes. Corner overlap found
+  during inspection is corrected in the next cumulative build.
+- [x] Complete the app's one-time local ADB approval. Beau explicitly approved
+  persistent local debugging trust; verified the on-device key fingerprint before
+  selecting Always allow. No PC private key is copied into the app.
+- [x] Verify helper restart after startup/stream fixes on 0.5.14: exact shell helper
+  terminated, launcher restarted it in 1.1 seconds using its own approved key.
+  Private directory/file permissions checked. Final native probe also passed.
+- [ ] Verify a real cold boot. Initial fault checks failed before the final fix;
+  setup alone was not counted as reliable recovery.
 - [ ] Broaden split app compatibility checks, including WirelessOne/Chrome/Spotify.
 - [x] Verify TPMS/gauges recover after leaving climate and camera. Live samples
   resumed at 61 / 63 / 72 / 75 psi, coolant 95°F, transmission 84°F, battery 12.6 V.
@@ -68,17 +77,22 @@ targets. Both launcher and climate are part of the same visual system.
   family, adds subtle graphite depth and reported seat-level bars, and retains
   permanent Power/Auto. Built and desktop asset preview inspected; 37 tests pass.
   See [CLIMATE-ICONS-2026-10-26.md](CLIMATE-ICONS-2026-10-26.md).
-- [ ] Inspect the 0.5.6 icon correction in the latest build: collapsed/expanded/full climate on the actual HU.
-  HU is offline. The prior text design was rejected, not accepted as final.
+- [x] Inspect the 0.5.6 icon correction in the cumulative build: compact/expanded/full
+  climate on the actual HU. Power/Auto stay visible; recognizable airflow/seat/defrost
+  symbols replace text tiles. No HVAC commands pressed during visual QA. Beau's
+  assessment of the corrected appearance remains pending; prior text tiles were rejected.
 - [x] Rebuild maintenance in 0.5.7: keyboard-aware full forms, persistent Save/Cancel,
   validation/drafts, reminder/history pages, proper calendar dates, preserved legacy
   data, usable backup export and automatic OBD mileage/source plumbing. 65 tests pass.
   See [MAINTENANCE-2026-10-26.md](MAINTENANCE-2026-10-26.md).
-- [ ] Verify the maintenance forms and real keyboard/save path on the HU. The
-  compiled device probe has not run; desktop preview is illustrative.
+- [x] Verify the maintenance editor's real keyboard/save path on the HU: device
+  probe passed on 0.5.9, including reachable Save/Cancel, retained invalid form and
+  Done saving the correct values. Temporary QA reminder removed; other forms/history
+  and export flows still need ordinary device checks.
 - [ ] Verify the odometer against the cluster. Beau estimates around 71,000 miles;
   it is not stored as a verified value. A6 and provisional RAM 03BC reads are wired;
-  actual support on this 2019 Cummins remains unconfirmed while the HU is offline.
+  standard 7E0:01A6 now repeatedly returns 73,730.6629 miles. Cluster agreement has
+  been requested; the 71,000 estimate was not substituted for a measurement.
 
 ## WirelessOne air suspension
 
@@ -89,12 +103,16 @@ targets. Both launcher and climate are part of the same visual system.
   profiles, configured kit limits, fresh readback, one-attempt commands and app handoff.
   Android builds and all 81 unit tests pass (16 new protocol/session cases).
   See [WIRELESSONE-2026-10-27.md](WIRELESSONE-2026-10-27.md).
-- [ ] Confirm the installed air-spring kit/pressure limits and whether the HU app is paired.
-- [ ] Pull/compare Beau's installed WirelessOne APK and verify HU BLE support and live
-  manifold mode/diagnostics/measured/target fields. HU is offline; reference inspection
-  and synthetic packet tests do not establish live compatibility.
-- [ ] Inspect the native card/control/setup layouts on the panel, then conduct an
-  explicit parked pressure/handoff/disconnect/reverse test. No live actuation tested.
+- [x] Beau reports a 100 psi maximum on the manual controller; Setup now contains
+  a user-entered 5–100 psi range ("Ram Kit"). Mechanical kit part number remains unknown.
+  HU is already paired with WirelessONE-052680.
+- [x] Capture installed WirelessOne 2.3.0/code100305; signer matches the reference.
+  Read-only GATT check passed: normal mode, no fault flags, measured 38 kPa and
+  target 35 kPa; optional tank field absent. Air Lift model72708/firmware1.2.0.
+- [x] Inspect native card and pressure page on the panel: live measured pressure,
+  separate target, 80/50/30/5 psi profiles and configured limits are visible.
+- [ ] Check the setup keyboard/footer on the panel, then conduct an explicit parked
+  pressure/handoff/disconnect/reverse test. No live actuation tested.
 
 ## Remaining reliability work
 
@@ -103,9 +121,11 @@ targets. Both launcher and climate are part of the same visual system.
   per field, existing OBD fallback, unit/initial-zero checks and source labels in
   both cards. Launcher 0.5.9 builds; all 92 tests pass.
   See [CAN-GAUGES-2019-RAM3500.md](CAN-GAUGES-2019-RAM3500.md).
-- [ ] Compare 234/236/237 with the cluster on the actual HU, then verify operation
-  without the OBD connection. Additional field mappings are source-traced, not
-  live-verified. Initial untagged zero pressure is not an established CAN sample.
+- [x] Compare coolant 234 and transmission 236 with the cluster without OBD:
+  CAN 32874/32876 displayed 66°F/68°F, exactly Beau's reported cluster values.
+- [ ] Establish nonzero running oil pressure 237 and compare warm temperatures.
+  Initial CAN zero stays unavailable, matching the ignition-only cluster dash;
+  this does not verify a running pressure sample. Never run the engine in the garage.
 - [ ] Establish upstream CAN freshness independently of change-only IPC callbacks.
   OBD polling remains available during live comparison and fallback.
 

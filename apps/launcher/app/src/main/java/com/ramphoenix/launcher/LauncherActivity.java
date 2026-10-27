@@ -213,6 +213,11 @@ public class LauncherActivity extends Activity implements Pane.Host {
 
     private void applyMode() {
         boolean split = MODE_SPLIT.equals(mode);
+        float d = getResources().getDisplayMetrics().density;
+        View tools = mapCard.findViewById(R.id.map_tools);
+        FrameLayout.LayoutParams toolsLayout = (FrameLayout.LayoutParams) tools.getLayoutParams();
+        toolsLayout.topMargin = Math.round((split ? 54 : 14) * d);
+        tools.setLayoutParams(toolsLayout);
         btnLayout.setImageResource(split ? R.drawable.ic_layout_full : R.drawable.ic_layout_split);
         if (split) {
             clearFull();
@@ -229,7 +234,6 @@ public class LauncherActivity extends Activity implements Pane.Host {
             splitContainer.setVisibility(View.GONE);
             fullContainer.setVisibility(View.VISIBLE);
             clearFull();
-            float d = getResources().getDisplayMetrics().density;
             boolean first = true;
             for (String key : CardsConfig.enabled(this)) {
                 View v = cardFor(key);
@@ -403,7 +407,7 @@ public class LauncherActivity extends Activity implements Pane.Host {
         if (obdWidget != null) obdWidget.render();
         vehicleCard.setData(vehicle);
         vehicleCard.setServiceText(maintenance.nextDueText());
-        if (obd != null) vehicleCard.setObdStatus(obd.connected() ? null : obd.status().replace("OBD: ", "OBD ").toUpperCase(java.util.Locale.US));
+        if (obd != null) vehicleCard.setObdStatus(obd.connected() ? null : obd.displayStatus());
         tvOutside.setText(Fmt.tempF(vehicle.outsideC()));
     }
 

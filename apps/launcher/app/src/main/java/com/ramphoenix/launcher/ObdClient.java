@@ -66,6 +66,17 @@ public class ObdClient {
 
     public boolean connected() { return connected; }
     public String status() { return status; }
+    /** Keep adapter/socket details in diagnostic logs, away from the dashboard. */
+    public String displayStatus() {
+        if (connected) return "OBDLINK CONNECTED";
+        String current = status;
+        if (current.equals("OBD: bluetooth off")) return "OBD · BLUETOOTH OFF";
+        if (current.equals("OBD: no paired adapter")) return "OBD · PAIR ADAPTER";
+        if (current.equals("OBD: no bluetooth permission")) return "OBD · BLUETOOTH PERMISSION NEEDED";
+        if (current.startsWith("OBD: connecting ")) return "OBD · CONNECTING";
+        if (current.equals("OBD: idle")) return "OBD · DISCONNECTED";
+        return "OBD · UNAVAILABLE; RETRYING";
+    }
     public Float coolantC() { return coolantC; }
     public Float oilTempC() { return oilTempC; }
     public Float transC() { return transC; }

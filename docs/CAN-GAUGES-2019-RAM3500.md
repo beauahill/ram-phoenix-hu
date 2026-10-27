@@ -84,8 +84,25 @@ nonfinite values and correct source captions. Additional-field examples are
 synthetic; they are not recorded truck samples.
 
 APK SHA-256: `4b596457ba2ef01d8bfccdbc4e90462897e015339b0dfd1f9b4fdc6f706ab31f`.
-Local candidate: `HU/artifacts/phoenix-launcher-0.5.9.apk`. Device instrumentation,
-source-label layout and new CAN field agreement have **not** been checked on the HU.
+Local candidate: `HU/artifacts/phoenix-launcher-0.5.9.apk`.
+
+## Live ignition-only check, 2026-10-27
+
+Installed cumulative 0.5.9 after backing up the 0.5.4 APK and shared preferences
+to `/home/beauhill/ram-phoenix-backups/can-gauges-live-20261027.GNKoTq`.
+With OBD disconnected, CAN profile 2163062 returned coolant 234 = 32874,
+oil temperature 235 = 32874, transmission 236 = 32876 and pressure 237 = 0.
+Coolant displayed **66°F** and transmission **68°F**; Beau independently reported
+those exact cluster values. The initial pressure zero remained unavailable,
+matching the cluster's dash with the engine off. This verifies coolant and
+transmission CAN selection without OBD; it does not establish running oil pressure.
+The dashboard source caption and temperature values were inspected in a real HU
+screenshot, `launcher-0.5.9-first-live.png`, outside Git in the research folder.
+
+OBD later recovered through the existing channel-1 SPP fallback, returning TPMS,
+voltage and standard 01A6 mileage. No additional diagnostic socket was opened.
+An operating-temperature/running-pressure comparison and upstream freshness
+checks remain pending. Do not start the engine inside the garage for this test.
 
 ## Next parked check and quick source rollback
 

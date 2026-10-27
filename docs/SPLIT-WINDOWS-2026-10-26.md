@@ -3,10 +3,11 @@
 Branch `codex/split-windows-2026-10-26`, based on `064d879`.
 Launcher **0.5.5 / code 12**; camera remains **0.3.4 / code 7**. Main is unchanged.
 
-**Deployment:** an earlier 0.5.4 candidate was installed. The final revision here
-is built but **not yet installed**: the HU went offline, and one reconnect attempt
-returned `No route to host`. Beau chose to test later. Install the final APK before
-the next parked test; do not treat the candidate as the final revision.
+**Deployment update, 2026-10-27:** cumulative launcher **0.5.14 / code 21** is
+installed. Native task/gesture/resize/software-reverse/Home checks passed on this
+build. The helper-only restart test passed in 1.1 seconds using the app's own
+approved key. A real cold boot and physical Reverse/Park with this backend remain
+pending. The original branch/version above records the implementation's origin.
 
 ## User report and diagnosis
 
@@ -62,7 +63,8 @@ the in-place resize capability unavailable through the launcher's public API.
 
 The companion listens on **127.0.0.1:43837**, using protocol version 2. A random
 256-bit credential is stored in the launcher's private, non-backed-up directory;
-the shell copy is mode 0600. Requests and responses use HMAC-SHA256 with a fresh
+the shell copy is mode 0600 inside a verified shell-owned mode-0700 directory,
+`/data/local/tmp/phoenix-windows`. Requests and responses use HMAC-SHA256 with a fresh
 nonce. The credential is never sent to a port listener. The server rejects
 reused nonces and requests older than two seconds. It accepts bounded requests
 for the two slots, not arbitrary shell commands. Native camera/launcher components
@@ -107,6 +109,46 @@ The launcher does not request extra settings permissions. SystemUI and
 ToolkitService remain running. A foreign full-screen app can still reserve its
 own blank status-bar area. Vendor cold-boot restoration of bars remains to test.
 
+## Live follow-up, 2026-10-27
+
+- Beau explicitly approved persistent local debugging trust. Verified the dialog's
+  fingerprint against the launcher's public key and selected Always allow/Allow.
+  No workstation private key was read or copied. Android's normal key-expiry policy
+  remains enabled.
+- Vendor SystemUI checks `service.adb.tcp.port`, although this HU enables TCP 5555
+  through `persist.adb.tcp.port`. With the runtime property empty, its debugging
+  dialog immediately denied the connection on a sticky USB-disconnected broadcast.
+  Verified this condition in the installed `UsbDebuggingActivity` and event log.
+  Aligning the runtime flag to the already active port allowed the genuine prompt.
+  The installer handles this specific configuration; it never approves a key itself.
+- The local transport now tolerates delayed close/ack packets for retired stream
+  IDs and captures bounded shell output for ownership/mode checks. The existing
+  fake-adbd test also injects a delayed retired-stream close before the next OPEN.
+- Sync transfer can widen permissions on this firmware. Credential staging now
+  occurs only inside the private directory, checks final 0600 modes, and rotates
+  the early token on migration. The obsolete flat files were restricted to 0600;
+  the new helper no longer uses their credential.
+- Background startup retains the shell stream until the detached helper reports
+  readiness, then verifies authenticated replies after transport closure. Earlier
+  builds closed the shell before its child had reliably detached. A successful
+  setup alone did not establish restart reliability; the first fault tests failed.
+- Final helper fault test: verified exact shell UID/name, terminated PID13306,
+  and observed the launcher start PID13489 in **1.1 seconds**. No Crimson bootstrap
+  command was issued. Verified directory 0700 and token/JAR 0600. Evidence:
+  `window-helper-restart-20261027.txt` in the private research folder.
+- Final 0.5.14 native probe passed gestures, preserved task on resize, software
+  reverse suppression/restoration and Home dismissal. The probe starts with a
+  proper HOME intent and records post-Home task state instead of treating an
+  empty historical task container as a running app.
+- Actual picker testing on 0.5.10 selected YouTube task179, retained it through
+  five map pans and dock expansion/collapse, and dismissed it on FULL. Final
+  0.5.14 screenshot confirms the smaller corner chevron, unobscured zoom control
+  and full-width native YouTube pane. No permanent side rail is reserved.
+
+All **92 unit tests** and app/test APK builds passed. Physical camera priority,
+broader app compatibility and a real cold boot still need their own checks.
+Device screenshots/logs remain outside Git under `/home/beauhill/ram-phoenix-research`.
+
 ## Verification and pending checks
 
 - `testDebugUnitTest assembleDebug assembleDebugAndroidTest`: **37 unit tests,
@@ -116,10 +158,9 @@ own blank status-bar area. Vendor cold-boot restoration of bars remains to test.
   file transfer, interleaved transport acknowledgments and stream teardown.
 - Three message-authentication tests reject changed credentials, payloads, nonces
   and malformed signatures.
-- **The native always-on-top proof passed on the awake HU. The integrated 0.5.5
-  interaction test has not run.** Android reported the display off when its UI
-  test began. Beau chose to test later; no off-screen task state is counted as a
-  visual pass, and no new Android approval prompt was requested unattended.
+- The initial 0.5.5 integrated test was postponed because the display was off.
+  The later cumulative build's live results are recorded above; no off-screen
+  task state was counted as a visual pass.
 - 0.5.3 physical reverse takeover/dismissal and factory overlay removal are
   user-confirmed. Those results do not establish camera priority for the new
   always-on-top native backend.
@@ -127,15 +168,14 @@ own blank status-bar area. Vendor cold-boot restoration of bars remains to test.
   the app; use each corner picker; hide/show the dock and confirm the app expands
   without restarting; select FULL/Home/drawer apps; Reverse → Park with the native
   split app visible. Repeat with WirelessOne, without operating Air Lift controls.
-- Complete the one-time setup, then stop/restart only the companion and verify
-  automatic recovery. Finally repeat after a real HU cold boot. Chrome/Spotify
-  split compatibility remains unverified.
+- One-time setup and companion-only recovery are now verified above. Repeat after
+  a real HU cold boot. Chrome/Spotify split compatibility remains unverified.
 
 The device-only `PaneWindowProbe` now checks native visibility after four map
 gestures, preserved task ID on resize, the software reverse gate and Home
 dismissal. It refuses to run with the display off. Its software reverse gate is
-not a substitute for a physical reverse test. It has compiled but has not run
-against 0.5.5. Run only with a parked truck and an available display:
+not a substitute for a physical reverse test. It passed on cumulative 0.5.14.
+Run only with a parked truck and an available display:
 
 ```sh
 python3 tools/install_launcher.py 192.168.0.225:5555 apps/launcher/app/build/outputs/apk/debug/app-debug.apk

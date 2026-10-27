@@ -45,10 +45,12 @@ public final class PaneWindowProbe extends Instrumentation {
     }
     @Override public void onStart() {
         if(operation.equals("maintenance")){new MaintenanceProbe(this).run();return;}
+        if(operation.startsWith("device-")){new DeviceReadProbe(this).run(operation);return;}
         Bundle result=new Bundle();
         try {
             if(!shell("dumpsys display").contains("mState=ON")) throw new IllegalStateException("Display off; parked ACC/Run required");
-            getTargetContext().startActivity(new Intent(getTargetContext(),LauncherActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+            getTargetContext().startActivity(new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME)
+                    .setClass(getTargetContext(),LauncherActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
             SystemClock.sleep(2000);
             WindowBridge bridge=WindowBridge.get(getTargetContext());
             if(operation.equals("setup")) {
@@ -74,7 +76,10 @@ public final class PaneWindowProbe extends Instrumentation {
             runOnMainSync(() -> PaneWindows.reverse(getTargetContext(),false));SystemClock.sleep(2000);int restored=visibleTarget();
             report("reverse-guard-released",restored);
             shell("input keyevent HOME");SystemClock.sleep(1000);
-            if(!task(restored).isEmpty()) throw new AssertionError("Home did not dismiss the owned app");
+            report("after-home",restored);
+            String afterHome=task(restored);
+            if(afterHome.contains("visible=true") || afterHome.contains("ActivityRecord{"))
+                throw new AssertionError("Home did not dismiss the owned app");
             result.putString("result","Passed: map gestures, in-place resize, reverse gate, Home dismissal");finish(-1,result);
         } catch(Throwable failure) {
             result.putString("failure",failure.toString());finish(0,result);

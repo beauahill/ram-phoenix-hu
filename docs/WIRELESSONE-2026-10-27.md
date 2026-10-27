@@ -97,16 +97,39 @@ Synthetic unit-test bytes are **not live truck captures**.
 
 `testDebugUnitTest assembleDebug assembleDebugAndroidTest` succeeded: **81 tests,
 zero failures/errors/skips**, including 16 new synthetic protocol/session tests.
-The capture helper's `--help` path was checked; no installed-package capture ran.
+The capture helper's `--help` path was checked during the original offline build.
 APK SHA-256: `7139df033119da921916f3ee01b35a25642ad9060d2d0a7b694c72bff3d6111b`.
 Local candidate: `HU/artifacts/phoenix-launcher-0.5.8.apk`.
 `HU/artifacts/wirelessone-0.5.8-preview.png` is a desktop design preview with sample
 values and an example kit, not an Android/HU screenshot.
 
-These checks do **not** verify HU BLE support, pairing, manifold service/packet
-compatibility, actual inflation/deflation, keyboard behavior or the card's actual
-panel layout. Latest cumulative build also contains pending split, climate-icon
-and maintenance checks in [WORKLIST.md](WORKLIST.md).
+## Live read-only check, 2026-10-27
+
+Captured the installed APK set without launching WirelessOne. Version 2.3.0,
+code 100305 and its signing certificate match the inspected reference. The HU
+supports BLE and already pairs with `WirelessONE-052680`. Beau reports a 100 psi
+maximum on the manual controller; this is an owner-reported limit, not independent
+identification of the installed air-spring kit.
+
+The device-only `device-air` probe connected to that single bonded manifold,
+discovered services, read fields serially, then disconnected. It implements no
+characteristic or descriptor writes and makes no pressure/configuration changes.
+Captured fields:
+
+| Field | Raw bytes | Interpretation |
+| --- | --- | --- |
+| FA01 | `0001` | Ordinary mode (first byte 0) |
+| FB01 | `002600` | Idle flags, 38 kPa ≈ 5.51 psi measured |
+| FB04 | 20 zero bytes | No diagnostic flags |
+| FC10 | `230000` | 35 kPa ≈ 5.08 psi target; manual preset 0 |
+| FC56 | Absent | No optional tank-mode field |
+| Device information | ASCII | Air Lift, model 72708, firmware 1.2.0 |
+
+Evidence: `/home/beauhill/ram-phoenix-research/wirelessone-readonly-20261027.txt`;
+APK capture under `wirelessone/installed-20261027/`. This establishes live read
+compatibility with the observed fields. Actual inflation/deflation, target-write
+acknowledgment, handoff behavior, keyboard behavior and final panel layout remain
+unverified. **No suspension command has been sent.**
 
 1. Obtain the kit model/part number and its allowed pressures. Beau has been asked;
    do not substitute the truck model or an assumed LoadLifter kit.

@@ -53,7 +53,7 @@ public class ObdWidget {
             else tile.setVisibility(View.GONE);
         }
         status.setText(GaugeReading.summary(coolant, trans, pressure, temperature) + " · "
-                + (obd.connected() ? "OBDLINK" : obd.status().replace("OBD: ", "").toUpperCase(Locale.US)));
+                + (obd.connected() ? "OBDLINK" : obd.displayStatus()));
     }
 
     private TextView[] addTile() {

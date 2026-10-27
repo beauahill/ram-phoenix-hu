@@ -93,12 +93,15 @@ public class LocalAdbTest {
                     assertArrayEquals(content,received.toByteArray());
                     Packet quit=read(socket);assertEquals("WRTE",quit.cmd);send(socket,"OKAY",90,id,new byte[0]);
                     send(socket,"CLSE",90,id,new byte[0]);assertEquals("CLSE",read(socket).cmd);
+                    // A delayed transport teardown for the retired sync stream
+                    // may arrive after the next OPEN; it belongs to the old ID.
+                    send(socket,"CLSE",90,id,new byte[0]);
                     open=read(socket);assertEquals("OPEN",open.cmd);assertEquals("shell:echo ready\0",new String(open.data,StandardCharsets.UTF_8));
                     send(socket,"OKAY",91,open.a,new byte[0]);send(socket,"WRTE",91,open.a,"ready\n".getBytes(StandardCharsets.UTF_8));
                     assertEquals("OKAY",read(socket).cmd);send(socket,"CLSE",91,open.a,new byte[0]);assertEquals("CLSE",read(socket).cmd);
                 }catch(Exception e){throw new RuntimeException(e);}
             });
-            try(LocalAdb adb=new LocalAdb(pair,server.getLocalPort(),false)) { adb.push("/data/local/tmp/test",content);adb.shell("echo ready"); }
+            try(LocalAdb adb=new LocalAdb(pair,server.getLocalPort(),false)) { adb.push("/data/local/tmp/test",content);assertEquals("ready\n",adb.shell("echo ready")); }
             device.get(5,TimeUnit.SECONDS);worker.shutdownNow();
         }
     }

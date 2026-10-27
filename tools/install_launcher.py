@@ -20,6 +20,13 @@ if run("get-state") != "device":
     raise SystemExit("Head unit is not connected")
 if "mState=ON" not in run("shell", "dumpsys", "display"):
     raise SystemExit("Parked ACC/Run with the display on is required")
+# Vendor init enables TCP from persist.adb.tcp.port, but SystemUI only checks the
+# runtime property. Without it the local-key dialog instantly treats Wi-Fi as an
+# unplugged USB cable. Align the existing port; this does not approve any key.
+if (args.serial.endswith(":5555")
+        and run("shell", "getprop", "persist.adb.tcp.port") == "5555"
+        and run("shell", "getprop", "service.adb.tcp.port") in ("", "0")):
+    run("shell", "setprop", "service.adb.tcp.port", "5555")
 # Stop the client, then let its native task lease expire before stopping the server.
 run("shell", "am", "force-stop", "com.ramphoenix.launcher")
 time.sleep(2.2)
@@ -39,5 +46,6 @@ run("shell", "appops", "set", "com.ramphoenix.launcher", "SYSTEM_ALERT_WINDOW", 
 run("shell", "settings", "put", "system", "show_navigationbar", "0")
 run("shell", "am", "broadcast", "-a", "com.fyt.action.hide_statusbar", "-p",
     "com.android.systemui", "--ez", "visibe", "false")
-print(run("shell", "am", "start", "-n", "com.ramphoenix.launcher/.LauncherActivity"))
+print(run("shell", "am", "start", "-a", "android.intent.action.MAIN", "-c",
+          "android.intent.category.HOME", "-n", "com.ramphoenix.launcher/.LauncherActivity"))
 print("If requested, finish Enable split app windows on the parked head unit.")
