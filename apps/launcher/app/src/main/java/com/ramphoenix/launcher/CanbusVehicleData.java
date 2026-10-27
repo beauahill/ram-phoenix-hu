@@ -9,13 +9,14 @@ import android.util.Log;
  * Vehicle data from the SYU ToolkitService and the truck's verified OBD profiles.
  *
  * This HU reports PA_RAM_22_Low (2163062) through CANBUS subscription 1000.
- * The factory PA accessory-gauge decoder supplies oil temperature on CANBUS 235;
- * see docs/OIL-DATA-2019-RAM3500.md for the packet layout and live verification.
+ * The factory PA accessory-gauge decoder supplies coolant/oil/transmission
+ * temperatures on 234/235/236 and oil pressure on 237. Oil temperature has been
+ * checked against the cluster; the additional mappings still need a truck test.
  *   MAIN 40    outside temperature: (v & 0xFFFF) is tenths of a degree + 1000,
  *              bit 28 set = Fahrenheit (live: 268437096 -> 1640 -> 64 F, matched the cluster)
  * Door/speed subscriptions and optional raw-frame logging are retained from the
  * older LZ investigation; speed units and PA raw-frame delivery remain unverified.
- * Other verified engine and tire-pressure values are delegated to ObdClient.
+ * Missing/invalid engine fields, voltage and tire pressures use ObdClient.
  * Unsupported values remain null.
  */
 public class CanbusVehicleData implements VehicleData {
@@ -31,34 +32,33 @@ public class CanbusVehicleData implements VehicleData {
     private final Runnable onChange;
     private volatile boolean connected;
     private volatile Float outsideC, speedKph;
-    private final RamPaOil paOil = new RamPaOil();
+    private final RamPaGauges paGauges = new RamPaGauges();
+    private boolean gaugeRequested;
+    private final Runnable gaugeRequest = this::requestGauges;
     private final boolean[] doors = new boolean[6];
 
     public CanbusVehicleData(Context ctx, Runnable onChange) {
         this.onChange = onChange;
         ipc = new SyuIpc(ctx);
         ipc.setConnectionListener(c -> {
-            connected = c; changed();
-            if (!c) paOil.clear();
-            if (c) ui.postDelayed(() -> {
-                if (connected && (paOil.supported() || oilProbeEnabled())) {
-                    // Same read/page request as the factory accessory-gauge activity.
-                    Log.i(TAG, "PA RAM gauge read request page 82: "
-                            + ipc.cmd(SyuIpc.MODULE_CANBUS, 4, new int[]{82}));
-                }
-            }, 700);
+            connected = c;
+            if (!c) { paGauges.clear(); gaugeRequested = false; ui.removeCallbacks(gaugeRequest); }
+            changed();
+            if (c) ui.postDelayed(gaugeRequest, 700);
         });
-        for (int code : new int[]{234, 235, 236, 237, 238, 301, 372, 373, 374, 395, 1000}) {
+        for (int code : new int[]{1000, 234, 235, 236, 237, 238, 301, 372, 373, 374, 395}) {
             ipc.subscribe(SyuIpc.MODULE_CANBUS, code, (c, ints, f, s) -> {
                 if (ints != null && ints.length > 0) {
-                    if (c == RamPaOil.TEMPERATURE_CODE) {
-                        paOil.temperature(ints[0]);
-                        Log.i(TAG, "PA RAM oil temperature raw=" + ints[0]
-                                + " Celsius=" + RamPaOil.decodeTemperature(ints[0]));
+                    if (c >= RamPaGauges.COOLANT && c <= RamPaGauges.OIL_PRESSURE) {
+                        paGauges.update(c, ints[0]);
+                        Log.i("PhoenixGauges", "PA gauge field=" + c + " raw=" + ints[0]
+                                + " decoded=" + (c == RamPaGauges.OIL_PRESSURE
+                                ? RamPaGauges.decodePressure(ints[0]) : RamPaGauges.decodeTemperature(ints[0])));
                         changed();
                     } else if (c == 1000) {
-                        paOil.profile(ints[0]);
+                        paGauges.profile(ints[0]);
                         Log.i(TAG, "CAN profile from subscription=" + ints[0]);
+                        ui.post(gaugeRequest);
                         changed();
                     }
                 }
@@ -98,33 +98,58 @@ public class CanbusVehicleData implements VehicleData {
 
     private void changed() { ui.post(onChange); }
 
+    private void requestGauges() {
+        if (!connected || gaugeRequested || !(paGauges.supported() || oilProbeEnabled())) return;
+        // Factory read/page request; does not change ECU settings or reset anything.
+        gaugeRequested = ipc.cmd(SyuIpc.MODULE_CANBUS, 4, new int[]{82});
+        Log.i("PhoenixGauges", "PA RAM gauge read request page 82: " + gaugeRequested);
+    }
+
     private static boolean oilProbeEnabled() {
+        return "1".equals(property("persist.phoenix.can.oilprobe", ""));
+    }
+    private static boolean preferCanGauges() { return !"0".equals(property("persist.phoenix.can.gauges", "1")); }
+    private static String property(String name, String fallback) {
         try {
-            return "1".equals(Class.forName("android.os.SystemProperties")
+            return (String) Class.forName("android.os.SystemProperties")
                     .getMethod("get", String.class, String.class)
-                    .invoke(null, "persist.phoenix.can.oilprobe", ""));
-        } catch (Exception e) { return false; }
+                    .invoke(null, name, fallback);
+        } catch (Exception e) { return fallback; }
     }
 
     public void connect() { ipc.connect(); }
-    public void disconnect() { connected = false; paOil.clear(); ipc.disconnect(); }
+    public void disconnect() {
+        connected = false; paGauges.clear(); gaugeRequested = false;
+        ui.removeCallbacks(gaugeRequest); ipc.disconnect();
+    }
+
+    int canGaugeMask() { return preferCanGauges() ? paGauges.availableMask(connected) : 0; }
+    @Override public GaugeReading reading(Gauge gauge) {
+        Float factory = preferCanGauges() ? paGauges.value(gauge, connected) : null;
+        if (factory != null) return GaugeReading.choose(factory, null);
+        Float fallback = null;
+        if (obd != null && obd.connected()) switch (gauge) {
+            case COOLANT: fallback = obd.coolantC(); break;
+            case TRANSMISSION: fallback = obd.transC(); break;
+            case OIL_PRESSURE: fallback = obd.oilPsi(); break;
+            case OIL_TEMPERATURE: fallback = obd.oilTempC(); break;
+        }
+        return GaugeReading.choose(null, fallback);
+    }
 
     public boolean doorOpen(int idx) { return idx >= 0 && idx < 6 && doors[idx]; }
     public boolean anyDoorOpen() { for (boolean d : doors) if (d) return true; return false; }
 
     @Override public Float tirePsi(int corner) { return obd != null ? obd.tirePsi(corner) : null; }
     @Override public Float fuelPercent() { return null; }
-    @Override public Float coolantC() { return obd != null ? obd.coolantC() : null; }
+    @Override public Float coolantC() { return reading(Gauge.COOLANT).value; }
     @Override public Float batteryVolts() { return obd != null ? obd.volts() : null; }
-    @Override public Float transC() { return obd != null ? obd.transC() : null; }
-    @Override public Float oilPsi() { return obd != null ? obd.oilPsi() : null; }
-    @Override public Float oilTempC() {
-        Float factory = paOil.temperatureC(connected);
-        return factory != null ? factory : obd != null ? obd.oilTempC() : null;
-    }
+    @Override public Float transC() { return reading(Gauge.TRANSMISSION).value; }
+    @Override public Float oilPsi() { return reading(Gauge.OIL_PRESSURE).value; }
+    @Override public Float oilTempC() { return reading(Gauge.OIL_TEMPERATURE).value; }
     @Override public int doorsOpen() { if (!connected) return -1; int n = 0; for (boolean d : doors) if (d) n++; return n; }
     @Override public Float outsideC() { return outsideC; }
     @Override public Float speedKph() { return speedKph; }
     @Override public Float rpm() { return null; }
-    @Override public boolean available() { return (connected && outsideC != null) || (obd != null && obd.connected()); }
+    @Override public boolean available() { return (connected && (outsideC != null || canGaugeMask() != 0)) || (obd != null && obd.connected()); }
 }

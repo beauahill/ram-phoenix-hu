@@ -1,5 +1,9 @@
 # Oil data — 2019 RAM 3500 SRW
 
+Follow-up: [CAN-preferred engine gauges, 2026-10-27](CAN-GAUGES-2019-RAM3500.md)
+traces coolant, transmission temperature and oil pressure and adds candidate 0.5.9.
+The live verification below concerns oil **temperature**, not oil pressure.
+
 2026-10-26, branch `codex/oil-data-2019-3500`, based on visual-refinement commit
 `d9f83ab`. Launcher **0.5.1 / code 8**. Camera remains **0.3.4 / code 7**.
 Main is unchanged. Truck: 6.7L Cummins, 68RFE, SRW.

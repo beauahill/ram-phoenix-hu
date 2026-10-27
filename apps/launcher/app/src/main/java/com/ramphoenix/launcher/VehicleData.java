@@ -4,12 +4,20 @@ package com.ramphoenix.launcher;
  * Vehicle sensor snapshot for the dashboard. {@code null} = not available.
  *
  * CanbusVehicleData combines verified SYU ToolkitService fields with ObdClient
- * readings. Outside and oil temperature use the factory IPC; coolant, voltage,
- * transmission temperature, oil pressure and TPMS use verified OBD routes.
+ * readings. Engine gauges prefer the mapped PA factory IPC fields and fall back
+ * individually to OBD. Voltage and TPMS still use OBD; outside temperature uses IPC.
  * See docs/TPMS-2019-RAM3500.md and docs/OIL-DATA-2019-RAM3500.md. Unsupported
  * fields remain null. STUB is an unavailable placeholder, not the live source.
  */
 public interface VehicleData {
+
+    enum Gauge {
+        COOLANT(1), TRANSMISSION(2), OIL_PRESSURE(4), OIL_TEMPERATURE(8);
+        final int mask;
+        Gauge(int mask) { this.mask = mask; }
+    }
+    /** Value/source pair for engine gauges, so source labels cannot be guessed from a non-null value. */
+    default GaugeReading reading(Gauge gauge) { return GaugeReading.NONE; }
 
     int FL = 0, FR = 1, RL = 2, RR = 3;
 

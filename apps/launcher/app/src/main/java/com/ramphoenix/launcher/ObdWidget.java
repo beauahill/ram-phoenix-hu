@@ -11,7 +11,7 @@ import java.util.List;
 import java.util.Locale;
 
 /**
- * Vehicle data card: coolant, trans, oil pressure, factory/OBD oil temp, voltage, plus any extra
+ * Vehicle data card: source-aware factory/OBD engine gauges, voltage, plus any extra
  * PIDs configured as persist.phoenix.obd.custom1..4 ("LABEL,request,formula,unit").
  */
 public class ObdWidget {
@@ -31,23 +31,29 @@ public class ObdWidget {
 
     public void render() {
         List<String[]> rows = new ArrayList<>();
-        rows.add(new String[]{"COOLANT", f(obd.coolantC(), true)});
-        rows.add(new String[]{"TRANS", f(obd.transC(), true)});
-        rows.add(new String[]{"OIL PSI", obd.oilPsi() == null ? Fmt.NONE : String.format(Locale.US, "%.0f", obd.oilPsi())});
-        rows.add(new String[]{"OIL TEMP", f(vehicle.oilTempC(), true)});
-        rows.add(new String[]{"VOLTS", Fmt.volts(obd.volts())});
+        GaugeReading coolant = vehicle.reading(VehicleData.Gauge.COOLANT), trans = vehicle.reading(VehicleData.Gauge.TRANSMISSION);
+        GaugeReading pressure = vehicle.reading(VehicleData.Gauge.OIL_PRESSURE), temperature = vehicle.reading(VehicleData.Gauge.OIL_TEMPERATURE);
+        rows.add(new String[]{"COOLANT", f(coolant.value, true), coolant.label()});
+        rows.add(new String[]{"TRANS", f(trans.value, true), trans.label()});
+        rows.add(new String[]{"OIL PSI", pressure.value == null ? Fmt.NONE : String.format(Locale.US, "%.0f", pressure.value), pressure.label()});
+        rows.add(new String[]{"OIL TEMP", f(temperature.value, true), temperature.label()});
+        rows.add(new String[]{"VOLTS", Fmt.volts(obd.volts()), obd.volts() == null ? "—" : "OBD"});
         for (java.util.Map.Entry<String, String> e : obd.customUnit.entrySet()) {
             Float v = obd.custom.get(e.getKey());
-            rows.add(new String[]{e.getKey().toUpperCase(Locale.US), v == null ? Fmt.NONE : String.format(Locale.US, "%.0f%s", v, e.getValue())});
+            rows.add(new String[]{e.getKey().toUpperCase(Locale.US), v == null ? Fmt.NONE : String.format(Locale.US, "%.0f%s", v, e.getValue()), v == null ? "—" : "OBD"});
         }
         while (cells.size() < rows.size()) cells.add(addTile());
         for (int i = 0; i < cells.size(); i++) {
             TextView[] c = cells.get(i);
             View tile = (View) c[0].getParent();
-            if (i < rows.size()) { tile.setVisibility(View.VISIBLE); c[0].setText(rows.get(i)[1]); c[1].setText(rows.get(i)[0]); }
+            if (i < rows.size()) {
+                tile.setVisibility(View.VISIBLE); c[0].setText(rows.get(i)[1]); c[1].setText(rows.get(i)[0]); c[2].setText(rows.get(i)[2]);
+                c[2].setTextColor(act.getColor("CAN".equals(rows.get(i)[2]) ? R.color.teal : R.color.text_tertiary));
+            }
             else tile.setVisibility(View.GONE);
         }
-        status.setText(obd.connected() ? "OBDLINK" : obd.status().replace("OBD: ", "").toUpperCase(Locale.US));
+        status.setText(GaugeReading.summary(coolant, trans, pressure, temperature) + " · "
+                + (obd.connected() ? "OBDLINK" : obd.status().replace("OBD: ", "").toUpperCase(Locale.US)));
     }
 
     private TextView[] addTile() {
@@ -62,9 +68,10 @@ public class ObdWidget {
         value.setTextColor(act.getColor(R.color.text_primary)); value.setTextSize(22); value.setGravity(Gravity.CENTER);
         TextView label = new TextView(act);
         label.setTextColor(act.getColor(R.color.text_tertiary)); label.setTextSize(9); label.setLetterSpacing(0.12f); label.setGravity(Gravity.CENTER);
-        t.addView(value); t.addView(label);
+        TextView source = new TextView(act); source.setTextSize(8); source.setGravity(Gravity.CENTER);
+        t.addView(value); t.addView(label); t.addView(source);
         tiles.addView(t, lp);
-        return new TextView[]{value, label};
+        return new TextView[]{value, label, source};
     }
 
     private static String f(Float c, boolean temp) { return temp ? Fmt.tempF(c) : (c == null ? Fmt.NONE : String.valueOf(c)); }

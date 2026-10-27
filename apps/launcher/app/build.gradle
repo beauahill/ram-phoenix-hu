@@ -21,8 +21,8 @@ android {
         applicationId 'com.ramphoenix.launcher'
         minSdk 31
         targetSdk 33
-        versionCode 15
-        versionName '0.5.8'
+        versionCode 16
+        versionName '0.5.9'
         testInstrumentationRunner 'com.ramphoenix.launcher.PaneWindowProbe'
         manifestPlaceholders = [MAPS_API_KEY: mapsKey]
     }

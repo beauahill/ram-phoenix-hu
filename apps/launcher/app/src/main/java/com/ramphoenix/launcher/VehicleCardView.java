@@ -16,7 +16,7 @@ import java.util.Locale;
 /** Vehicle readings retain their sources; the presentation uses a rendered SRW truck and digital gauges. */
 public class VehicleCardView extends View {
     private final TextPaint value = new TextPaint(Paint.ANTI_ALIAS_FLAG);
-    private final Paint label = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final TextPaint label = new TextPaint(Paint.ANTI_ALIAS_FLAG);
     private final Paint ink = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
     private final RectF rect = new RectF();
     private final Bitmap truck;
@@ -79,11 +79,13 @@ public class VehicleCardView extends View {
         ink.setColor(stroke);
         c.drawRect(w * 0.335f, h * 0.12f, w * 0.335f + unit * 0.5f, h * 0.88f, ink);
         float mx = w * 0.375f, mw = w * 0.155f, gap = w * 0.045f;
-        metric(c, mx, h * 0.12f, mw, h * 0.34f, "COOLANT", Fmt.tempF(data.coolantC()), fahrenheit(data.coolantC()), 100, 260, unit);
-        metric(c, mx + mw + gap, h * 0.12f, mw, h * 0.34f, "TRANS", Fmt.tempF(data.transC()), fahrenheit(data.transC()), 100, 260, unit);
-        Float oil = data.oilPsi();
+        GaugeReading coolant = data.reading(VehicleData.Gauge.COOLANT), trans = data.reading(VehicleData.Gauge.TRANSMISSION);
+        GaugeReading oilPressure = data.reading(VehicleData.Gauge.OIL_PRESSURE), oilTemperature = data.reading(VehicleData.Gauge.OIL_TEMPERATURE);
+        metric(c, mx, h * 0.12f, mw, h * 0.34f, "COOLANT", Fmt.tempF(coolant.value), fahrenheit(coolant.value), 100, 260, unit);
+        metric(c, mx + mw + gap, h * 0.12f, mw, h * 0.34f, "TRANS", Fmt.tempF(trans.value), fahrenheit(trans.value), 100, 260, unit);
+        Float oil = oilPressure.value;
         metric(c, mx, h * 0.55f, mw, h * 0.34f, "OIL PSI", oil == null ? Fmt.NONE : String.format(Locale.US, "%.0f", oil), oil, 0, 80, unit);
-        metric(c, mx + mw + gap, h * 0.55f, mw, h * 0.34f, "OIL TEMP", Fmt.tempF(data.oilTempC()), fahrenheit(data.oilTempC()), 100, 280, unit);
+        metric(c, mx + mw + gap, h * 0.55f, mw, h * 0.34f, "OIL TEMP", Fmt.tempF(oilTemperature.value), fahrenheit(oilTemperature.value), 100, 280, unit);
 
         float rx = w * 0.79f, right = w * 0.98f;
         row(c, rx, right, h * 0.18f, "OUTSIDE", Fmt.tempF(data.outsideC()), unit);
@@ -93,9 +95,14 @@ public class VehicleCardView extends View {
         row(c, rx, right, h * 0.82f, "SERVICE", serviceText == null ? Fmt.NONE : serviceText, unit);
         label.setTextSize(7.5f * unit);
         label.setTextAlign(Paint.Align.RIGHT);
-        String source = data.available() ? (data.coolantC() != null ? "CAN BUS + OBD" : "CAN BUS") : "NO VEHICLE DATA";
-        if (data.coolantC() == null && obdStatus != null) source += " · " + obdStatus;
+        String source = data.available() ? GaugeReading.summary(coolant, trans, oilPressure, oilTemperature) : "NO VEHICLE DATA";
+        boolean allCan = coolant.source == GaugeReading.Source.CAN && trans.source == GaugeReading.Source.CAN
+                && oilPressure.source == GaugeReading.Source.CAN && oilTemperature.source == GaugeReading.Source.CAN;
+        if (!allCan && obdStatus != null) source += " · " + obdStatus;
+        label.setLetterSpacing(0f);
+        source = TextUtils.ellipsize(source, label, right - w * 0.35f, TextUtils.TruncateAt.END).toString();
         c.drawText(source, right, h * 0.97f, label);
+        label.setLetterSpacing(0.06f);
     }
 
     private void metric(Canvas c, float x, float y, float w, float h, String title, String text,

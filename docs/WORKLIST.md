@@ -1,6 +1,6 @@
 # Active worklist
 
-Updated 2026-10-27. Current branch: `codex/wirelessone-2026-10-27`, based on the
+Updated 2026-10-27. Current branch: `codex/can-gauges-2026-10-27`, based on the
 tested reliability, TPMS and camera-alignment branches. Main is unchanged.
 
 ## Completed and previously verified
@@ -36,7 +36,7 @@ targets. Both launcher and climate are part of the same visual system.
 - [x] Implement SPLIT 0.5.5: native task management, in-place resize, full-width
   panes and corner chevrons. Native always-on-top proof passed; 37 unit tests pass.
   See [SPLIT-WINDOWS-2026-10-26.md](SPLIT-WINDOWS-2026-10-26.md).
-- [ ] Install the latest cumulative 0.5.8 revision (includes 0.5.5/0.5.6/0.5.7). An earlier candidate is on the HU; the
+- [ ] Install the latest cumulative 0.5.9 revision (includes 0.5.5–0.5.8). An earlier candidate is on the HU; the
   final installation was prevented by the HU going offline (`No route to host`).
 - [ ] Run integrated native split-backend parked map/app/chevron/dock/FULL/Home tests. Display
   switched off; Beau opted to test later. Do not call this visually verified.
@@ -97,6 +97,17 @@ targets. Both launcher and climate are part of the same visual system.
   explicit parked pressure/handoff/disconnect/reverse test. No live actuation tested.
 
 ## Remaining reliability work
+
+- [x] Trace factory PA coolant 234, transmission 236 and oil-pressure 237 fields
+  alongside the previously verified oil-temperature 235. Implement CAN preference
+  per field, existing OBD fallback, unit/initial-zero checks and source labels in
+  both cards. Launcher 0.5.9 builds; all 92 tests pass.
+  See [CAN-GAUGES-2019-RAM3500.md](CAN-GAUGES-2019-RAM3500.md).
+- [ ] Compare 234/236/237 with the cluster on the actual HU, then verify operation
+  without the OBD connection. Additional field mappings are source-traced, not
+  live-verified. Initial untagged zero pressure is not an established CAN sample.
+- [ ] Establish upstream CAN freshness independently of change-only IPC callbacks.
+  OBD polling remains available during live comparison and fallback.
 
 - [ ] Cold boot: identify and resolve vendor re-enabling of stock camera packages.
   Preserve ToolkitService and CAN/MCU functions. Requires a later parked cold boot.
